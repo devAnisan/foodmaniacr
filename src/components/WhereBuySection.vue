@@ -1,4 +1,11 @@
 <template>
+  <div v-if="!loader">
+    <section
+      class="flex items-center justify-center h-screen fontColor text-2xl"
+    >
+      Cargando...
+    </section>
+  </div>
   <div class="flex flex-col items-center p-8 gap-6">
     <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
       <a
@@ -28,6 +35,7 @@ import { storage } from "../firebase.js";
 // docs
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase.js";
+const loader = vueRef(true);
 
 const props = defineProps({
   sucursal: Object,
@@ -48,5 +56,6 @@ onMounted(async () => {
       logo: url,
     });
   });
+  loader.value = true;
 });
 </script>

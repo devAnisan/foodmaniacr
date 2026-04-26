@@ -51,7 +51,7 @@
     </nav>
   </header>
 
-  <body v-if="!loader" @click="menuOpen = false" class="fontColor">
+  <body v-if="!loader" @click="menuOpen = false" class="fontColor pt-24">
     <div>
       <HeroCarousel />
       <section id="sucursales">
