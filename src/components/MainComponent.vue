@@ -81,8 +81,20 @@
         </button>
       </section>
 
-      <section v-show="branchSectionShow">
-        <section class="p-2 text-center text-lg">
+      <section
+        class="flex flex-col justify-center my-8 px-2"
+        v-show="branchSectionShow"
+      >
+        <section
+          v-if="loaderBranchSection"
+          class="flex items-center justify-center w-32"
+        >
+          <section class="fontColor text-2xl animate-spin text-center">
+            <span class="pi pi-spinner"></span>
+          </section>
+        </section>
+
+        <section v-else class="p-2 text-center text-lg">
           <h1 class="text-center">
             Tu sucursal más cercana es:
             <span id="extrabold">{{ titleNearestBranch }}</span>
@@ -126,11 +138,11 @@ import Dropmenu from "../composable/Dropmenu.vue";
 import BranchSection from "./BranchSection.vue";
 import WhereBuySection from "./WhereBuySection.vue";
 import Footer from "./Footer.vue";
-
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase.js";
-const sucursales = vueRef([]);
 
+const sucursales = vueRef([]);
+const loaderBranchSection = vueRef(true);
 const menuOpen = vueRef(false);
 const imageUrl = vueRef("");
 const imageUrlMenu = vueRef("");
@@ -181,6 +193,9 @@ const findNearBranch = (lat, lng) => {
 
 // and get user's current location
 const getLocation = () => {
+  branchSectionShow.value = true;
+  loaderBranchSection.value = true;
+
   navigator.geolocation.getCurrentPosition(
     (position) => {
       const lat = position.coords.latitude;
@@ -188,13 +203,13 @@ const getLocation = () => {
       latCurrent.value = lat;
       lngCurrent.value = lng;
       findNearBranch(lat, lng);
-      branchSectionShow.value = true;
+      loaderBranchSection.value = false;
     },
     (error) => {
       console.error("Error getting geolocation:", error);
+      loaderBranchSection.value = false;
     },
   );
-  console.log(nearestBranch);
 };
 
 onMounted(async () => {
