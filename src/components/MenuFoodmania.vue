@@ -183,7 +183,7 @@
 </template>
 
 <script setup>
-import { ref as vueRef, onMounted, watch } from "vue";
+import { ref as vueRef, onMounted } from "vue";
 import { ref as storageRef, getDownloadURL } from "firebase/storage";
 import { storage } from "../firebase.js";
 import Footer from "./Footer.vue";
