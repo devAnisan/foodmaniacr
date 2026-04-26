@@ -218,7 +218,7 @@ const openMenu = () => {
 };
 
 onMounted(async () => {
-  const imgRef = storageRef(storage, "FoodMania/foodManiaLogo.svg");
+  const imgRef = storageRef(storage, "FoodMania/logoFoodManiaPNG.png");
   imageUrl.value = await getDownloadURL(imgRef);
   for (const categoria of categorias.value) {
     const snap = await getDocs(collection(db, categoria.coleccion));
