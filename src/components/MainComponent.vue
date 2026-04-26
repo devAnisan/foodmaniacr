@@ -82,7 +82,7 @@
       </section>
 
       <section
-        class="flex flex-col justify-center my-8 px-2"
+        class="flex flex-col justify-center my-8 px-2 items-center"
         v-show="branchSectionShow"
       >
         <section
