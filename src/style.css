@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@import 'primeicons/primeicons.css';
+
+html {
+  scroll-behavior: smooth;
+}
+* {
+  font-family: "Baloo Bhai 2", sans-serif;
+}
+.fontColor {
+  color: #642d81;
+}
+
+.title {
+  color: white;
+  background: #642d81;
+  padding: 0.15rem 0.2rem;
+  border-radius: 0.25rem;
+  margin: -0.45rem;
+}
+
+#extrabold {
+  font-family: "Baloo Bhai 2", sans-serif;
+  font-weight: 800;
+}
