@@ -224,7 +224,7 @@ onMounted(async () => {
     });
   });
   const imgRefmenu = storageRef(storage, "FoodMania/amenuFoodmania.jpeg");
-  const imgRef = storageRef(storage, "FoodMania/foodManiaLogo.svg");
+  const imgRef = storageRef(storage, "FoodMania/logoFoodManiaPNG.png");
   imageUrlMenu.value = await getDownloadURL(imgRefmenu);
   imageUrl.value = await getDownloadURL(imgRef);
   setTimeout(() => {
