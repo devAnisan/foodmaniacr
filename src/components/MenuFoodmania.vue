@@ -1,25 +1,114 @@
 <template>
-  <!-- modal del carrito  -->
+  <!-- Modal de inicio de sesión -->
+  <div
+  v-if="menuLogIn"
+    class="fixed inset-0 z-60 bg-white h-full w-full flex items-center justify-center fontColor"
+  >
+    <div class="p-4 rounded-lg shadow-lg z-80 w-80 bg-white">
+      <section class="flex justify-between border-b text-center">
+        <span class="text-2xl"> Iniciar Sesión </span>
+        <span>
+          <button @click="menuLogIn = false; forgotPassword = false; justLogin = true" class="text-red-500 hover:text-red-700 p-2 rounded hover:cursor-pointer">
+            <span class="pi pi-times"></span>
+          </button>
+        </span>
+      </section>
+      <section class="flex flex-col p-4 text-center">
+        <img :src="imageUrl" alt="logo_foodmania" class="w-20 mx-auto mb-4" />
+        <h1>Correo electrónico</h1>
 
-  <section>
-    <div
-      v-if="loader"
-      class="flex items-center justify-center h-screen fontColor text-2xl"
-    >
-      Cargando menú...
+        <input v-model="email" type="email" placeholder="Ingresa tu correo electrónico" class="p-2 border  w-full rounded"/>
+        <div v-if="!forgotPassword">
+          <h2>Contraseña</h2>
+        </div>
+        <section v-if="justLogin && !forgotPassword" class="flex flex-col">
+          <input v-model="password1" type="password" placeholder="Ingresa tu contraseña" class="p-2  w-full border rounded"/>
+        </section>
+        <section class="flex flex-col" v-else-if="!justLogin && !forgotLogin" >
+          <input v-model="password1" type="password" placeholder="Crear contraseña" class="p-2 border rounded w-full"/>
+          <input v-model="password2" type="password" placeholder="Confirmar contraseña" class="p-2 border rounded mt-2  w-full"/>
+          <p class="text-sm  mt-2 text-red-500  w-full">
+            Debe contener al menos 8 caracteres, una letra mayúscula, una letra minúscula y un número.
+            </p>
+        </section>
+        <div v-if="justLogin && !forgotPassword">
+          <button
+          @click="login(email, password1)"
+            class="mt-4 bg-[#642d81] text-white px-4 py-2 rounded hover:bg-[#422d4d] transition-colors duration-300 hover:cursor-pointer"
+          >
+            Iniciar sesión
+          </button>
+
+        </div>
+        <div v-else-if="!justLogin && !forgotPassword">
+          <button
+          @click="register(email, password1, password2)"
+            class="mt-4 bg-[#642d81] text-white px-4 py-2 rounded hover:bg-[#422d4d] transition-colors duration-300 hover:cursor-pointer"
+          >
+            Crear cuenta
+          </button>
+        </div>
+        <div v-if="forgotPassword">
+          <button
+          @click="resetPassword(email)"
+            class="mt-4 bg-[#642d81] text-white px-4 py-2 rounded hover:bg-[#422d4d] transition-colors duration-300 hover:cursor-pointer"
+          >
+            Enviar correo de recuperación
+          </button>
+        </div>
+      </section>
+      <section v-if="justLogin" class="text-center">
+        <p class="text-sm text-gray-600 mt-4 border-b p-2">
+          ¿No tienes una cuenta? <pre></pre>
+          <a href="#" @click="justLogin = false; forgotPassword = false" class="text-blue-500">Regístrate</a>
+        </p>
+        <p>
+          <button class="text-blue-500 text-sm hover:text-blue-700 hover:cursor-pointer" @click="forgotPassword = true">¿Olvidaste tu contraseña?</button>
+        </p>
+      </section>
+      <section v-if="!justLogin" class="text-center">
+        <p class="text-sm text-gray-600 mt-4">
+          ¿Ya tienes una cuenta? <pre></pre>
+          <a href="#" @click="justLogin = true" class="text-blue-500">Inicia sesión</a>
+        </p>
+      </section>
     </div>
+  </div>
+  <!-- Fin Modal de inicio de sesión -->
+
+  <!-- Informacion de usuario y cierre de sesión -->
+  <section v-if="showUserModal && user" class="fixed top-20 right-4 z-90 bg-white p-4 rounded-lg shadow-lg fontColor w-60 text-center">
+    <section class="flex justify-between border-b p-2" @click="showUserModal = false">
+      <span>Hola{{ user ? ` , ${user.email.split('@')[0]}.` : ", Buen día." }}</span>
+      <span class="pi pi-times text-red-500 hover:text-red-700 hover:cursor-pointer"></span>
+    </section>
+    <section class="flex justify-center flex-col items-center">
+      <span>Correo: {{ user.email }}</span>
+
+      <button v-if="user" @click="auth.signOut()" class="mt-4 bg-[#642d81] text-white px-4 py-2 rounded hover:bg-[#422d4d] transition-colors duration-300 hover:cursor-pointer">
+        Cerrar sesión
+      </button>
+    </section>
   </section>
+  <!-- Fin Informacion de usuario y cierre de sesión -->
+
   <header class="fixed top-0 left-0 right-0 z-50 bg-white fontColor">
     <section v-if="menuOpen">
       <ul
         class="flex flex-col p-2 box-border absolute top-25 right-4 bg-white rounded-lg shadow-lg w-40 space-y-2"
       >
-        <li class="p-1"><a href="#">Inicia sesión</a></li>
+        <li class="p-1">
+          <button @click="openLogin" class="w-full text-left">
+            {{ user ? user.email.split('@')[0] : "Inicia sesión" }}
+
+          </button>
+        </li>
         <li class="p-1">
           <button @click="openMenu()">Ver carrito</button>
         </li>
       </ul>
     </section>
+    <!-- Carrito de compras -->
     <section>
       <section
         v-if="menuItems === true"
@@ -93,6 +182,8 @@
           </div>
         </div>
       </section>
+
+      <!-- Fin Carrito de compras -->
     </section>
     <nav class="flex md:hidden items-center justify-between p-4 shadow-sm">
       <section class="flex items-center space-x-2 hover:cursor-pointer">
@@ -109,7 +200,6 @@
         </span>
       </section>
     </nav>
-    <!-- Pantallas medianas -->
     <nav class="hidden md:flex items-center justify-between p-4 shadow-sm">
       <section class="flex items-center space-x-2 hover:cursor-pointer">
         <img :src="imageUrl" alt="Foodmania Logo" />
@@ -119,10 +209,11 @@
 
       <section class="flex space-x-6">
         <button
+        @click="openLogin"
           id="extrabold"
           class="border my-0.5 p-2 pl-3 pr-3 rounded-full hover:cursor-pointer"
         >
-          {{ user ? "Ordena aquí" : "Inicia sesión" }}
+          {{ user ? user.email.split('@')[0] : "Inicia sesión" }}
           <a href="/menu" target="_blank"></a>
         </button>
 
@@ -138,58 +229,73 @@
       </section>
     </nav>
   </header>
-  <section
-    @click="menuItems = false"
-    class="p-4 pt-24 fontColor"
-    v-for="categoria in categorias"
-    :key="categoria.coleccion"
-  >
-    <div class="m-4">
-      <h1 class="p-2 title text-center text-4xl font-bold">
-        {{ categoria.nombre }}
-      </h1>
-    </div>
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 fontColor text-center">
-      <div v-for="item in categoria.productos" :key="item.id">
-        <div class="bg-white rounded-lg shadow-md p-4">
-          <img
-            v-if="item.imageUrl"
-            :src="item.imageUrl"
-            alt="Imagen del producto"
-            class="w-full h-32 object-cover mb-4 rounded"
-          />
-          <div
-            v-else
-            class="w-full h-32 bg-gray-300 flex items-center justify-center mb-4 rounded"
-          >
-            <span class="text-gray-500">🍽️</span>
-          </div>
-          <h2 class="font-bold mb-2">{{ item.nombre }}</h2>
-          <p class="text-gray-600 mb-2">{{ item.descripcion }}</p>
-          <p class="font-bold">₡{{ item.precio }}</p>
-          <section>
-            <button
-              @click="cartStore.addItem(item)"
-              class="mt-2 bg-[#642d81] text-white px-4 py-2 rounded hover:cursor-pointer hover:bg-[#422d4d] transition-colors duration-300"
+  <!-- ---- -->
+  <body>
+    <section  >
+      <div
+        v-if="loader"
+        class="flex items-center justify-center h-screen fontColor text-2xl"
+      >
+        Cargando menú...
+      </div>
+    </section>
+    <section
+      v-if="!loader"
+      @click="menuItems = false"
+      class="p-4 pt-24 fontColor"
+      v-for="categoria in categorias"
+      :key="categoria.coleccion"
+    >
+      <div class="m-4">
+        <h1 class="p-2 title text-center text-4xl font-bold">
+          {{ categoria.nombre }}
+        </h1>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4 fontColor text-center">
+        <div v-for="item in categoria.productos" :key="item.id">
+          <div class="bg-white rounded-lg shadow-md p-4">
+            <img
+              v-if="item.imageUrl"
+              :src="item.imageUrl"
+              alt="Imagen del producto"
+              class="w-full h-32 object-cover mb-4 rounded"
+            />
+            <div
+              v-else
+              class="w-full h-32 bg-gray-300 flex items-center justify-center mb-4 rounded"
             >
-              Agregar al carrito
-            </button>
-          </section>
+              <span class="text-gray-500">🍽️</span>
+            </div>
+            <h2 class="font-bold mb-2">{{ item.nombre }}</h2>
+            <p class="text-gray-600 mb-2">{{ item.descripcion }}</p>
+            <p class="font-bold">₡{{ item.precio }}</p>
+            <section>
+              <button
+                @click="cartStore.addItem(item)"
+                class="mt-2 bg-[#642d81] text-white px-4 py-2 rounded hover:cursor-pointer hover:bg-[#422d4d] transition-colors duration-300"
+              >
+                Agregar al carrito
+              </button>
+            </section>
+          </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
+  </body>
   <Footer />
 </template>
 
 <script setup>
-import { ref as vueRef, onMounted } from "vue";
+import { ref as vueRef, onMounted, watch } from "vue";
 import { ref as storageRef, getDownloadURL } from "firebase/storage";
 import { storage } from "../firebase.js";
 import Footer from "./Footer.vue";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../firebase.js";
+const justLogin = vueRef(true);
 import { useCartStore } from "../stores/carStores.js";
+
+const showUserModal = vueRef(true);
 const user = vueRef(null);
 onAuthStateChanged(auth, (currentUser) => {
   user.value = currentUser;
@@ -207,15 +313,71 @@ const categorias = vueRef([
   { nombre: "Supremos", coleccion: "supremos", productos: [] },
   { nombre: "Surtidos", coleccion: "surtidos", productos: [] },
 ]);
+const password1 = vueRef("");
+const password2 = vueRef("");
+const email = vueRef("");
+const forgotPassword = vueRef(false);
+// Restablecer contraseña
+const resetPassword = async (email) => {
+    const send = await sendPasswordResetEmail(auth, email).then(() => {
+      return true;
+    }).catch((error) => {
+      return false;
+    });
+    if (send) {
+      alert("Correo de recuperación enviado. Por favor revisa tu bandeja de entrada. Si no lo ves, revisa tu carpeta de spam.");
+    } else {
+      alert("Error al enviar el correo de recuperación. Verifica que el correo sea correcto.");
+    }
+}
+// Crear una cuenta de usuario
+const register = async (email, password1, password2) => {
+
+  if (password1 !== password2) {
+    alert("Las contraseñas no coinciden. Por favor, inténtalo de nuevo.");
+    return;
+  }
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password1);
+    await sendEmailVerification(userCredential.user);
+    alert("Cuenta creada exitosamente. Por favor verifica tu correo electrónico.");
+    window.location.reload();
+  } catch (error) {
+    alert("Error al crear la cuenta. Verifica que los datos sean correctos.");
+  }
+};
+
+// Iniciar sesión de usuario
+const login = async (email, password1) => {
+  try {
+    await signInWithEmailAndPassword(auth, email, password1);
+    window.location.reload();
+    alert("Inicio de sesión exitoso.");
+  } catch (error) {
+    alert("Error al iniciar sesión. Verifica tus credenciales.");
+  }
+};
 
 const loader = vueRef(true);
 const menuOpen = vueRef(false);
 const imageUrl = vueRef("");
-
+const menuLogIn = vueRef(false);
 const openMenu = () => {
   menuOpen.value = !menuOpen.value;
   menuItems.value = true;
 };
+
+const openLogin = () => {
+  if (user.value) {
+    showUserModal.value = !showUserModal.value;
+  } else {
+    menuLogIn.value = true;
+  }
+};
+
+watch(menuLogIn, (newValue) => {
+  document.body.style.overflow = newValue ? "hidden" : "";
+});
 
 onMounted(async () => {
   const imgRef = storageRef(storage, "FoodMania/logoFoodManiaPNG.png");
