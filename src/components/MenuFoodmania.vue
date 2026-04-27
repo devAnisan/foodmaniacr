@@ -84,6 +84,7 @@
     </section>
     <section class="flex justify-center flex-col items-center">
       <span>Correo: {{ user.email }}</span>
+      <span class="font-bold">{{ user.emailVerified ? 'Email verificado ✓' : 'Email no verificado ✗' }} </span>
 
       <button v-if="user" @click="auth.signOut()" class="mt-4 bg-[#642d81] text-white px-4 py-2 rounded hover:bg-[#422d4d] transition-colors duration-300 hover:cursor-pointer">
         Cerrar sesión
@@ -230,15 +231,17 @@
     </nav>
   </header>
   <!-- ---- -->
+
   <body>
     <section  >
       <div
-        v-if="loader"
-        class="flex items-center justify-center h-screen fontColor text-2xl"
+      v-if="loader"
+      class="flex items-center justify-center h-screen fontColor text-2xl"
       >
         Cargando menú...
       </div>
     </section>
+
     <section
       v-if="!loader"
       @click="menuItems = false"
@@ -246,6 +249,33 @@
       v-for="categoria in categorias"
       :key="categoria.coleccion"
     >
+    <div>
+      <div class="flex flex-row">
+        <section class="w-64 flex flex-col items-center justify-center p-4 rounded-lg mb-4">
+          <h1 class="text-center">Retiro en {{ withDrawType.type }}</h1>
+          <section>
+            <button
+              @click="withDrawType.type = 'sucursal'"
+              :class="withDrawType.type === 'sucursal' ? 'bg-[#642d81] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
+              class="px-4 py-2 rounded hover:cursor-pointer transition-colors duration-300"
+            >
+              Sucursal
+            </button>
+            <button
+              @click="withDrawType.type = 'domicilio'"
+              :class="withDrawType.type === 'domicilio' ? 'bg-[#642d81] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
+              class="px-4 py-2 rounded hover:cursor-pointer transition-colors duration-300 ml-2"
+            >
+              Domicilio
+            </button>
+          </section>
+        </section>
+        <section class="flex justify-center items-center w-64">
+          <h1 v-if="withDrawType.type === 'sucursal'">¿Donde deseas retirar tu pedido?</h1>
+          <h1 v-else>Verifica tu dirección de envío</h1>
+        </section>
+      </div>
+    </div>
       <div class="m-4">
         <h1 class="p-2 title text-center text-4xl font-bold">
           {{ categoria.nombre }}
@@ -317,6 +347,7 @@ const password1 = vueRef("");
 const password2 = vueRef("");
 const email = vueRef("");
 const forgotPassword = vueRef(false);
+const withDrawType = vueRef({ type: "sucursal" });
 // Restablecer contraseña
 const resetPassword = async (email) => {
     const send = await sendPasswordResetEmail(auth, email).then(() => {
@@ -351,6 +382,8 @@ const register = async (email, password1, password2) => {
 const login = async (email, password1) => {
   try {
     await signInWithEmailAndPassword(auth, email, password1);
+
+
     window.location.reload();
     alert("Inicio de sesión exitoso.");
   } catch (error) {
@@ -402,5 +435,6 @@ onMounted(async () => {
   }
 
   loader.value = false;
+
 });
 </script>
