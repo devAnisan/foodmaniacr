@@ -31,7 +31,7 @@
                 </ul>
             </section>
             <section class="hover:cursor-pointer">
-                <button id="extrabold" class="border my-0.5 p-2 pl-3 pr-3 rounded-full hover:cursor-pointer">
+                <button id="extrabold" @click="getLocations()" class="border my-0.5 p-2 pl-3 pr-3 rounded-full hover:cursor-pointer">
                     <RouterLink to="/menu" target="_blank">Ordena aquí</RouterLink>
                 </button>
             </section>
@@ -97,7 +97,7 @@
                     ¿Estas listo para probar el mejor sabor de tu vida? ¡Ordena ahora y
                     disfruta de una experiencia culinaria única con Foodmania!
                 </p>
-                <button id="extrabold" class="border my-0.5 p-2 pl-3 pr-3 rounded-full hover:cursor-pointer">
+                <button id="extrabold" @click="getLocations()"  class="border my-0.5 p-2 pl-3 pr-3 rounded-full hover:cursor-pointer">
                     <RouterLink to="/menu" target="_blank">Ordena aquí</RouterLink>
                 </button>
             </div>

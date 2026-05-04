@@ -239,7 +239,12 @@
                         <h1 class="text-red-600"> Fuera de la zona de reparto. Por favor, hazlo por retiro en tienda.</h1>
                     </section>
                     <section v-else>
-
+                        <button @click="getLocations()"
+                    class="flex justify-center items-center shadow-lg p-2 px-4 rounded-full hover:cursor-pointer">
+                    <span id="dondeComprar" class="text-lg">
+                        Conocer mi sucursal más cercana 📍
+                    </span>
+                </button>
                     </section>
                 </section>
             </section>
