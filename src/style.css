@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-@import 'primeicons/primeicons.css';
+@import "primeicons/primeicons.css";
 
 html {
   scroll-behavior: smooth;

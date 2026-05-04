@@ -6,4 +6,4 @@ import piniaPluginPersistedstate from "pinia-plugin-persistedstate";
 import router from "./router";
 const pinia = createPinia();
 pinia.use(piniaPluginPersistedstate);
-createApp(App).use(router).use(pinia).mount("#app");
+createApp(App).use(pinia).use(router).mount("#app");
