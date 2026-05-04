@@ -296,7 +296,7 @@ import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndP
 import { auth } from '../firebase.js'
 import { useCartStore, useLocationStore, useSucursales } from '../stores/carStores.js'
 import Footer from './Footer.vue'
-import CheckoutModal from './CheckoutModal.vue'
+import CheckoutModal from './Checkoutmodal.vue'
 
 // ── Componente inline ProductCard ──────────────────────────────────────────
 const ProductCard = defineComponent({
