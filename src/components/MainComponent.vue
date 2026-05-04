@@ -31,7 +31,7 @@
                 </ul>
             </section>
             <section class="hover:cursor-pointer">
-                <button id="extrabold" @click="getLocations()" class="border my-0.5 p-2 pl-3 pr-3 rounded-full hover:cursor-pointer">
+                <button id="extrabold"  class="border my-0.5 p-2 pl-3 pr-3 rounded-full hover:cursor-pointer">
                     <RouterLink to="/menu" target="_blank">Ordena aquí</RouterLink>
                 </button>
             </section>
@@ -97,7 +97,7 @@
                     ¿Estas listo para probar el mejor sabor de tu vida? ¡Ordena ahora y
                     disfruta de una experiencia culinaria única con Foodmania!
                 </p>
-                <button id="extrabold" @click="getLocations()"  class="border my-0.5 p-2 pl-3 pr-3 rounded-full hover:cursor-pointer">
+                <button id="extrabold" class="border my-0.5 p-2 pl-3 pr-3 rounded-full hover:cursor-pointer">
                     <RouterLink to="/menu" target="_blank">Ordena aquí</RouterLink>
                 </button>
             </div>
@@ -116,9 +116,10 @@ import WhereBuySection from "./WhereBuySection.vue";
 import Footer from "./Footer.vue";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase.js";
-import { useLocationStore } from "../stores/carStores.js";
+import { useCartStore, useLocationStore, useSucursales } from "../stores/carStores.js";
 import { getLocation } from "../composable/saberDistancia.js";
 const locationStore = useLocationStore()
+const sucursalesStore = useSucursales()
 const sucursales = vueRef([]);
 const loaderBranchSection = vueRef(true);
 const menuOpen = vueRef(false);
@@ -143,6 +144,7 @@ const getLocations = () => {
 
 onMounted(async () => {
 
+
     const docRef = collection(db, "Sucursales de Foodmania");
     const docSnap = await getDocs(docRef);
 
@@ -154,6 +156,9 @@ onMounted(async () => {
             ...docData,
         });
     });
+    sucursalesStore.sucursalesFoodMania = sucursales.value
+
+
     const imgRefmenu = storageRef(storage, "FoodMania/amenuFoodmania.jpeg");
     const imgRef = storageRef(storage, "FoodMania/logoFoodmania4.PNG");
     imageUrlMenu.value = await getDownloadURL(imgRefmenu);

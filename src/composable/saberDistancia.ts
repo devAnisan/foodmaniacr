@@ -33,10 +33,11 @@ const findNearBranch = (lat: number, lng: number, sucursales: Insucursal[]) => {
     const locationStore = useLocationStore()
     let minDistance = Infinity;
 
-
+    console.log(sucursales);
 
     for (let i = 0; i < sucursales.length; i++) {
         const branch = sucursales[i]
+
         const distance = calcDistance(lat, lng, parseFloat(branch.lat), parseFloat(branch.lng))
         if (distance < minDistance) {
             minDistance = distance;
