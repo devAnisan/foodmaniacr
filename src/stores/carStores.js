@@ -1,5 +1,21 @@
 import { defineStore } from "pinia";
 import { ref as vueRef, computed } from "vue";
+import { storage } from "../firebase";
+
+export const useSucursales = defineStore("sucursales", () => {
+    const sucursalesFoodMania = vueRef([])
+    return {sucursalesFoodMania}
+},{
+    persist: {
+        enabled: true,
+        strategies: [
+            {
+                key: "sucursales",
+                storage: localStorage,
+            }
+        ]
+    }
+} )
 
 export const useLocationStore = defineStore("location", () => {
     const distancia = vueRef()

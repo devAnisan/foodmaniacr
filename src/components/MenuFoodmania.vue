@@ -227,7 +227,7 @@
             <section class="flex justify-center items-center w-64">
                 <section v-if="withDrawType.type === 'sucursal'">
 
-                    <h1 >¿Donde deseas retirar tu pedido?</h1>
+                    <h1>¿Donde deseas retirar tu pedido?</h1>
                     <select name="sucursales" id="sucursales" class="p-1 border rounded-lg">
                         <option value="pavasSucursal">Pavas</option>
                         <option value="guapilesSucursal">Guapiles</option>
@@ -236,15 +236,16 @@
                 </section>
                 <section v-else>
                     <section v-if="locationStore.distancia > 10 && locationStore.distancia != null">
-                        <h1 class="text-red-600"> Fuera de la zona de reparto. Por favor, hazlo por retiro en tienda.</h1>
+                        <h1 class="text-red-600"> Fuera de la zona de reparto. Por favor, hazlo por retiro en tienda.
+                        </h1>
                     </section>
                     <section v-else>
                         <button @click="getLocations()"
-                    class="flex justify-center items-center shadow-lg p-2 px-4 rounded-full hover:cursor-pointer">
-                    <span id="dondeComprar" class="text-lg">
-                        Conocer mi sucursal más cercana 📍
-                    </span>
-                </button>
+                            class="flex justify-center items-center shadow-lg p-2 px-4 rounded-full hover:cursor-pointer">
+                            <span id="dondeComprar" class="text-lg">
+                                Conocer mi sucursal más cercana 📍
+                            </span>
+                        </button>
                     </section>
                 </section>
             </section>
@@ -273,7 +274,7 @@
                         <p class="font-bold">₡{{ item.precio }}</p>
                         <section>
                             <button @click="cartStore.addItem(item)"
-                        class="mt-2 bg-[#642d81] text-white px-4 py-2 rounded hover:cursor-pointer hover:bg-[#422d4d] transition-colors duration-300">
+                                class="mt-2 bg-[#642d81] text-white px-4 py-2 rounded hover:cursor-pointer hover:bg-[#422d4d] transition-colors duration-300">
                                 Agregar al carrito
                             </button>
                         </section>
@@ -286,18 +287,19 @@
 </template>
 
 <script setup>
+import { getLocation } from "../composable/saberDistancia.js";
 
-
-import { ref as vueRef, onMounted, watch } from "vue";
+import { ref as vueRef, onMounted, watch, toRaw } from "vue";
 import { ref as storageRef, getDownloadURL } from "firebase/storage";
 import { storage } from "../firebase.js";
 import Footer from "./Footer.vue";
 import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../firebase.js";
-import { useCartStore, useLocationStore } from "../stores/carStores.js";
+import { useCartStore, useLocationStore, useSucursales } from "../stores/carStores.js";
 const justLogin = vueRef(true);
-
+const fueraDeZona = vueRef(true)
 const locationStore = useLocationStore()
+const locationSucursales = useSucursales()
 const showUserModal = vueRef(true);
 const user = vueRef(null);
 onAuthStateChanged(auth, (currentUser) => {
@@ -316,6 +318,11 @@ const categorias = vueRef([
     { nombre: "Supremos", coleccion: "supremos", productos: [] },
     { nombre: "Surtidos", coleccion: "surtidos", productos: [] },
 ]);
+
+const getLocations = () => {
+    const resultado = getLocation(toRaw(locationSucursales.sucursalesFoodMania))
+}
+
 const password1 = vueRef("");
 const password2 = vueRef("");
 const email = vueRef("");
@@ -384,8 +391,21 @@ const openLogin = () => {
 watch(menuLogIn, (newValue) => {
     document.body.style.overflow = newValue ? "hidden" : "";
 });
+const sucursales = vueRef([])
+const sucursalesStore = useSucursales()
 
 onMounted(async () => {
+
+    const docRef = collection(db, "Sucursales de Foodmania");
+    const docSnap = await getDocs(docRef);
+    docSnap.forEach(async (doc) => {
+        const docData = doc.data();
+
+        sucursales.value.push({
+            ...docData,
+        });
+    });
+    sucursalesStore.sucursalesFoodMania = sucursales.value
     const imgRef = storageRef(storage, "FoodMania/logoFoodmania4.PNG");
     imageUrl.value = await getDownloadURL(imgRef);
     for (const categoria of categorias.value) {
