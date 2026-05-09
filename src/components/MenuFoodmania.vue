@@ -62,15 +62,20 @@
         </section>
         <section class="flex flex-col items-center gap-3">
             <span class="text-sm text-gray-500">{{ user.email }}</span>
+            <span> </span>
             <span class="text-sm font-bold">{{ user.emailVerified ? '✅ Email verificado' : '⚠️ Email no verificado'
-                }}</span>
+            }}</span>
+            <button @click="editProfileModal = true"
+                class="w-full bg-[#642d81] text-white px-4 py-2 rounded-lg hover:bg-[#422d4d] transition-colors hover:cursor-pointer">
+                Editar perfil
+            </button>
             <button @click="auth.signOut()"
                 class="w-full bg-[#642d81] text-white px-4 py-2 rounded-lg hover:bg-[#422d4d] transition-colors hover:cursor-pointer">
                 Cerrar sesión
             </button>
         </section>
     </section>
-
+    <EditProfileModal v-model="editProfileModal" />
     <!-- Header -->
     <header class="fixed top-0 left-0 right-0 z-50 bg-white fontColor shadow-sm">
         <!-- Mobile dropdown -->
@@ -101,7 +106,7 @@
                 <div v-for="value in cartStore.items" :key="value.id"
                     class="flex fontColor justify-between items-center border-b p-3">
                     <div class="flex-1 text-sm font-bold">{{ value.nombre }} <span class="text-gray-400">x{{
-                            value.cantidad }}</span></div>
+                        value.cantidad }}</span></div>
                     <div class="text-sm mr-2">₡{{ value.precio * value.cantidad }}</div>
                     <div class="flex items-center gap-1">
                         <button @click="cartStore.removeItem(value.id)" class="text-gray-400 hover:text-red-500 p-1">
@@ -248,6 +253,7 @@
 
                     <div v-else class="grid grid-cols-2 md:grid-cols-5 gap-4">
                         <ProductCard v-for="item in categoriaActiva.productos" :key="item.id" :item="item"
+                            :esPromocion="categoriaActiva.coleccion === 'promociones'"
                             @agregar="cartStore.addItem(item)" />
                     </div>
                 </div>
@@ -275,7 +281,7 @@
                         <!-- Productos (solo los primeros 5 en vista general) -->
                         <div v-else class="grid grid-cols-2 md:grid-cols-5 gap-4">
                             <ProductCard v-for="item in cat.productos.slice(0, 5)" :key="item.id" :item="item"
-                                @agregar="cartStore.addItem(item)" />
+                                :esPromocion="cat.coleccion === 'promociones'" @agregar="cartStore.addItem(item)" />
                         </div>
                     </div>
                 </div>
@@ -290,19 +296,26 @@
 import { ref as vueRef, computed, watch, onMounted, defineComponent, h } from 'vue'
 import { ref as storageRef, getDownloadURL } from 'firebase/storage'
 import { storage } from '../firebase.js'
-import { collection, getDocs } from 'firebase/firestore'
+import { collection, doc, getDocs, setDoc, Timestamp } from 'firebase/firestore'
 import { db } from '../firebase.js'
 import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail } from 'firebase/auth'
 import { auth } from '../firebase.js'
 import { useCartStore, useLocationStore, useSucursales } from '../stores/carStores.js'
 import Footer from './Footer.vue'
 import CheckoutModal from './Checkoutmodal.vue'
-
+import { esPromocionActiva, diaPromocion } from '../composable/promociones.js'
+import EditProfileModal from './EditProfileModal.vue'
 // ── Componente inline ProductCard ──────────────────────────────────────────
 const ProductCard = defineComponent({
-    props: { item: Object },
+    props: { item: Object, esPromocion: Boolean },
     emits: ['agregar'],
     setup(props, { emit }) {
+
+        // ¿El botón está activo?
+        const activo = computed(() =>
+            props.esPromocion ? esPromocionActiva(props.item.nombre) : true
+        )
+
         return () => h('div', { class: 'bg-white rounded-xl shadow-md p-3 flex flex-col hover:shadow-lg transition-shadow duration-200' }, [
             props.item.imageUrl
                 ? h('img', { src: props.item.imageUrl, alt: props.item.nombre, loading: 'lazy', class: 'w-full h-32 object-cover rounded-lg mb-3' })
@@ -311,13 +324,15 @@ const ProductCard = defineComponent({
             props.item.descripcion ? h('p', { class: 'text-gray-400 text-xs mb-2 line-clamp-1' }, props.item.descripcion) : null,
             h('p', { class: 'font-bold text-[#642d81] mb-3' }, `₡${props.item.precio}`),
             h('button', {
-                class: 'w-full bg-[#642d81] text-white py-2 rounded-lg text-sm font-bold hover:bg-[#422d4d] transition-colors hover:cursor-pointer',
-                onClick: () => emit('agregar')
-            }, '+ Agregar')
+                disabled: !activo.value,
+                class: activo.value
+                    ? 'w-full bg-[#642d81] text-white py-2 rounded-lg text-sm font-bold hover:bg-[#422d4d] transition-colors hover:cursor-pointer'
+                    : 'w-full bg-gray-200 text-gray-400 py-2 rounded-lg text-sm font-bold cursor-not-allowed',
+                onClick: () => activo.value && emit('agregar')
+            }, activo.value ? '+ Agregar 🎉' : diaPromocion(props.item.nombre))
         ])
     }
 })
-
 // ── Stores ─────────────────────────────────────────────────────────────────
 const cartStore = useCartStore()
 const locationStore = useLocationStore()
@@ -330,6 +345,7 @@ const menuOpen = vueRef(false)
 const menuItems = vueRef(false)
 const showCheckout = vueRef(false)
 const showUserModal = vueRef(false)
+const editProfileModal = vueRef(false)
 const user = vueRef(null)
 const busqueda = vueRef('')
 const categoriaActiva = vueRef(null)
@@ -428,28 +444,51 @@ const openLogin = () => {
 
 const openMenu = () => { menuOpen.value = false; menuItems.value = true }
 
-const resetPassword = async (em) => {
+const resetPassword = async (email) => {
     try {
-        await sendPasswordResetEmail(auth, em)
+        await sendPasswordResetEmail(auth, email)
         successMsg.value = 'Correo de recuperación enviado 📧'
         errorMsg.value = ''
     } catch { errorMsg.value = 'Error al enviar el correo.'; successMsg.value = '' }
 }
 
-const register = async (em, p1, p2) => {
-    if (p1 !== p2) { errorMsg.value = 'Las contraseñas no coinciden.'; return }
-    try {
-        const uc = await createUserWithEmailAndPassword(auth, em, p1)
-        await sendEmailVerification(uc.user)
-        successMsg.value = 'Cuenta creada. Verificá tu correo 📧'
-        errorMsg.value = ''
-        setTimeout(() => window.location.reload(), 2000)
-    } catch { errorMsg.value = 'Error al crear la cuenta.'; successMsg.value = '' }
-}
+const register = async (email, password1, password2) => {
+    if (password1 !== password2) {
+        errorMsg.value = "Las contraseñas no coinciden. Por favor, intentalo de nuevo."
+        return
+    }
 
-const login = async (em, p1) => {
     try {
-        await signInWithEmailAndPassword(auth, em, p1)
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password1)
+        await sendEmailVerification(userCredential.user)
+        successMsg.value = "Cuenta creada exitosamente. Por favor verificá tu correo electrónico 📧"
+        errorMsg.value = ""
+    } catch (error) {
+        console.error("Error en Auth:", error.code)
+        errorMsg.value = "Error al crear la cuenta. Verificá que los datos sean correctos."
+        return
+    }
+
+    try {
+        await setDoc(doc(db, 'clientes', auth.currentUser.uid), {
+            email: email,
+            creadoEn: Timestamp.now(),
+            telefono: '',
+            nombre: '',
+            direccion: '',
+            lat: '',
+            lng: ''
+        })
+    } catch (error) {
+        console.error("Error en Firestore:", error)
+        // No mostramos error al usuario porque la cuenta sí se creó
+    }
+
+    setTimeout(() => window.location.reload(), 2000)
+}
+const login = async (email, password) => {
+    try {
+        await signInWithEmailAndPassword(auth, email, password)
         successMsg.value = 'Inicio de sesión exitoso ✅'
         errorMsg.value = ''
         setTimeout(() => window.location.reload(), 1000)
