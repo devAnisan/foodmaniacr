@@ -481,7 +481,6 @@ const register = async (email, password1, password2) => {
         })
     } catch (error) {
         console.error("Error en Firestore:", error)
-        // No mostramos error al usuario porque la cuenta sí se creó
     }
 
     setTimeout(() => window.location.reload(), 2000)
