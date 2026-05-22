@@ -27,7 +27,7 @@
                 <span class="text-2xl">👑</span>
                 <div>
                     <h1 class="text-xl font-bold text-[#642d81]">Panel de Control</h1>
-                    <p class="text-xs text-gray-400">Bienvenido, {{ adminNombre }} — {{ adminEmail }}</p>
+                    <p class="text-xs text-gray-400">Bienvenido, {{ adminNombre }} — Sucursal {{ adminSucursal }}</p>
                 </div>
             </div>
             <button @click="cerrarSesion"
@@ -112,7 +112,7 @@
                                 <span v-if="pedido.tipoRetiro === 'sucursal'">
                                     🏪 {{ pedido.sucursal }}<br />
                                     <span class="text-xs text-gray-400">{{ pedido.fechaRetiro }} {{ pedido.horaRetiro
-                                        }}</span>
+                                    }}</span>
                                 </span>
                                 <span v-else>
                                     🛵 Domicilio<br />
@@ -301,6 +301,7 @@ const verificando = vueRef(true)
 const esAdmin = vueRef(false)
 const adminEmail = vueRef('')
 const adminNombre = vueRef('')
+const adminSucursal = vueRef('') // ✅ Sucursal asignada al admin
 const pedidos = vueRef([])
 const cargandoPedidos = vueRef(false)
 const estadoActivo = vueRef('pendiente')
@@ -316,18 +317,24 @@ const estados = [
 // ── Verificar si el usuario es admin ──────────────────────────────────────
 const verificarAdmin = async (user) => {
     try {
+        console.log('Email del usuario logueado:', user.email)
         const superUserSnap = await getDocs(
             query(collection(db, 'superUser'), where('Correo', '==', user.email))
         )
-
+        console.log('Documentos encontrados:', superUserSnap.size)
+        console.log('Está vacío:', superUserSnap.empty)
         if (!superUserSnap.empty) {
             const superUserData = superUserSnap.docs[0].data()
+
             if (superUserData.rol === 'administrador') {
                 esAdmin.value = true
                 adminEmail.value = user.email
                 adminNombre.value = superUserData.usuario || user.email
+                adminSucursal.value = superUserData.sucursal || '' // ✅ Guardar sucursal del admin
                 await cargarPedidos()
             }
+            console.log('Datos del superUser:', superUserData)
+      console.log('Rol encontrado:', superUserData.rol)
         }
     } catch (error) {
         console.error('Error verificando admin:', error)
@@ -349,19 +356,29 @@ const cargarPedidos = async () => {
     }
 }
 
-// ── Filtrar pedidos por estado ─────────────────────────────────────────────
+// ── ✅ Filtrar pedidos por sucursal del admin Y estado ─────────────────────
+const pedidosDeSucursal = computed(() =>
+    pedidos.value.filter(p => {
+        if (p.tipoRetiro === 'domicilio') {
+            return p.sucursalCercana === adminSucursal.value
+        } else {
+            return p.sucursal === adminSucursal.value
+        }
+    })
+)
+
 const pedidosFiltrados = computed(() =>
-    pedidos.value.filter(p => p.estado === estadoActivo.value)
+    pedidosDeSucursal.value.filter(p => p.estado === estadoActivo.value)
 )
 
 const contarPorEstado = (estado) =>
-    pedidos.value.filter(p => p.estado === estado).length
+    pedidosDeSucursal.value.filter(p => p.estado === estado).length
 
 // ── Stats rápidos ──────────────────────────────────────────────────────────
 const stats = computed(() => [
     {
         label: 'Total pedidos',
-        valor: pedidos.value.length,
+        valor: pedidosDeSucursal.value.length,
         color: '#642d81'
     },
     {
@@ -385,6 +402,7 @@ const stats = computed(() => [
 const cambiarEstado = async (pedido, nuevoEstado) => {
     try {
         await updateDoc(doc(db, 'pedidos', pedido.id), { estado: nuevoEstado })
+        // Actualizar localmente sin recargar
         const index = pedidos.value.findIndex(p => p.id === pedido.id)
         if (index !== -1) pedidos.value[index].estado = nuevoEstado
     } catch (error) {
@@ -392,10 +410,12 @@ const cambiarEstado = async (pedido, nuevoEstado) => {
     }
 }
 
+// ── Ver detalle ────────────────────────────────────────────────────────────
 const verDetalle = (pedido) => {
     pedidoDetalle.value = pedido
 }
 
+// ── Colores por estado ─────────────────────────────────────────────────────
 const colorEstado = (estado) => {
     const colores = {
         'pendiente': 'bg-amber-100 text-amber-700',
@@ -416,6 +436,7 @@ const colorEstadoHex = (estado) => {
     return colores[estado] || '#642d81'
 }
 
+// ── Formatear fecha ────────────────────────────────────────────────────────
 const formatearFecha = (timestamp) => {
     if (!timestamp) return '—'
     const fecha = timestamp.toDate ? timestamp.toDate() : new Date(timestamp)
@@ -425,11 +446,13 @@ const formatearFecha = (timestamp) => {
     })
 }
 
+// ── Cerrar sesión ──────────────────────────────────────────────────────────
 const cerrarSesion = async () => {
     await signOut(auth)
     router.push('/')
 }
 
+// ── Auth check al montar ───────────────────────────────────────────────────
 onMounted(() => {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
