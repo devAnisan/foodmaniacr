@@ -1,12 +1,9 @@
 <template>
-  <!-- Overlay -->
   <div v-if="modelValue" class="fixed inset-0 bg-black/50 z-70" @click="$emit('update:modelValue', false)"></div>
 
-  <!-- Modal -->
   <div v-if="modelValue" class="fixed inset-0 z-80 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md fontColor overflow-y-auto max-h-[90vh]">
 
-      <!-- Header -->
       <div class="flex justify-between items-center p-5 border-b">
         <div class="flex items-center gap-2">
           <span class="pi pi-shopping-bag text-xl"></span>
@@ -16,14 +13,12 @@
           class="pi pi-times text-red-500 hover:text-red-700 hover:cursor-pointer p-2 rounded"></button>
       </div>
 
-      <!-- Loader -->
       <div v-if="loadingUsuario" class="flex justify-center items-center p-6">
         <span class="pi pi-spinner animate-spin text-3xl text-[#642d81]"></span>
       </div>
 
       <div v-else>
 
-        <!-- Carrito vacío -->
         <div v-if="cartStore.items.length === 0"
           class="flex flex-col items-center justify-center p-10 gap-4 text-center">
           <p class="text-5xl">🛒</p>
@@ -35,7 +30,6 @@
           </button>
         </div>
 
-        <!-- Fuera de horario en domicilio -->
         <div v-else-if="fueraDeHorario && withDrawType === 'domicilio'"
           class="flex flex-col items-center justify-center p-10 gap-4 text-center">
           <p class="text-5xl">🕐</p>
@@ -50,18 +44,79 @@
           </button>
         </div>
 
-        <!-- Contenido normal -->
         <div v-else>
 
           <!-- Resumen del pedido -->
           <div class="p-5 border-b bg-gray-50">
             <h2 class="font-bold mb-3">Resumen del pedido</h2>
-            <div v-for="item in cartStore.items" :key="item.id" class="flex justify-between text-sm mb-1">
-              <span>{{ item.nombre }} x{{ item.cantidad }}</span>
-              <span>₡{{ item.precio * item.cantidad }}</span>
+            <div v-for="item in cartStore.items" :key="item._uid" class="mb-3 pb-3 border-b border-dashed last:border-0">
+              <div class="flex justify-between text-sm">
+                <div>
+                  <span class="font-bold">{{ item.nombre }}</span>
+                  <span class="text-gray-400"> x{{ item.cantidad }}</span>
+                  <!-- Canje para bebida independiente o producto normal -->
+                  <button v-if="userLogueado && item.esBebida" @click="toggleItemPuntos(item)"
+                    :class="itemPuntosMap[item._uid] ? 'bg-green-100 text-green-700 border-green-300' : 'bg-gray-100 text-gray-500 border-gray-200'"
+                    class="text-[10px] px-2 py-0.5 rounded-full border font-bold ml-2 hover:cursor-pointer transition-colors">
+                    {{ itemPuntosMap[item._uid] ? '⭐ Canjeado' : 'Canjear ⭐' }}
+                  </button>
+                </div>
+                <span :class="itemPuntosMap[item._uid] ? 'text-green-600 line-through' : ''">
+                  ₡{{ item.precio * item.cantidad }}
+                  <span v-if="itemPuntosMap[item._uid]" class="text-green-600 font-bold ml-1 no-underline">
+                    ({{ puntosItem(item) }} pts)
+                  </span>
+                </span>
+              </div>
+
+              <!-- Bebida asociada a un producto -->
+              <div v-if="item.bebida" class="flex justify-between text-xs text-gray-500 mt-1 ml-2">
+                <div class="flex items-center gap-1">
+                  <span>🥤 {{ item.bebida.nombre }} x{{ item.cantidad }}</span>
+                  <button v-if="userLogueado" @click="toggleBebidaPuntos(item)"
+                    :class="bebidaPuntosMap[item._uid] ? 'bg-green-100 text-green-700 border-green-300' : 'bg-gray-100 text-gray-500 border-gray-200'"
+                    class="text-[10px] px-2 py-0.5 rounded-full border font-bold ml-2 hover:cursor-pointer transition-colors">
+                    {{ bebidaPuntosMap[item._uid] ? '⭐ Canjeado' : 'Canjear ⭐' }}
+                  </button>
+                </div>
+                <span :class="bebidaPuntosMap[item._uid] ? 'text-green-600 line-through' : ''">
+                  +₡{{ item.bebida.precio * item.cantidad }}
+                  <span v-if="bebidaPuntosMap[item._uid]" class="text-green-600 font-bold ml-1 no-underline">
+                    ({{ puntosBebida(item) }} pts)
+                  </span>
+                </span>
+              </div>
+
+              <!-- Papas con salsa -->
+              <div v-if="item.papasConSalsa" class="text-xs text-gray-500 mt-1 ml-2">🍟 Papas con salsa</div>
+
+              <!-- Salsas Alitas Mania -->
+              <div v-if="item.salsasAlitas?.length" class="text-xs text-gray-500 mt-1 ml-2">
+                🌶️ {{ item.salsasAlitas.join(', ') }}
+              </div>
+
+              <!-- Agrandar papas (pollofrito con papas == true) -->
+              <div v-if="item.papas === true" class="mt-2 ml-2 flex flex-wrap items-center gap-2">
+                <label class="flex items-center gap-1 text-xs text-gray-600 hover:cursor-pointer">
+                  <input type="checkbox" v-model="agrandarMap[item._uid]" class="accent-[#642d81]" />
+                  Agrandar papas
+                </label>
+                <div v-if="agrandarMap[item._uid]" class="flex gap-1">
+                  <button @click="toggleAgrandarPuntos(item, false)"
+                    :class="!agrandarPuntosMap[item._uid] ? 'bg-[#642d81] text-white' : 'bg-gray-200 text-gray-600'"
+                    class="text-[10px] px-2 py-0.5 rounded-full font-bold hover:cursor-pointer transition-colors">
+                    ₡{{ AGRANDAR_COSTO }}
+                  </button>
+                  <button v-if="userLogueado" @click="toggleAgrandarPuntos(item, true)"
+                    :class="agrandarPuntosMap[item._uid] ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-600'"
+                    class="text-[10px] px-2 py-0.5 rounded-full font-bold hover:cursor-pointer transition-colors">
+                    ⭐ {{ AGRANDAR_PUNTOS }} pts
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <!-- Envío solo en domicilio -->
+            <!-- Envío -->
             <div v-if="withDrawType === 'domicilio' && costoEnvio > 0"
               class="flex justify-between text-sm text-gray-500 mt-2 pt-2 border-t border-dashed">
               <div>
@@ -78,6 +133,18 @@
               <span>₡{{ totalConEnvio }}</span>
             </div>
 
+            <!-- Resumen de canje -->
+            <div v-if="userLogueado && totalPuntosAGastar > 0 && puntosActuales !== null"
+              class="mt-2 bg-yellow-50 border border-yellow-200 rounded-xl p-3">
+              <p class="text-xs font-bold text-yellow-700">
+                ⭐ Canjeando con puntos: {{ totalPuntosAGastar }} pts
+              </p>
+              <p v-if="puntosActuales < totalPuntosAGastar" class="text-xs text-red-600 font-bold">
+                ⚠️ Tenés {{ puntosActuales }} pts acumulados, necesitás {{ totalPuntosAGastar }} pts.
+              </p>
+              <p v-else class="text-xs text-green-700">Puntos acumulados disponibles: {{ puntosActuales }} pts ✅</p>
+            </div>
+
             <!-- Puntos a ganar -->
             <div class="mt-3 bg-purple-50 border border-purple-200 rounded-xl p-3 flex items-center gap-3">
               <span class="text-2xl">⭐</span>
@@ -86,10 +153,13 @@
                   Ganarás {{ puntosAGanar }} punto{{ puntosAGanar !== 1 ? 's' : '' }} con esta compra
                 </p>
                 <p class="text-xs text-gray-400">
-                  Calculado sobre ₡{{ cartStore.total }} en productos (₡500 = 1 punto)
+                  Calculado sobre ₡{{ baseCashTotal }} en productos (₡500 = 1 punto)
+                </p>
+                <p v-if="puntosActuales !== null && totalPuntosAGastar > 0" class="text-xs text-yellow-700 font-bold mt-0.5">
+                  ⚡ Los {{ puntosAGanar }} puntos de esta compra se suman después del canje
                 </p>
                 <p v-if="puntosActuales !== null" class="text-xs text-[#642d81] font-bold mt-0.5">
-                  Total acumulado: {{ puntosActuales + puntosAGanar }} puntos
+                  Saldo final estimado: {{ puntosActuales - totalPuntosAGastar + puntosAGanar }} puntos
                 </p>
               </div>
             </div>
@@ -131,8 +201,6 @@
 
           <!-- Datos según tipo de retiro -->
           <div class="p-5 border-b">
-
-            <!-- SUCURSAL -->
             <div v-if="withDrawType === 'sucursal'" class="flex flex-col gap-4">
               <div>
                 <label class="text-sm text-gray-500 block mb-1">Sucursal de retiro</label>
@@ -156,7 +224,6 @@
               </div>
             </div>
 
-            <!-- DOMICILIO -->
             <div v-else class="flex flex-col gap-4">
               <div>
                 <label class="text-sm text-gray-500 block mb-1">Dirección exacta de entrega</label>
@@ -208,7 +275,6 @@
               </button>
             </div>
 
-            <!-- Efectivo -->
             <div v-if="metodoPago === 'efectivo'" class="flex flex-col gap-2">
               <label class="text-sm text-gray-500">¿Con cuánto vas a pagar?</label>
               <input v-model="montoEfectivo" type="number" placeholder="Ej: 10000"
@@ -222,7 +288,6 @@
               </div>
             </div>
 
-            <!-- SINPE -->
             <div v-if="metodoPago === 'sinpe'" class="bg-gray-50 rounded-lg p-3 text-sm text-center">
               <p class="font-bold mb-1">SINPE Móvil al número:</p>
               <p class="text-2xl font-bold text-[#642d81]">{{ nCelular || '—' }}</p>
@@ -255,11 +320,16 @@
 </template>
 
 <script setup>
-import { ref as vueRef, computed, watch } from 'vue'
+import { ref as vueRef, computed, watch, reactive } from 'vue'
 import { useCartStore, useLocationStore, useSucursales } from '../stores/carStores.js'
 import { db, auth } from '../firebase.js'
 import { collection, addDoc, Timestamp, doc, getDoc, updateDoc, increment } from 'firebase/firestore'
 import { getLocation } from '../composable/saberDistancia.js'
+
+const AGRANDAR_COSTO = 500
+const AGRANDAR_PUNTOS = 25
+const PUNTOS_BEBIDA_REGULAR = 35
+const PUNTOS_BEBIDA_GRANDE = 55
 
 const props = defineProps({ modelValue: Boolean })
 const emit = defineEmits(['update:modelValue'])
@@ -269,14 +339,13 @@ const locationStore = useLocationStore()
 const sucursalesStore = useSucursales()
 
 const hoy = new Date().toISOString().split('T')[0]
+const userLogueado = vueRef(!!auth.currentUser)
 
-// Horario
 const fueraDeHorario = computed(() => {
   const hora = new Date().getHours()
   return hora < 11 || hora >= 23
 })
 
-// Form
 const withDrawType = vueRef('sucursal')
 const sucursalSeleccionada = vueRef('')
 const fechaRetiro = vueRef('')
@@ -299,10 +368,77 @@ const datosCliente = vueRef({
   lng: ''
 })
 
-// ✅ Puntos — solo sobre subtotal de productos, sin envío
-const puntosAGanar = computed(() => Math.floor(cartStore.total / 500))
+// Per-item state
+const agrandarMap = reactive({})
+const agrandarPuntosMap = reactive({})
+const bebidaPuntosMap = reactive({})
+const itemPuntosMap = reactive({})
 
-// ✅ Nuevo cálculo de envío: ₡1000 base + ₡400 por km adicional a partir del km 1
+const puntosBebida = (item) => {
+  const precio = item.bebida?.precio || 0
+  return precio >= 2500 ? PUNTOS_BEBIDA_GRANDE : PUNTOS_BEBIDA_REGULAR
+}
+const puntosItem = (item) => {
+  return item.precio >= 2500 ? PUNTOS_BEBIDA_GRANDE : PUNTOS_BEBIDA_REGULAR
+}
+
+const toggleBebidaPuntos = (item) => {
+  bebidaPuntosMap[item._uid] = !bebidaPuntosMap[item._uid]
+}
+
+const toggleItemPuntos = (item) => {
+  itemPuntosMap[item._uid] = !itemPuntosMap[item._uid]
+}
+
+const toggleAgrandarPuntos = (item, val) => {
+  agrandarPuntosMap[item._uid] = val
+}
+
+const baseCashTotal = computed(() => {
+  return cartStore.items.reduce((acc, item) => {
+    if (itemPuntosMap[item._uid]) return acc
+    return acc + item.precio * item.cantidad
+  }, 0)
+})
+
+const totalBebidasCash = computed(() => {
+  return cartStore.items.reduce((acc, item) => {
+    if (item.bebida && !bebidaPuntosMap[item._uid]) {
+      return acc + (item.bebida.precio * item.cantidad)
+    }
+    return acc
+  }, 0)
+})
+
+const totalAgrandarCash = computed(() => {
+  return cartStore.items.reduce((acc, item) => {
+    if (agrandarMap[item._uid] && !agrandarPuntosMap[item._uid]) {
+      return acc + (AGRANDAR_COSTO * item.cantidad)
+    }
+    return acc
+  }, 0)
+})
+
+const totalPuntosAGastar = computed(() => {
+  let pts = 0
+  for (const item of cartStore.items) {
+    if (itemPuntosMap[item._uid]) {
+      pts += puntosItem(item) * item.cantidad
+    }
+    if (bebidaPuntosMap[item._uid] && item.bebida) {
+      pts += puntosBebida(item) * item.cantidad
+    }
+    if (agrandarMap[item._uid] && agrandarPuntosMap[item._uid]) {
+      pts += AGRANDAR_PUNTOS * item.cantidad
+    }
+  }
+  return pts
+})
+
+const cashTotalSinEnvio = computed(() => {
+  return baseCashTotal.value + totalBebidasCash.value + totalAgrandarCash.value
+})
+
 const kmAdicionales = computed(() => {
   const distancia = parseFloat(locationStore.distancia) || 0
   return distancia > 1 ? Math.ceil(distancia - 1) : 0
@@ -313,11 +449,16 @@ const costoEnvio = computed(() => {
   return 1000 + (kmAdicionales.value * 400)
 })
 
-const totalConEnvio = computed(() => cartStore.total + costoEnvio.value)
+const totalConEnvio = computed(() => cashTotalSinEnvio.value + costoEnvio.value)
 
-// Cargar datos del usuario
+const puntosAGanar = computed(() => Math.floor(cashTotalSinEnvio.value / 500))
+
 const cargarDatosUsuario = async () => {
-  if (!auth.currentUser) return
+  if (!auth.currentUser) {
+    userLogueado.value = false
+    return
+  }
+  userLogueado.value = true
   loadingUsuario.value = true
   try {
     const docRef = doc(db, 'clientes', auth.currentUser.uid)
@@ -367,35 +508,55 @@ const abrirEnMaps = () => {
   window.open(`https://www.google.com/maps?q=${datosCliente.value.lat},${datosCliente.value.lng}`, '_blank')
 }
 
+const armarLineaItem = (item) => {
+  let linea = `• ${item.nombre} x${item.cantidad}`
+  if (itemPuntosMap[item._uid]) {
+    linea += ` (⭐ ${puntosItem(item) * item.cantidad} pts)`
+  } else {
+    linea += ` — ₡${item.precio * item.cantidad}`
+  }
+  if (item.bebida) {
+    const esCanje = bebidaPuntosMap[item._uid]
+    linea += `\n  🥤 ${item.bebida.nombre} x${item.cantidad}${esCanje ? ` (⭐ ${puntosBebida(item) * item.cantidad} pts)` : ` — ₡${item.bebida.precio * item.cantidad}`}`
+  }
+  if (item.papasConSalsa) {
+    linea += `\n  🍟 Papas con salsa`
+  }
+  if (item.salsasAlitas?.length) {
+    linea += `\n  🌶️ Salsas: ${item.salsasAlitas.join(', ')}`
+  }
+  if (agrandarMap[item._uid]) {
+    const esCanje = agrandarPuntosMap[item._uid]
+    linea += `\n  ⬆️ Papas agrandadas${esCanje ? ` (⭐ ${AGRANDAR_PUNTOS * item.cantidad} pts)` : ` (+₡${AGRANDAR_COSTO * item.cantidad})`}`
+  }
+  return linea
+}
+
 const armarMensajeWhatsApp = () => {
-  const items = cartStore.items
-    .map(i => `• ${i.nombre} x${i.cantidad} — ₡${i.precio * i.cantidad}`)
-    .join('\n')
+  const items = cartStore.items.map(armarLineaItem).join('\n')
   const pagoCadena = metodoPago.value === 'efectivo'
     ? `Efectivo (paga con ₡${montoEfectivo.value}, vuelto ₡${Number(montoEfectivo.value) - totalConEnvio.value})`
     : 'SINPE Móvil'
 
+  const puntosCadena = totalPuntosAGastar.value > 0
+    ? `\n⭐ Puntos canjeados: ${totalPuntosAGastar.value} pts`
+    : ''
+
+  const base = `🍔 *Nuevo pedido en Foodmania*\n\n` +
+    `👤 Cliente: ${datosCliente.value.nombre}\n` +
+    `📞 Teléfono: ${datosCliente.value.telefono}\n\n` +
+    `📋 *Pedido:*\n${items}\n` +
+    `💰 Total: ₡${totalConEnvio.value}${puntosCadena}\n` +
+    `⭐ Puntos ganados: ${puntosAGanar.value}\n` +
+    `💳 Pago: ${pagoCadena}\n\n`
+
   if (withDrawType.value === 'sucursal') {
-    return `🍔 *Nuevo pedido en Foodmania*\n\n` +
-      `👤 Cliente: ${datosCliente.value.nombre}\n` +
-      `📞 Teléfono: ${datosCliente.value.telefono}\n\n` +
-      `📋 *Pedido:*\n${items}\n\n` +
-      `💰 Total: ₡${totalConEnvio.value}\n` +
-      `⭐ Puntos ganados: ${puntosAGanar.value}\n` +
-      `💳 Pago: ${pagoCadena}\n\n` +
+    return base +
       `🏪 Retiro en: ${sucursalSeleccionada.value}\n` +
       `📅 Fecha: ${fechaRetiro.value}\n` +
       `🕐 Hora: ${horaRetiro.value}`
   } else {
-    return `🍔 *Nuevo pedido en Foodmania*\n\n` +
-      `👤 Cliente: ${datosCliente.value.nombre}\n` +
-      `📞 Teléfono: ${datosCliente.value.telefono}\n\n` +
-      `📋 *Pedido:*\n${items}\n\n` +
-      `💰 Subtotal productos: ₡${cartStore.total}\n` +
-      `🛵 Envío (₡1,000 base + ${kmAdicionales.value} km × ₡400): ₡${costoEnvio.value}\n` +
-      `💰 Total: ₡${totalConEnvio.value}\n` +
-      `⭐ Puntos ganados: ${puntosAGanar.value}\n` +
-      `💳 Pago: ${pagoCadena}\n\n` +
+    return base +
       `📍 Dirección: ${datosCliente.value.direccion}\n` +
       `🗺️ Ubicación: https://www.google.com/maps?q=${datosCliente.value.lat},${datosCliente.value.lng}`
   }
@@ -428,18 +589,48 @@ const confirmarPedido = async () => {
       return errorMsg.value = 'El monto es menor al total del pedido.'
   }
 
+  if (totalPuntosAGastar.value > 0) {
+    if (puntosActuales.value === null)
+      return errorMsg.value = 'Iniciá sesión para canjear puntos.'
+    const puntosDisponibles = puntosActuales.value
+    if (puntosDisponibles < totalPuntosAGastar.value)
+      return errorMsg.value = `No tenés suficientes puntos acumulados. Tenés ${puntosDisponibles}, necesitás ${totalPuntosAGastar.value}.`
+  }
+
   try {
     loading.value = true
+
+    const itemsConExtras = cartStore.items.map(item => ({
+      id: item.id,
+      nombre: item.nombre,
+      precio: item.precio,
+      cantidad: item.cantidad,
+      esBebida: item.esBebida || false,
+      canjeadoConPuntos: !!itemPuntosMap[item._uid],
+      bebida: item.bebida ? {
+        id: item.bebida.id,
+        nombre: item.bebida.nombre,
+        precio: item.bebida.precio,
+        canjeadoConPuntos: !!bebidaPuntosMap[item._uid]
+      } : null,
+      papasConSalsa: item.papasConSalsa || false,
+      salsasAlitas: item.salsasAlitas || [],
+      agrandarPapas: !!agrandarMap[item._uid],
+      agrandarConPuntos: !!agrandarPuntosMap[item._uid],
+    }))
 
     const pedido = {
       usuario: auth.currentUser?.email || 'Anónimo',
       nombre: datosCliente.value.nombre,
       telefono: datosCliente.value.telefono,
-      items: cartStore.items,
-      subtotal: cartStore.total,
+      items: itemsConExtras,
+      subtotal: baseCashTotal.value,
+      costoBebidas: totalBebidasCash.value,
+      costoAgrandar: totalAgrandarCash.value,
       costoEnvio: costoEnvio.value,
       total: totalConEnvio.value,
       puntosGanados: puntosAGanar.value,
+      puntosCanjeados: totalPuntosAGastar.value,
       metodoPago: metodoPago.value,
       montoEfectivo: metodoPago.value === 'efectivo' ? Number(montoEfectivo.value) : null,
       vuelto: metodoPago.value === 'efectivo' ? Number(montoEfectivo.value) - totalConEnvio.value : null,
@@ -458,10 +649,9 @@ const confirmarPedido = async () => {
 
     await addDoc(collection(db, 'pedidos'), pedido)
 
-    // ✅ Sumar puntos al perfil del cliente con increment (seguro y atómico)
-    if (auth.currentUser) {
+    if (auth.currentUser && totalPuntosAGastar.value > 0) {
       await updateDoc(doc(db, 'clientes', auth.currentUser.uid), {
-        puntos: increment(puntosAGanar.value)
+        puntos: increment(-totalPuntosAGastar.value)
       })
     }
 
@@ -469,7 +659,7 @@ const confirmarPedido = async () => {
     const numeroLimpio = nCelular.value.replace(/[^0-9]/g, '')
     window.open(`https://wa.me/506${numeroLimpio}?text=${encodeURIComponent(mensaje)}`, '_blank')
 
-    successMsg.value = `¡Pedido confirmado! 🎉 Ganaste ${puntosAGanar.value} puntos ⭐`
+    successMsg.value = `¡Pedido confirmado! 🎉 ${totalPuntosAGastar.value > 0 ? `Canjeaste ${totalPuntosAGastar.value} puntos ⭐ ` : ''}Ganaste ${puntosAGanar.value} puntos ⭐`
     cartStore.items = []
     setTimeout(() => emit('update:modelValue', false), 2500)
 
@@ -485,6 +675,10 @@ watch(() => props.modelValue, (newValue) => {
   if (newValue) {
     errorMsg.value = ''
     successMsg.value = ''
+    Object.keys(agrandarMap).forEach(k => delete agrandarMap[k])
+    Object.keys(agrandarPuntosMap).forEach(k => delete agrandarPuntosMap[k])
+    Object.keys(bebidaPuntosMap).forEach(k => delete bebidaPuntosMap[k])
+    Object.keys(itemPuntosMap).forEach(k => delete itemPuntosMap[k])
     cargarDatosUsuario()
   }
 })

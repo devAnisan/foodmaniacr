@@ -1,6 +1,5 @@
 import { defineStore } from "pinia";
 import { ref as vueRef, computed } from "vue";
-import { storage } from "../firebase";
 
 export const useSucursales = defineStore("sucursales", () => {
     const sucursalesFoodMania = vueRef([])
@@ -15,7 +14,7 @@ export const useSucursales = defineStore("sucursales", () => {
             }
         ]
     }
-} )
+})
 
 export const useLocationStore = defineStore("location", () => {
     const distancia = vueRef()
@@ -32,54 +31,70 @@ export const useLocationStore = defineStore("location", () => {
             },
         ],
     },
-},
-)
+})
 
+let uidCounter = 0
+const genUid = () => `cart_${++uidCounter}_${Date.now()}`
 
 export const useCartStore = defineStore(
     "cart",
     () => {
         const items = vueRef([]);
 
-        // Agregar producto
-        const addItem = (producto) => {
-            const existing = items.value.find((item) => item.id === producto.id);
+        const precioFinal = (item) => {
+            return item.precio + (item.bebida?.precio || 0)
+        }
+
+        const addItem = (producto, extras = {}) => {
+            const bebida = extras.bebida || producto.bebida || null
+            const papasConSalsa = extras.papasConSalsa ?? producto.papasConSalsa ?? false
+            const salsasAlitas = extras.salsasAlitas || producto.salsasAlitas || []
+            const esBebida = extras.esBebida ?? producto.esBebida ?? false
+            const variantKey = producto.id + (bebida ? `_beb_${bebida.id}` : '')
+            const existing = items.value.find(
+                item => item._variantKey === variantKey
+            )
             if (existing) {
-                existing.cantidad++;
+                existing.cantidad++
             } else {
-                items.value.push({ ...producto, cantidad: 1 });
+                items.value.push({
+                    ...producto,
+                    cantidad: 1,
+                    _uid: genUid(),
+                    _variantKey: variantKey,
+                    bebida,
+                    papasConSalsa,
+                    salsasAlitas,
+                    esBebida,
+                })
             }
         };
 
-        // Quitar una unidad
-        const removeItem = (id) => {
-            const existing = items.value.find((item) => item.id === id);
-            if (existing.cantidad > 1) {
+        const removeItem = (uid) => {
+            const existing = items.value.find((item) => item._uid === uid);
+            if (existing?.cantidad > 1) {
                 existing.cantidad--;
             } else {
-                items.value = items.value.filter((item) => item.id !== id);
+                items.value = items.value.filter((item) => item._uid !== uid);
             }
         };
 
-        // Eliminar producto completo
-        const deleteItem = (id) => {
-            items.value = items.value.filter((item) => item.id !== id);
+        const deleteItem = (uid) => {
+            items.value = items.value.filter((item) => item._uid !== uid);
         };
 
-        // Total
         const total = computed(() => {
             return items.value.reduce(
-                (acc, item) => acc + item.precio * item.cantidad,
+                (acc, item) => acc + precioFinal(item) * item.cantidad,
                 0,
             );
         });
 
-        // Cantidad total de items
         const totalItems = computed(() => {
             return items.value.reduce((acc, item) => acc + item.cantidad, 0);
         });
 
-        return { items, addItem, removeItem, deleteItem, total, totalItems };
+        return { items, addItem, removeItem, deleteItem, total, totalItems, precioFinal };
     },
     {
         persist: {

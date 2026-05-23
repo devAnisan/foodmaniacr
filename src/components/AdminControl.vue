@@ -89,6 +89,7 @@
                             <th class="p-3 text-left">Pago</th>
                             <th class="p-3 text-left">Total</th>
                             <th class="p-3 text-left">Puntos</th>
+                            <th class="p-3 text-left">Canje</th>
                             <th class="p-3 text-left">Fecha</th>
                             <th class="p-3 text-left">Estado</th>
                             <th class="p-3 text-left">Acciones</th>
@@ -128,6 +129,10 @@
                             </td>
                             <td class="p-3 font-bold text-[#642d81]">₡{{ pedido.total }}</td>
                             <td class="p-3 text-center">⭐ {{ pedido.puntosGanados || 0 }}</td>
+                            <td class="p-3 text-center">
+                                <span v-if="pedido.puntosCanjeados" class="text-red-500 font-bold">🔥 {{ pedido.puntosCanjeados }}</span>
+                                <span v-else class="text-gray-300">—</span>
+                            </td>
                             <td class="p-3 text-xs text-gray-500">
                                 {{ formatearFecha(pedido.creadoEn) }}
                             </td>
@@ -168,7 +173,7 @@
                     <div class="text-sm text-gray-600 flex flex-col gap-1 mb-3">
                         <p>📞 {{ pedido.telefono }}</p>
                         <p>💰 Total: <strong class="text-[#642d81]">₡{{ pedido.total }}</strong></p>
-                        <p>⭐ Puntos: {{ pedido.puntosGanados || 0 }}</p>
+                        <p>⭐ Puntos: {{ pedido.puntosGanados || 0 }} <span v-if="pedido.puntosCanjeados" class="text-red-500">🔥 -{{ pedido.puntosCanjeados }}</span></p>
                         <p>{{ pedido.tipoRetiro === 'sucursal' ? `🏪 ${pedido.sucursal}` : `🛵 ${pedido.direccion}` }}
                         </p>
                         <p class="text-xs text-gray-400">{{ formatearFecha(pedido.creadoEn) }}</p>
@@ -236,6 +241,10 @@
                             <span>⭐ Puntos ganados</span>
                             <span>{{ pedidoDetalle.puntosGanados || 0 }}</span>
                         </div>
+                        <div v-if="pedidoDetalle.puntosCanjeados" class="flex justify-between text-sm text-red-600">
+                            <span>🔥 Puntos canjeados</span>
+                            <span>{{ pedidoDetalle.puntosCanjeados }}</span>
+                        </div>
                     </div>
 
                     <!-- Retiro -->
@@ -288,7 +297,7 @@
 
 <script setup>
 import { ref as vueRef, computed, onMounted } from 'vue'
-import { collection, getDocs, doc, updateDoc, query, where, getFirestore } from 'firebase/firestore'
+import { collection, getDocs, doc, updateDoc, query, where, getFirestore, increment } from 'firebase/firestore'
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth'
 import { useRouter } from 'vue-router'
 
@@ -402,6 +411,21 @@ const stats = computed(() => [
 const cambiarEstado = async (pedido, nuevoEstado) => {
     try {
         await updateDoc(doc(db, 'pedidos', pedido.id), { estado: nuevoEstado })
+
+        // ✅ Sumar puntos al cliente cuando el pedido se finaliza
+        if (nuevoEstado === 'finalizado' && pedido.estado !== 'finalizado') {
+            const pts = pedido.puntosGanados || 0
+            if (pts > 0 && pedido.usuario && pedido.usuario !== 'Anónimo') {
+                const q = query(collection(db, 'clientes'), where('email', '==', pedido.usuario))
+                const snap = await getDocs(q)
+                if (!snap.empty) {
+                    await updateDoc(doc(db, 'clientes', snap.docs[0].id), {
+                        puntos: increment(pts)
+                    })
+                }
+            }
+        }
+
         // Actualizar localmente sin recargar
         const index = pedidos.value.findIndex(p => p.id === pedido.id)
         if (index !== -1) pedidos.value[index].estado = nuevoEstado

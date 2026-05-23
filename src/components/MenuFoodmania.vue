@@ -64,7 +64,11 @@
             <span class="text-sm text-gray-500">{{ user.email }}</span>
             <span> </span>
             <span class="text-sm font-bold">{{ user.emailVerified ? '✅ Email verificado' : '⚠️ Email no verificado'
-            }}</span>
+                }}</span>
+            <div v-if="puntosUsuario !== null" class="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-2 w-full flex items-center justify-center gap-2">
+                <span class="text-lg">⭐</span>
+                <span class="font-bold text-yellow-700">{{ puntosUsuario }} puntos</span>
+            </div>
             <button @click="editProfileModal = true"
                 class="w-full bg-[#642d81] text-white px-4 py-2 rounded-lg hover:bg-[#422d4d] transition-colors hover:cursor-pointer">
                 Editar perfil
@@ -76,11 +80,90 @@
         </section>
     </section>
     <EditProfileModal v-model="editProfileModal" />
+
+    <!-- ✦ Personalizador de producto ✦ -->
+    <div v-if="personalizadorAbierto" class="fixed inset-0 bg-black/50 z-70 flex items-center justify-center p-4"
+      @click="cerrarPersonalizador">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md fontColor max-h-[90vh] overflow-y-auto"
+        @click.stop>
+        <div class="flex justify-between items-center p-5 border-b">
+          <span class="text-xl font-bold">{{ itemPersonalizando?.nombre }}</span>
+          <button @click="cerrarPersonalizador"
+            class="pi pi-times text-red-500 hover:text-red-700 hover:cursor-pointer p-2 rounded"></button>
+        </div>
+        <div class="p-5">
+          <p class="text-lg font-bold text-[#642d81]">₡{{ itemPersonalizando?.precio }}</p>
+
+          <!-- Bebida (opcional, se oculta si el producto ya es una bebida) -->
+          <div v-if="!esItemBebida" class="mt-4">
+            <label class="font-bold block mb-2">🥤 Agregar bebida (opcional)</label>
+            <div v-if="bebidasCargando" class="flex items-center gap-2 text-sm text-gray-400">
+              <span class="pi pi-spinner animate-spin"></span> Cargando bebidas...
+            </div>
+            <div v-else-if="bebidas.length === 0" class="text-sm text-gray-400">No hay bebidas disponibles.</div>
+            <div v-else class="grid grid-cols-2 gap-2">
+              <button v-for="b in bebidas" :key="b.id"
+                @click="bebidaSel = b"
+                :class="bebidaSel?.id === b.id ? 'bg-[#642d81] text-white ring-2 ring-[#642d81]' : 'bg-gray-100 hover:bg-gray-200'"
+                class="p-3 rounded-xl font-bold text-sm transition-all duration-200 hover:cursor-pointer">
+                {{ b.nombre }}
+                <span class="block text-xs font-normal mt-0.5">₡{{ b.precio }}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Papas con salsa (pollofrito con papas == true) -->
+          <div v-if="itemPersonalizando?.papas === true" class="mt-5">
+            <label class="font-bold block mb-2">🍟 ¿Papas con salsa?</label>
+            <div class="flex gap-2">
+              <button @click="papasConSalsaSel = true"
+                :class="papasConSalsaSel ? 'bg-[#642d81] text-white ring-2 ring-[#642d81]' : 'bg-gray-100 hover:bg-gray-200'"
+                class="flex-1 py-2 rounded-lg font-bold transition-all hover:cursor-pointer">Sí</button>
+              <button @click="papasConSalsaSel = false"
+                :class="!papasConSalsaSel ? 'bg-[#642d81] text-white ring-2 ring-[#642d81]' : 'bg-gray-100 hover:bg-gray-200'"
+                class="flex-1 py-2 rounded-lg font-bold transition-all hover:cursor-pointer">No</button>
+            </div>
+          </div>
+
+          <!-- Alitas Mania: salsas (1-2) -->
+          <div v-if="esAlitasMania" class="mt-5">
+            <label class="font-bold block mb-2">🌶️ Elegí tus salsas ({{ salsasAlitasSel.length }}/2)</label>
+            <div v-if="salsasCargando" class="flex items-center gap-2 text-sm text-gray-400">
+              <span class="pi pi-spinner animate-spin"></span> Cargando salsas...
+            </div>
+            <div v-else class="flex flex-wrap gap-2">
+              <button v-for="s in salsas" :key="s.id"
+                @click="toggleSalsa(s)"
+                :class="salsasAlitasSel.includes(s.nombre) ? 'bg-[#642d81] text-white ring-2 ring-[#642d81]' : 'bg-gray-100 hover:bg-gray-200'"
+                class="px-4 py-2 rounded-xl font-bold text-sm transition-all hover:cursor-pointer">
+                {{ s.nombre }}
+              </button>
+            </div>
+          </div>
+
+          <div class="mt-6 flex gap-3">
+            <button @click="cerrarPersonalizador"
+              class="flex-1 py-3 rounded-xl font-bold border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors hover:cursor-pointer">
+              Cancelar
+            </button>
+            <button @click="confirmarPersonalizacion"
+              class="flex-1 bg-[#642d81] text-white py-3 rounded-xl font-bold hover:bg-[#422d4d] transition-colors hover:cursor-pointer">
+              Agregar 🎉
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Header -->
     <header class="fixed top-0 left-0 right-0 z-50 bg-white fontColor shadow-sm">
         <!-- Mobile dropdown -->
         <section v-if="menuOpen">
             <ul class="flex flex-col p-2 absolute top-20 right-4 bg-white rounded-xl shadow-lg w-44 space-y-1 border">
+                <li v-if="user && puntosUsuario !== null" class="p-2 text-sm font-bold text-yellow-700 border-b flex items-center gap-1">
+                    <span>⭐</span>
+                    <span>{{ puntosUsuario }} puntos</span>
+                </li>
                 <li class="p-2">
                     <button @click="openLogin" class="w-full text-left font-bold">
                         {{ user ? user.email.split('@')[0] : "Inicia sesión" }}
@@ -103,19 +186,28 @@
                 <span v-if="cartStore.items.length === 0" class="text-center text-gray-400 block p-6">
                     Aún no agregaste nada 😋
                 </span>
-                <div v-for="value in cartStore.items" :key="value.id"
+                <div v-for="value in cartStore.items" :key="value._uid"
                     class="flex fontColor justify-between items-center border-b p-3">
-                    <div class="flex-1 text-sm font-bold">{{ value.nombre }} <span class="text-gray-400">x{{
-                        value.cantidad }}</span></div>
-                    <div class="text-sm mr-2">₡{{ value.precio * value.cantidad }}</div>
+                    <div class="flex-1 text-sm">
+                        <div class="font-bold">{{ value.nombre }} <span class="text-gray-400">x{{
+                            value.cantidad }}</span></div>
+                        <div v-if="value.bebida" class="text-xs text-gray-500 mt-0.5">
+                            🥤 {{ value.bebida.nombre }} +₡{{ value.bebida.precio }}
+                        </div>
+                        <div v-if="value.papasConSalsa" class="text-xs text-gray-500">🍟 Papas con salsa</div>
+                        <div v-if="value.salsasAlitas?.length" class="text-xs text-gray-500">
+                            🌶️ {{ value.salsasAlitas.join(', ') }}
+                        </div>
+                    </div>
+                    <div class="text-sm mr-2">₡{{ cartStore.precioFinal(value) * value.cantidad }}</div>
                     <div class="flex items-center gap-1">
-                        <button @click="cartStore.removeItem(value.id)" class="text-gray-400 hover:text-red-500 p-1">
+                        <button @click="cartStore.removeItem(value._uid)" class="text-gray-400 hover:text-red-500 p-1">
                             <span class="pi pi-minus text-xs"></span>
                         </button>
                         <button @click="cartStore.addItem(value)" class="text-gray-400 hover:text-green-500 p-1">
                             <span class="pi pi-plus text-xs"></span>
                         </button>
-                        <button @click="cartStore.deleteItem(value.id)" class="text-red-400 hover:text-red-600 p-1">
+                        <button @click="cartStore.deleteItem(value._uid)" class="text-red-400 hover:text-red-600 p-1">
                             <span class="pi pi-trash text-xs"></span>
                         </button>
                     </div>
@@ -142,7 +234,12 @@
         <!-- Nav desktop -->
         <nav class="hidden md:flex items-center justify-between px-8 py-3">
             <img class="w-20 object-contain" :src="imageUrl" alt="Foodmania Logo" />
-            <section class="flex space-x-6">
+            <section class="flex items-center space-x-4">
+                <div v-if="user && puntosUsuario !== null"
+                    class="flex items-center gap-1 text-sm font-bold text-yellow-700 bg-yellow-50 border border-yellow-200 px-3 py-1.5 rounded-full">
+                    <span>⭐</span>
+                    <span>{{ puntosUsuario }}</span>
+                </div>
                 <button @click="openLogin"
                     class="border px-4 py-2 rounded-full hover:cursor-pointer font-bold hover:bg-gray-50 transition-colors">
                     {{ user ? user.email.split('@')[0] : "Inicia sesión" }}
@@ -228,7 +325,7 @@
                 </div>
                 <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <ProductCard v-for="item in resultadosBusqueda" :key="item.id" :item="item"
-                        @agregar="cartStore.addItem(item)" />
+                        @personalizar="abrirPersonalizador(item)" />
                 </div>
             </div>
 
@@ -254,7 +351,7 @@
                     <div v-else class="grid grid-cols-2 md:grid-cols-5 gap-4">
                         <ProductCard v-for="item in categoriaActiva.productos" :key="item.id" :item="item"
                             :esPromocion="categoriaActiva.coleccion === 'promociones'"
-                            @agregar="cartStore.addItem(item)" />
+                            @personalizar="abrirPersonalizador(item)" />
                     </div>
                 </div>
 
@@ -281,7 +378,7 @@
                         <!-- Productos (solo los primeros 5 en vista general) -->
                         <div v-else class="grid grid-cols-2 md:grid-cols-5 gap-4">
                             <ProductCard v-for="item in cat.productos.slice(0, 5)" :key="item.id" :item="item"
-                                :esPromocion="cat.coleccion === 'promociones'" @agregar="cartStore.addItem(item)" />
+                                :esPromocion="cat.coleccion === 'promociones'" @personalizar="abrirPersonalizador(item)" />
                         </div>
                     </div>
                 </div>
@@ -296,7 +393,7 @@
 import { ref as vueRef, computed, watch, onMounted, defineComponent, h } from 'vue'
 import { ref as storageRef, getDownloadURL } from 'firebase/storage'
 import { storage } from '../firebase.js'
-import { collection, doc, getDocs, setDoc, Timestamp } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, setDoc, Timestamp } from 'firebase/firestore'
 import { db } from '../firebase.js'
 import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail } from 'firebase/auth'
 import { auth } from '../firebase.js'
@@ -308,10 +405,9 @@ import EditProfileModal from './EditProfileModal.vue'
 // ── Componente inline ProductCard ──────────────────────────────────────────
 const ProductCard = defineComponent({
     props: { item: Object, esPromocion: Boolean },
-    emits: ['agregar'],
+    emits: ['personalizar'],
     setup(props, { emit }) {
 
-        // ¿El botón está activo?
         const activo = computed(() =>
             props.esPromocion ? esPromocionActiva(props.item.nombre) : true
         )
@@ -328,7 +424,7 @@ const ProductCard = defineComponent({
                 class: activo.value
                     ? 'w-full bg-[#642d81] text-white py-2 rounded-lg text-sm font-bold hover:bg-[#422d4d] transition-colors hover:cursor-pointer'
                     : 'w-full bg-gray-200 text-gray-400 py-2 rounded-lg text-sm font-bold cursor-not-allowed',
-                onClick: () => activo.value && emit('agregar')
+                onClick: () => activo.value && emit('personalizar')
             }, activo.value ? '+ Agregar 🎉' : diaPromocion(props.item.nombre))
         ])
     }
@@ -360,7 +456,114 @@ const successMsg = vueRef('')
 const errorMsg = vueRef('')
 const menuLogIn = vueRef(false)
 
-onAuthStateChanged(auth, (currentUser) => { user.value = currentUser })
+// ── Personalizador de producto ──────────────────────────────────────────
+const personalizadorAbierto = vueRef(false)
+const itemPersonalizando = vueRef(null)
+const bebidaSel = vueRef(null)
+const papasConSalsaSel = vueRef(false)
+const salsasAlitasSel = vueRef([])
+
+const bebidas = vueRef([])
+const bebidasCargando = vueRef(false)
+const salsas = vueRef([])
+const salsasCargando = vueRef(false)
+
+const esAlitasMania = computed(() =>
+  itemPersonalizando.value?.nombre?.toLowerCase().includes('alitas mania')
+)
+
+const esItemBebida = computed(() =>
+  categorias.value.find(c => c.coleccion === 'bebidas')
+    ?.productos.some(p => p.id === itemPersonalizando.value?.id)
+)
+
+const cargarBebidas = async () => {
+  bebidasCargando.value = true
+  try {
+    const snap = await getDocs(collection(db, 'bebidas'))
+    bebidas.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+  } catch (e) {
+    console.error('Error cargando bebidas:', e)
+  } finally {
+    bebidasCargando.value = false
+  }
+}
+
+const cargarSalsas = async () => {
+  salsasCargando.value = true
+  try {
+    const snap = await getDocs(collection(db, 'salsas'))
+    salsas.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+  } catch (e) {
+    console.error('Error cargando salsas:', e)
+  } finally {
+    salsasCargando.value = false
+  }
+}
+
+const abrirPersonalizador = (item) => {
+  const esBebida = categorias.value
+    .find(c => c.coleccion === 'bebidas')
+    ?.productos.some(p => p.id === item.id)
+  if (esBebida) {
+    cartStore.addItem(item, { esBebida: true })
+    return
+  }
+  itemPersonalizando.value = item
+  bebidaSel.value = null
+  papasConSalsaSel.value = false
+  salsasAlitasSel.value = []
+  personalizadorAbierto.value = true
+}
+
+const cerrarPersonalizador = () => {
+  personalizadorAbierto.value = false
+  itemPersonalizando.value = null
+}
+
+const toggleSalsa = (salsa) => {
+  const idx = salsasAlitasSel.value.indexOf(salsa.nombre)
+  if (idx >= 0) {
+    salsasAlitasSel.value.splice(idx, 1)
+  } else if (salsasAlitasSel.value.length < 2) {
+    salsasAlitasSel.value.push(salsa.nombre)
+  }
+}
+
+const confirmarPersonalizacion = () => {
+  const extras = {
+    papasConSalsa: papasConSalsaSel.value,
+    salsasAlitas: [...salsasAlitasSel.value],
+  }
+  if (bebidaSel.value) {
+    extras.bebida = {
+      id: bebidaSel.value.id,
+      nombre: bebidaSel.value.nombre,
+      precio: bebidaSel.value.precio,
+    }
+  }
+  cartStore.addItem(itemPersonalizando.value, extras)
+  cerrarPersonalizador()
+}
+
+const puntosUsuario = vueRef(null)
+
+const cargarPuntosUsuario = async (uid) => {
+  if (!uid) { puntosUsuario.value = null; return }
+  try {
+    const docSnap = await getDoc(doc(db, 'clientes', uid))
+    if (docSnap.exists()) {
+      puntosUsuario.value = docSnap.data().puntos || 0
+    }
+  } catch (e) {
+    console.error('Error cargando puntos:', e)
+  }
+}
+
+onAuthStateChanged(auth, (currentUser) => {
+  user.value = currentUser
+  if (currentUser) cargarPuntosUsuario(currentUser.uid)
+})
 
 // ── Categorías con emoji y lazy loading ────────────────────────────────────
 const categorias = vueRef([
@@ -371,6 +574,7 @@ const categorias = vueRef([
     { nombre: 'Promociones', coleccion: 'promociones', emoji: '🔥', productos: [], cargando: false, cargada: false },
     { nombre: 'Supremos', coleccion: 'supremos', emoji: '👑', productos: [], cargando: false, cargada: false },
     { nombre: 'Surtidos', coleccion: 'surtidos', emoji: '🎁', productos: [], cargando: false, cargada: false },
+    { nombre: 'Bebidas', coleccion: 'bebidas', emoji: '🥤', productos: [], cargando: false, cargada: false },
 ])
 
 // ── Cargar una categoría (lazy) ────────────────────────────────────────────
@@ -432,6 +636,10 @@ onMounted(async () => {
     for (const cat of categorias.value.slice(1)) {
         cargarCategoria(cat)
     }
+
+    // Cargar bebidas y salsas en segundo plano
+    cargarBebidas()
+    cargarSalsas()
 })
 
 // ── Auth helpers ───────────────────────────────────────────────────────────
