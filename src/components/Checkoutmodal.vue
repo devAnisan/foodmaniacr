@@ -323,8 +323,11 @@
 import { ref as vueRef, computed, watch, reactive } from 'vue'
 import { useCartStore, useLocationStore, useSucursales } from '../stores/carStores.js'
 import { db, auth } from '../firebase.js'
-import { collection, addDoc, Timestamp, doc, getDoc, updateDoc, increment } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, increment } from 'firebase/firestore'
+import { getFunctions, httpsCallable } from 'firebase/functions'
 import { getLocation } from '../composable/saberDistancia.js'
+
+const createOrder = httpsCallable(getFunctions(), 'createOrder')
 
 const AGRANDAR_COSTO = 500
 const AGRANDAR_PUNTOS = 25
@@ -620,7 +623,6 @@ const confirmarPedido = async () => {
     }))
 
     const pedido = {
-      usuario: auth.currentUser?.email || 'Anónimo',
       nombre: datosCliente.value.nombre,
       telefono: datosCliente.value.telefono,
       items: itemsConExtras,
@@ -643,17 +645,10 @@ const confirmarPedido = async () => {
       ubicacionLng: datosCliente.value.lng || null,
       sucursalCercana: locationStore.sucursalCercana || null,
       distanciaKm: locationStore.distancia || null,
-      creadoEn: Timestamp.now(),
       estado: 'pendiente'
     }
 
-    await addDoc(collection(db, 'pedidos'), pedido)
-
-    if (auth.currentUser && totalPuntosAGastar.value > 0) {
-      await updateDoc(doc(db, 'clientes', auth.currentUser.uid), {
-        puntos: increment(-totalPuntosAGastar.value)
-      })
-    }
+    const result = await createOrder({ pedido })
 
     const mensaje = armarMensajeWhatsApp()
     const numeroLimpio = nCelular.value.replace(/[^0-9]/g, '')

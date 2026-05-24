@@ -691,14 +691,19 @@ const register = async (email, password1, password2) => {
         console.error("Error en Firestore:", error)
     }
 
-    setTimeout(() => window.location.reload(), 2000)
+    setTimeout(() => {
+        successMsg.value = "Cuenta creada exitosamente. Por favor verificá tu correo electrónico 📧"
+        menuLogIn.value = false
+    }, 2000)
 }
 const login = async (email, password) => {
     try {
         await signInWithEmailAndPassword(auth, email, password)
-        successMsg.value = 'Inicio de sesión exitoso ✅'
+        setTimeout(() => {
+            successMsg.value = 'Inicio de sesión exitoso ✅'
+            menuLogIn.value = false
+        }, 1000)
         errorMsg.value = ''
-        setTimeout(() => window.location.reload(), 1000)
     } catch { errorMsg.value = 'Credenciales incorrectas.'; successMsg.value = '' }
 }
 </script>

@@ -32,7 +32,8 @@ import { ref as vueRef, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import { auth, db } from "../firebase.js"
 import { onAuthStateChanged, signOut } from "firebase/auth"
-import { collection, getDocs, query, where } from "firebase/firestore"
+import { doc, getDoc } from "firebase/firestore"
+import { useCartStore } from "../stores/carStores.js"
 
 const router = useRouter()
 const user = vueRef(null)
@@ -47,6 +48,7 @@ const openLogin = () => {
 }
 
 const cerrarSesion = async () => {
+  useCartStore().items = []
   await signOut(auth)
 }
 
@@ -60,11 +62,11 @@ const verificarAdmin = async (currentUser) => {
     return
   }
   try {
-    const superUserSnap = await getDocs(
-      query(collection(db, "superUser"), where("Correo", "==", currentUser.email))
-    )
-    if (!superUserSnap.empty) {
-      const superUserData = superUserSnap.docs[0].data()
+    const docRef = doc(db, "superUser", currentUser.uid)
+    const docSnap = await getDoc(docRef)
+
+    if (docSnap.exists()) {
+      const superUserData = docSnap.data()
       esAdmin.value = superUserData.rol === "administrador"
     }
   } catch (error) {

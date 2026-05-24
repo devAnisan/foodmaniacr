@@ -14,7 +14,7 @@ interface Insucursal {
 }
 const sucursal = vueRef([])
 // Haversine formula to calculate distance between two points
-const calcDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+export const calcDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
     const R = 6371;
     const dLat = (lat2 - lat1) * (Math.PI / 180);
     const dLng = (lng2 - lng1) * (Math.PI / 180);

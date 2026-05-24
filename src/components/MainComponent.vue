@@ -195,7 +195,7 @@ import Dropmenu from "../composable/Dropmenu.vue";
 import BranchSection from "./BranchSection.vue";
 import WhereBuySection from "./WhereBuySection.vue";
 import Footer from "./Footer.vue";
-import { collection, doc, getDocs, query, setDoc, Timestamp, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, setDoc, Timestamp, where } from "firebase/firestore";
 import { auth, db } from "../firebase.js";
 import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail, signOut } from "firebase/auth";
 import { useCartStore, useLocationStore, useSucursales } from "../stores/carStores.js";
@@ -236,6 +236,7 @@ const openLogin = () => {
 }
 
 const cerrarSesion = async () => {
+    useCartStore().items = []
     await signOut(auth)
     showUserModal.value = false
 }
@@ -279,7 +280,10 @@ const register = async (email, password1, password2) => {
         console.error("Error en Firestore:", error)
     }
 
-    setTimeout(() => window.location.reload(), 2000)
+    setTimeout(() => {
+        successMsg.value = "Cuenta creada exitosamente. Por favor verificá tu correo electrónico 📧"
+        menuLogIn.value = false
+    }, 2000)
 }
 
 const login = async (email, password) => {
@@ -287,7 +291,10 @@ const login = async (email, password) => {
         await signInWithEmailAndPassword(auth, email, password)
         successMsg.value = 'Inicio de sesión exitoso ✅'
         errorMsg.value = ''
-        setTimeout(() => window.location.reload(), 1000)
+        setTimeout(() => {
+        successMsg.value = 'Inicio de sesión exitoso ✅'
+        menuLogIn.value = false
+    }, 1000)
     } catch { errorMsg.value = 'Credenciales incorrectas.'; successMsg.value = '' }
 }
 
@@ -301,11 +308,11 @@ const verificarAdmin = async (currentUser) => {
         return
     }
     try {
-        const superUserSnap = await getDocs(
-            query(collection(db, "superUser"), where("Correo", "==", currentUser.email))
-        )
-        if (!superUserSnap.empty) {
-            const superUserData = superUserSnap.docs[0].data()
+        const docRef = doc(db, "superUser", currentUser.uid)
+        const docSnap = await getDoc(docRef)
+
+        if (docSnap.exists()) {
+            const superUserData = docSnap.data()
             esAdmin.value = superUserData.rol === "administrador"
         }
     } catch (error) {

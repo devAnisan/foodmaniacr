@@ -297,9 +297,10 @@
 
 <script setup>
 import { ref as vueRef, computed, onMounted } from 'vue'
-import { collection, getDocs, doc, updateDoc, query, where, getFirestore, increment } from 'firebase/firestore'
+import { collection, getDocs, doc, getDoc, addDoc, Timestamp, updateDoc, query, where, getFirestore, increment } from 'firebase/firestore'
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth'
 import { useRouter } from 'vue-router'
+import { useCartStore } from '../stores/carStores.js'
 
 const router = useRouter()
 const db = getFirestore()
@@ -326,24 +327,19 @@ const estados = [
 // ── Verificar si el usuario es admin ──────────────────────────────────────
 const verificarAdmin = async (user) => {
     try {
-        console.log('Email del usuario logueado:', user.email)
-        const superUserSnap = await getDocs(
-            query(collection(db, 'superUser'), where('Correo', '==', user.email))
-        )
-        console.log('Documentos encontrados:', superUserSnap.size)
-        console.log('Está vacío:', superUserSnap.empty)
-        if (!superUserSnap.empty) {
-            const superUserData = superUserSnap.docs[0].data()
+        const docRef = doc(db, 'superUser', user.uid)
+        const docSnap = await getDoc(docRef)
+
+        if (docSnap.exists()) {
+            const superUserData = docSnap.data()
 
             if (superUserData.rol === 'administrador') {
                 esAdmin.value = true
                 adminEmail.value = user.email
                 adminNombre.value = superUserData.usuario || user.email
-                adminSucursal.value = superUserData.sucursal || '' // ✅ Guardar sucursal del admin
+                adminSucursal.value = superUserData.sucursal || ''
                 await cargarPedidos()
             }
-            console.log('Datos del superUser:', superUserData)
-      console.log('Rol encontrado:', superUserData.rol)
         }
     } catch (error) {
         console.error('Error verificando admin:', error)
@@ -410,10 +406,21 @@ const stats = computed(() => [
 // ── Cambiar estado del pedido ──────────────────────────────────────────────
 const cambiarEstado = async (pedido, nuevoEstado) => {
     try {
+        const estadoAnterior = pedido.estado
         await updateDoc(doc(db, 'pedidos', pedido.id), { estado: nuevoEstado })
 
-        // ✅ Sumar puntos al cliente cuando el pedido se finaliza
-        if (nuevoEstado === 'finalizado' && pedido.estado !== 'finalizado') {
+        await addDoc(collection(db, 'auditLogs'), {
+            pedidoId: pedido.id,
+            accion: 'cambio_estado',
+            estadoAnterior,
+            estadoNuevo: nuevoEstado,
+            adminEmail: adminEmail.value,
+            adminNombre: adminNombre.value,
+            adminSucursal: adminSucursal.value,
+            creadoEn: Timestamp.now()
+        })
+
+        if (nuevoEstado === 'finalizado' && estadoAnterior !== 'finalizado') {
             const pts = pedido.puntosGanados || 0
             if (pts > 0 && pedido.usuario && pedido.usuario !== 'Anónimo') {
                 const q = query(collection(db, 'clientes'), where('email', '==', pedido.usuario))
@@ -472,6 +479,7 @@ const formatearFecha = (timestamp) => {
 
 // ── Cerrar sesión ──────────────────────────────────────────────────────────
 const cerrarSesion = async () => {
+    useCartStore().items = []
     await signOut(auth)
     router.push('/')
 }
