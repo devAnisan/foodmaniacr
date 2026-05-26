@@ -259,6 +259,12 @@
     <!-- Checkout Modal -->
     <CheckoutModal v-model="showCheckout" />
 
+    <!-- Toast notificación -->
+    <div v-if="drinkMsg"
+      class="fixed top-24 left-1/2 -translate-x-1/2 z-100 bg-green-500 text-white px-6 py-3 rounded-xl shadow-lg font-bold text-center transition-all duration-300">
+      {{ drinkMsg }}
+    </div>
+
     <!-- Main -->
     <main class="pt-24 fontColor min-h-screen bg-gray-50">
 
@@ -442,6 +448,7 @@ const showCheckout = vueRef(false)
 const editProfileModal = vueRef(false)
 const busqueda = vueRef('')
 const categoriaActiva = vueRef(null)
+const drinkMsg = vueRef('')
 
 const {
     user, showUserModal, menuLogIn, justLogin, forgotPassword,
@@ -501,6 +508,8 @@ const abrirPersonalizador = (item) => {
     ?.productos.some(p => p.id === item.id)
   if (esBebida) {
     cartStore.addItem(item, { esBebida: true })
+    drinkMsg.value = '🥤 Refresco añadido'
+    setTimeout(() => drinkMsg.value = '', 2000)
     return
   }
   itemPersonalizando.value = item

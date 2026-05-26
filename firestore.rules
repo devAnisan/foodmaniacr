@@ -48,10 +48,15 @@ service cloud.firestore {
     // Clientes
     // ============================================================
     // Cada usuario solo puede leer/escribir su propio documento
+    // Los admins pueden leer cualquier cliente y modificar solo el campo puntos
     // El ID del documento debe ser el uid del usuario
 
     match /clientes/{userId} {
-      allow read, write: if autenticado() && request.auth.uid == userId;
+      allow read: if autenticado() && (request.auth.uid == userId || esAdmin());
+      allow create: if autenticado() && request.auth.uid == userId;
+      allow update: if (autenticado() && request.auth.uid == userId) ||
+                     (esAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['puntos']));
+      allow delete: if false;
     }
 
     // ============================================================

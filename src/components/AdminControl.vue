@@ -66,6 +66,12 @@
                 </div>
             </div>
 
+            <!-- Error message -->
+            <div v-if="errorMsg"
+                class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 text-sm font-bold">
+                ⚠️ {{ errorMsg }}
+            </div>
+
             <!-- Loader de pedidos -->
             <div v-if="cargandoPedidos" class="flex justify-center py-10">
                 <span class="pi pi-spinner animate-spin text-3xl text-[var(--primary)]"></span>
@@ -315,6 +321,7 @@ const pedidos = vueRef([])
 const cargandoPedidos = vueRef(false)
 const estadoActivo = vueRef('pendiente')
 const pedidoDetalle = vueRef(null)
+const errorMsg = vueRef('')
 
 const estados = [
     { value: 'pendiente', label: 'Pendiente', emoji: '🕐' },
@@ -404,8 +411,14 @@ const stats = computed(() => [
 
 // ── Cambiar estado del pedido ──────────────────────────────────────────────
 const cambiarEstado = async (pedido, nuevoEstado) => {
+    errorMsg.value = ''
+    const estadoAnterior = pedido.estado
+
+    // Optimistic: actualizar la UI de inmediato
+    const index = pedidos.value.findIndex(p => p.id === pedido.id)
+    if (index !== -1) pedidos.value[index].estado = nuevoEstado
+
     try {
-        const estadoAnterior = pedido.estado
         await updateDoc(doc(db, 'pedidos', pedido.id), { estado: nuevoEstado })
 
         await addDoc(collection(db, 'auditLogs'), {
@@ -419,24 +432,35 @@ const cambiarEstado = async (pedido, nuevoEstado) => {
             creadoEn: Timestamp.now()
         })
 
+        // Los puntos se asignan aparte para que si falla (ej. reglas de seguridad)
+        // no reviente el cambio de estado
         if (nuevoEstado === 'finalizado' && estadoAnterior !== 'finalizado') {
-            const pts = pedido.puntosGanados || 0
-            if (pts > 0 && pedido.usuario && pedido.usuario !== 'Anónimo') {
-                const q = query(collection(db, 'clientes'), where('email', '==', pedido.usuario))
-                const snap = await getDocs(q)
-                if (!snap.empty) {
-                    await updateDoc(doc(db, 'clientes', snap.docs[0].id), {
-                        puntos: increment(pts)
-                    })
-                }
-            }
+            otorgarPuntos(pedido)
         }
-
-        // Actualizar localmente sin recargar
-        const index = pedidos.value.findIndex(p => p.id === pedido.id)
-        if (index !== -1) pedidos.value[index].estado = nuevoEstado
     } catch (error) {
         console.error('Error actualizando estado:', error)
+        errorMsg.value = `Error al cambiar a "${nuevoEstado}". Revisá la consola o intentá de nuevo.`
+
+        // Revertir el optimistc
+        if (index !== -1) pedidos.value[index].estado = estadoAnterior
+    }
+}
+
+const otorgarPuntos = async (pedido) => {
+    try {
+        const pts = pedido.puntosGanados || 0
+        if (pts > 0 && pedido.usuario && pedido.usuario !== 'Anónimo') {
+            const q = query(collection(db, 'clientes'), where('email', '==', pedido.usuario))
+            const snap = await getDocs(q)
+            if (!snap.empty) {
+                await updateDoc(doc(db, 'clientes', snap.docs[0].id), {
+                    puntos: increment(pts)
+                })
+                console.log(`✅ ${pts} puntos otorgados a ${pedido.usuario}`)
+            }
+        }
+    } catch (error) {
+        console.error('Error otorgando puntos (reglas de seguridad?):', error)
     }
 }
 
