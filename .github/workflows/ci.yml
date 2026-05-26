@@ -31,7 +31,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - uses: w9jds/firebase-action@v13
+      - uses: w9jds/firebase-action@v15.12.0
         with:
           args: deploy --only hosting
         env:
