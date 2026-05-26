@@ -60,7 +60,7 @@ onMounted(async () => {
     const url = await getDownloadURL(itemRef);
     images.value.push(url);
   }
-  setInterval(emitNextCarousel, 5000);
+  intervalo = setInterval(emitNextCarousel, 5000);
 });
 
 onUnmounted(() => {

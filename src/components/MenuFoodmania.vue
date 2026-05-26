@@ -12,43 +12,43 @@
             <section class="flex flex-col p-4 text-center gap-3">
                 <img :src="imageUrl" alt="logo_foodmania" class="w-20 mx-auto mb-2" />
                 <input v-model="email" type="email" placeholder="Correo electrónico"
-                    class="p-2 border w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-[#642d81]" />
+                    class="p-2 border w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
                 <section v-if="justLogin && !forgotPassword">
                     <input v-model="password1" type="password" placeholder="Contraseña"
-                        class="p-2 w-full border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#642d81]" />
+                        class="p-2 w-full border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
                 </section>
                 <section class="flex flex-col gap-2" v-else-if="!justLogin && !forgotPassword">
                     <input v-model="password1" type="password" placeholder="Crear contraseña"
-                        class="p-2 border rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#642d81]" />
+                        class="p-2 border rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
                     <input v-model="password2" type="password" placeholder="Confirmar contraseña"
-                        class="p-2 border rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#642d81]" />
+                        class="p-2 border rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
                     <p class="text-xs text-red-500">Mínimo 8 caracteres, mayúscula, minúscula y número.</p>
                 </section>
                 <p v-if="successMsg" class="text-green-500 text-sm">{{ successMsg }}</p>
                 <p v-if="errorMsg" class="text-red-500 text-sm">{{ errorMsg }}</p>
                 <button v-if="justLogin && !forgotPassword" @click="login(email, password1)"
-                    class="bg-[#642d81] text-white px-4 py-2 rounded-lg hover:bg-[#422d4d] transition-colors hover:cursor-pointer">
+                    class="bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
                     Iniciar sesión
                 </button>
                 <button v-else-if="!justLogin && !forgotPassword" @click="register(email, password1, password2)"
-                    class="bg-[#642d81] text-white px-4 py-2 rounded-lg hover:bg-[#422d4d] transition-colors hover:cursor-pointer">
+                    class="bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
                     Crear cuenta
                 </button>
                 <button v-if="forgotPassword" @click="resetPassword(email)"
-                    class="bg-[#642d81] text-white px-4 py-2 rounded-lg hover:bg-[#422d4d] transition-colors hover:cursor-pointer">
+                    class="bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
                     Enviar correo de recuperación
                 </button>
             </section>
             <section v-if="justLogin" class="text-center text-sm border-t pt-3">
                 <p class="text-gray-600">¿No tenés cuenta? <a href="#"
                         @click="justLogin = false; forgotPassword = false"
-                        class="text-[#642d81] font-bold">Regístrate</a></p>
-                <button class="text-[#642d81] text-sm mt-2 hover:cursor-pointer"
+                        class="text-[var(--primary)] font-bold">Regístrate</a></p>
+                <button class="text-[var(--primary)] text-sm mt-2 hover:cursor-pointer"
                     @click="forgotPassword = true">¿Olvidaste tu contraseña?</button>
             </section>
             <section v-if="!justLogin" class="text-center text-sm border-t pt-3">
                 <p class="text-gray-600">¿Ya tenés cuenta? <a href="#" @click="justLogin = true"
-                        class="text-[#642d81] font-bold">Iniciá sesión</a></p>
+                        class="text-[var(--primary)] font-bold">Iniciá sesión</a></p>
             </section>
         </div>
     </div>
@@ -70,11 +70,11 @@
                 <span class="font-bold text-yellow-700">{{ puntosUsuario }} puntos</span>
             </div>
             <button @click="editProfileModal = true"
-                class="w-full bg-[#642d81] text-white px-4 py-2 rounded-lg hover:bg-[#422d4d] transition-colors hover:cursor-pointer">
+                class="w-full bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
                 Editar perfil
             </button>
-            <button @click="auth.signOut()"
-                class="w-full bg-[#642d81] text-white px-4 py-2 rounded-lg hover:bg-[#422d4d] transition-colors hover:cursor-pointer">
+            <button @click="cerrarSesion"
+                class="w-full bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
                 Cerrar sesión
             </button>
         </section>
@@ -92,7 +92,7 @@
             class="pi pi-times text-red-500 hover:text-red-700 hover:cursor-pointer p-2 rounded"></button>
         </div>
         <div class="p-5">
-          <p class="text-lg font-bold text-[#642d81]">₡{{ itemPersonalizando?.precio }}</p>
+          <p class="text-lg font-bold text-[var(--primary)]">₡{{ itemPersonalizando?.precio }}</p>
 
           <!-- Bebida (opcional, se oculta si el producto ya es una bebida) -->
           <div v-if="!esItemBebida" class="mt-4">
@@ -104,7 +104,7 @@
             <div v-else class="grid grid-cols-2 gap-2">
               <button v-for="b in bebidas" :key="b.id"
                 @click="bebidaSel = b"
-                :class="bebidaSel?.id === b.id ? 'bg-[#642d81] text-white ring-2 ring-[#642d81]' : 'bg-gray-100 hover:bg-gray-200'"
+                :class="bebidaSel?.id === b.id ? 'bg-[var(--primary)] text-white ring-2 ring-[var(--primary)]' : 'bg-gray-100 hover:bg-gray-200'"
                 class="p-3 rounded-xl font-bold text-sm transition-all duration-200 hover:cursor-pointer">
                 {{ b.nombre }}
                 <span class="block text-xs font-normal mt-0.5">₡{{ b.precio }}</span>
@@ -117,10 +117,10 @@
             <label class="font-bold block mb-2">🍟 ¿Papas con salsa?</label>
             <div class="flex gap-2">
               <button @click="papasConSalsaSel = true"
-                :class="papasConSalsaSel ? 'bg-[#642d81] text-white ring-2 ring-[#642d81]' : 'bg-gray-100 hover:bg-gray-200'"
+                :class="papasConSalsaSel ? 'bg-[var(--primary)] text-white ring-2 ring-[var(--primary)]' : 'bg-gray-100 hover:bg-gray-200'"
                 class="flex-1 py-2 rounded-lg font-bold transition-all hover:cursor-pointer">Sí</button>
               <button @click="papasConSalsaSel = false"
-                :class="!papasConSalsaSel ? 'bg-[#642d81] text-white ring-2 ring-[#642d81]' : 'bg-gray-100 hover:bg-gray-200'"
+                :class="!papasConSalsaSel ? 'bg-[var(--primary)] text-white ring-2 ring-[var(--primary)]' : 'bg-gray-100 hover:bg-gray-200'"
                 class="flex-1 py-2 rounded-lg font-bold transition-all hover:cursor-pointer">No</button>
             </div>
           </div>
@@ -134,7 +134,7 @@
             <div v-else class="flex flex-wrap gap-2">
               <button v-for="s in salsas" :key="s.id"
                 @click="toggleSalsa(s)"
-                :class="salsasAlitasSel.includes(s.nombre) ? 'bg-[#642d81] text-white ring-2 ring-[#642d81]' : 'bg-gray-100 hover:bg-gray-200'"
+                :class="salsasAlitasSel.includes(s.nombre) ? 'bg-[var(--primary)] text-white ring-2 ring-[var(--primary)]' : 'bg-gray-100 hover:bg-gray-200'"
                 class="px-4 py-2 rounded-xl font-bold text-sm transition-all hover:cursor-pointer">
                 {{ s.nombre }}
               </button>
@@ -147,7 +147,7 @@
               Cancelar
             </button>
             <button @click="confirmarPersonalizacion"
-              class="flex-1 bg-[#642d81] text-white py-3 rounded-xl font-bold hover:bg-[#422d4d] transition-colors hover:cursor-pointer">
+              class="flex-1 bg-[var(--primary)] text-white py-3 rounded-xl font-bold hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
               Agregar 🎉
             </button>
           </div>
@@ -218,7 +218,7 @@
                 </div>
                 <div class="p-3">
                     <button @click="showCheckout = true; menuItems = false"
-                        class="w-full bg-[#642d81] text-white p-3 rounded-xl font-bold hover:bg-[#422d4d] transition-colors hover:cursor-pointer">
+                        class="w-full bg-[var(--primary)] text-white p-3 rounded-xl font-bold hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
                         Finalizar compra 🎉
                     </button>
                 </div>
@@ -248,7 +248,7 @@
                     class="border px-4 py-2 rounded-full hover:cursor-pointer font-bold hover:bg-gray-50 transition-colors flex items-center gap-2">
                     <span class="pi pi-shopping-cart"></span>
                     <span v-if="cartStore.totalItems > 0"
-                        class="bg-[#642d81] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        class="bg-[var(--primary)] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                         {{ cartStore.totalItems }}
                     </span>
                 </button>
@@ -287,7 +287,7 @@
                     <div class="relative w-full md:w-80">
                         <span class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></span>
                         <input v-model="busqueda" type="text" placeholder="Buscar producto..."
-                            class="w-full pl-9 pr-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-[#642d81] bg-white" />
+                            class="w-full pl-9 pr-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-[var(--primary)] bg-white" />
                         <button v-if="busqueda" @click="busqueda = ''"
                             class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                             <span class="pi pi-times text-sm"></span>
@@ -297,12 +297,12 @@
                     <!-- Pestañas de categorías -->
                     <div class="flex gap-2 overflow-x-auto pb-1 w-full scrollbar-hide">
                         <button @click="categoriaActiva = null; busqueda = ''"
-                            :class="categoriaActiva === null && !busqueda ? 'bg-[#642d81] text-white' : 'bg-white text-gray-600 hover:bg-gray-100'"
+                            :class="categoriaActiva === null && !busqueda ? 'bg-[var(--primary)] text-white' : 'bg-white text-gray-600 hover:bg-gray-100'"
                             class="px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap border transition-all duration-200 flex-shrink-0">
                             🍽️ Todo
                         </button>
                         <button v-for="cat in categorias" :key="cat.coleccion" @click="seleccionarCategoria(cat)"
-                            :class="categoriaActiva?.coleccion === cat.coleccion ? 'bg-[#642d81] text-white' : 'bg-white text-gray-600 hover:bg-gray-100'"
+                            :class="categoriaActiva?.coleccion === cat.coleccion ? 'bg-[var(--primary)] text-white' : 'bg-white text-gray-600 hover:bg-gray-100'"
                             class="px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap border transition-all duration-200 flex-shrink-0 flex items-center gap-1">
                             <span v-if="cat.cargando" class="pi pi-spinner animate-spin text-xs"></span>
                             {{ cat.emoji }} {{ cat.nombre }}
@@ -314,13 +314,13 @@
             <!-- Resultados de búsqueda -->
             <div v-if="busqueda" class="max-w-6xl mx-auto px-4 py-6">
                 <h2 class="text-xl font-bold mb-4">
-                    Resultados para "<span class="text-[#642d81]">{{ busqueda }}</span>"
+                    Resultados para "<span class="text-[var(--primary)]">{{ busqueda }}</span>"
                     <span class="text-gray-400 text-base font-normal">({{ resultadosBusqueda.length }})</span>
                 </h2>
                 <div v-if="resultadosBusqueda.length === 0" class="text-center py-16 text-gray-400">
                     <p class="text-4xl mb-3">🔍</p>
                     <p class="text-lg">No encontramos "{{ busqueda }}"</p>
-                    <button @click="busqueda = ''" class="mt-4 text-[#642d81] font-bold hover:underline">Limpiar
+                    <button @click="busqueda = ''" class="mt-4 text-[var(--primary)] font-bold hover:underline">Limpiar
                         búsqueda</button>
                 </div>
                 <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -361,7 +361,7 @@
                         <div class="flex items-center justify-between mb-4">
                             <h2 class="text-2xl font-bold">{{ cat.emoji }} {{ cat.nombre }}</h2>
                             <button @click="seleccionarCategoria(cat)"
-                                class="text-[#642d81] text-sm font-bold hover:underline hover:cursor-pointer">
+                                class="text-[var(--primary)] text-sm font-bold hover:underline hover:cursor-pointer">
                                 Ver todos →
                             </button>
                         </div>
@@ -390,14 +390,13 @@
 </template>
 
 <script setup>
-import { ref as vueRef, computed, watch, onMounted, defineComponent, h } from 'vue'
+import { ref as vueRef, computed, onMounted, defineComponent, h } from 'vue'
 import { ref as storageRef, getDownloadURL } from 'firebase/storage'
 import { storage } from '../firebase.js'
-import { collection, doc, getDoc, getDocs, setDoc, Timestamp } from 'firebase/firestore'
-import { db } from '../firebase.js'
-import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail } from 'firebase/auth'
-import { auth } from '../firebase.js'
-import { useCartStore, useLocationStore, useSucursales } from '../stores/carStores.js'
+import { collection, doc, getDoc, getDocs } from 'firebase/firestore'
+import { db, auth } from '../firebase.js'
+import { useCartStore, useLocationStore, useSucursales } from '../stores/cartStores.js'
+import { useAuth } from '../composable/useAuth.js'
 import Footer from './Footer.vue'
 import CheckoutModal from './Checkoutmodal.vue'
 import { esPromocionActiva, diaPromocion } from '../composable/promociones.js'
@@ -418,11 +417,11 @@ const ProductCard = defineComponent({
                 : h('div', { class: 'w-full h-32 bg-gray-100 rounded-lg mb-3 flex items-center justify-center text-3xl' }, '🍽️'),
             h('h3', { class: 'font-bold text-sm mb-1 flex-1 line-clamp-2' }, props.item.nombre),
             props.item.descripcion ? h('p', { class: 'text-gray-400 text-xs mb-2 line-clamp-1' }, props.item.descripcion) : null,
-            h('p', { class: 'font-bold text-[#642d81] mb-3' }, `₡${props.item.precio}`),
+            h('p', { class: 'font-bold text-[var(--primary)] mb-3' }, `₡${props.item.precio}`),
             h('button', {
                 disabled: !activo.value,
                 class: activo.value
-                    ? 'w-full bg-[#642d81] text-white py-2 rounded-lg text-sm font-bold hover:bg-[#422d4d] transition-colors hover:cursor-pointer'
+                    ? 'w-full bg-[var(--primary)] text-white py-2 rounded-lg text-sm font-bold hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer'
                     : 'w-full bg-gray-200 text-gray-400 py-2 rounded-lg text-sm font-bold cursor-not-allowed',
                 onClick: () => activo.value && emit('personalizar')
             }, activo.value ? '+ Agregar 🎉' : diaPromocion(props.item.nombre))
@@ -440,21 +439,16 @@ const imageUrl = vueRef('')
 const menuOpen = vueRef(false)
 const menuItems = vueRef(false)
 const showCheckout = vueRef(false)
-const showUserModal = vueRef(false)
 const editProfileModal = vueRef(false)
-const user = vueRef(null)
 const busqueda = vueRef('')
 const categoriaActiva = vueRef(null)
 
-// Auth
-const justLogin = vueRef(true)
-const forgotPassword = vueRef(false)
-const email = vueRef('')
-const password1 = vueRef('')
-const password2 = vueRef('')
-const successMsg = vueRef('')
-const errorMsg = vueRef('')
-const menuLogIn = vueRef(false)
+const {
+    user, showUserModal, menuLogIn, justLogin, forgotPassword,
+    email, password1, password2, successMsg, errorMsg,
+    openLogin, cerrarSesion, resetPassword, register, login,
+    initAuthListener
+} = useAuth()
 
 // ── Personalizador de producto ──────────────────────────────────────────
 const personalizadorAbierto = vueRef(false)
@@ -546,6 +540,8 @@ const confirmarPersonalizacion = () => {
   cerrarPersonalizador()
 }
 
+
+
 const puntosUsuario = vueRef(null)
 
 const cargarPuntosUsuario = async (uid) => {
@@ -560,8 +556,7 @@ const cargarPuntosUsuario = async (uid) => {
   }
 }
 
-onAuthStateChanged(auth, (currentUser) => {
-  user.value = currentUser
+initAuthListener((currentUser) => {
   if (currentUser) cargarPuntosUsuario(currentUser.uid)
 })
 
@@ -643,69 +638,7 @@ onMounted(async () => {
 })
 
 // ── Auth helpers ───────────────────────────────────────────────────────────
-watch(menuLogIn, val => { document.body.style.overflow = val ? 'hidden' : '' })
-
-const openLogin = () => {
-    if (user.value) showUserModal.value = !showUserModal.value
-    else menuLogIn.value = true
-}
-
 const openMenu = () => { menuOpen.value = false; menuItems.value = true }
-
-const resetPassword = async (email) => {
-    try {
-        await sendPasswordResetEmail(auth, email)
-        successMsg.value = 'Correo de recuperación enviado 📧'
-        errorMsg.value = ''
-    } catch { errorMsg.value = 'Error al enviar el correo.'; successMsg.value = '' }
-}
-
-const register = async (email, password1, password2) => {
-    if (password1 !== password2) {
-        errorMsg.value = "Las contraseñas no coinciden. Por favor, intentalo de nuevo."
-        return
-    }
-
-    try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password1)
-        await sendEmailVerification(userCredential.user)
-        successMsg.value = "Cuenta creada exitosamente. Por favor verificá tu correo electrónico 📧"
-        errorMsg.value = ""
-    } catch (error) {
-        console.error("Error en Auth:", error.code)
-        errorMsg.value = "Error al crear la cuenta. Verificá que los datos sean correctos."
-        return
-    }
-
-    try {
-        await setDoc(doc(db, 'clientes', auth.currentUser.uid), {
-            email: email,
-            creadoEn: Timestamp.now(),
-            telefono: '',
-            nombre: '',
-            direccion: '',
-            lat: '',
-            lng: ''
-        })
-    } catch (error) {
-        console.error("Error en Firestore:", error)
-    }
-
-    setTimeout(() => {
-        successMsg.value = "Cuenta creada exitosamente. Por favor verificá tu correo electrónico 📧"
-        menuLogIn.value = false
-    }, 2000)
-}
-const login = async (email, password) => {
-    try {
-        await signInWithEmailAndPassword(auth, email, password)
-        setTimeout(() => {
-            successMsg.value = 'Inicio de sesión exitoso ✅'
-            menuLogIn.value = false
-        }, 1000)
-        errorMsg.value = ''
-    } catch { errorMsg.value = 'Credenciales incorrectas.'; successMsg.value = '' }
-}
 </script>
 
 <style scoped>

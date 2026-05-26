@@ -18,7 +18,7 @@
 
             <!-- Loader -->
             <div v-if="loading" class="flex justify-center items-center p-10">
-                <span class="pi pi-spinner animate-spin text-3xl text-[#642d81]"></span>
+                <span class="pi pi-spinner animate-spin text-3xl text-[var(--primary)]"></span>
             </div>
 
             <!-- Formulario -->
@@ -28,14 +28,14 @@
                 <div>
                     <label class="text-sm text-gray-500 block mb-1">Nombre completo</label>
                     <input v-model="form.nombre" type="text" placeholder="Ej: Juan Pérez"
-                        class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#642d81]" />
+                        class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
                 </div>
 
                 <!-- Teléfono -->
                 <div>
                     <label class="text-sm text-gray-500 block mb-1">Teléfono</label>
                     <input v-model="form.telefono" type="tel" placeholder="Ej: 8888-0000"
-                        class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#642d81]" />
+                        class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
                 </div>
 
                 <!-- Dirección -->
@@ -43,7 +43,7 @@
                     <label class="text-sm text-gray-500 block mb-1">Dirección</label>
                     <textarea v-model="form.direccion"
                         placeholder="Ej: 100m norte del parque central, casa azul con portón negro"
-                        class="w-full p-2 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#642d81]"
+                        class="w-full p-2 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
                         rows="3"></textarea>
                 </div>
 
@@ -51,7 +51,7 @@
                 <div>
                     <label class="text-sm text-gray-500 block mb-1">Ubicación GPS</label>
                     <button @click="obtenerUbicacion" :disabled="loadingUbicacion"
-                        class="w-full py-2 border-2 border-dashed border-[#642d81] rounded-lg text-[#642d81] font-bold hover:bg-purple-50 transition-colors hover:cursor-pointer disabled:opacity-50">
+                        class="w-full py-2 border-2 border-dashed border-[var(--primary)] rounded-lg text-[var(--primary)] font-bold hover:bg-purple-50 transition-colors hover:cursor-pointer disabled:opacity-50">
                         <span v-if="loadingUbicacion" class="pi pi-spinner animate-spin mr-2"></span>
                         {{ loadingUbicacion ? 'Obteniendo ubicación...' : '📍 Obtener mi ubicación actual' }}
                     </button>
@@ -75,7 +75,7 @@
 
                 <!-- Botón guardar -->
                 <button @click="guardarInformacion" :disabled="guardando"
-                    class="w-full bg-[#642d81] text-white py-3 rounded-xl font-bold hover:bg-[#422d4d] transition-colors duration-300 hover:cursor-pointer disabled:opacity-50">
+                    class="w-full bg-[var(--primary)] text-white py-3 rounded-xl font-bold hover:bg-[var(--primary-dark)] transition-colors duration-300 hover:cursor-pointer disabled:opacity-50">
                     <span v-if="guardando" class="pi pi-spinner animate-spin mr-2"></span>
                     {{ guardando ? 'Guardando...' : 'Guardar información 💾' }}
                 </button>

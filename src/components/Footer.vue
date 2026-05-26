@@ -1,5 +1,5 @@
 <template>
-  <footer class="bg-[#642d81] text-white py-4">
+  <footer class="bg-[var(--primary)] text-white py-4">
     <div class="container mx-auto text-center">
       <p>&copy; 2025 Foodmania. Todos los derechos reservados.</p>
       <p>

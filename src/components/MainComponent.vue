@@ -39,7 +39,7 @@
                     class="border px-4 py-2 rounded-full hover:cursor-pointer font-bold hover:bg-gray-50 transition-colors">
                     {{ user ? user.email.split('@')[0] : "Inicia sesión" }}
                 </button>
-                <button id="extrabold" class="border my-0.5 p-2 pl-3 pr-3 rounded-full hover:cursor-pointer">
+                <button class="extrabold border my-0.5 p-2 pl-3 pr-3 rounded-full hover:cursor-pointer">
                     <RouterLink to="/menu" target="_blank">Ordena aquí</RouterLink>
                 </button>
             </section>
@@ -57,43 +57,43 @@
                 <section class="flex flex-col p-4 text-center gap-3">
                     <img :src="imageUrl" alt="logo_foodmania" class="w-20 mx-auto mb-2" />
                     <input v-model="email" type="email" placeholder="Correo electrónico"
-                        class="p-2 border w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-[#642d81]" />
+                        class="p-2 border w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
                     <section v-if="justLogin && !forgotPassword">
                         <input v-model="password1" type="password" placeholder="Contraseña"
-                            class="p-2 w-full border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#642d81]" />
+                            class="p-2 w-full border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
                     </section>
                     <section class="flex flex-col gap-2" v-else-if="!justLogin && !forgotPassword">
                         <input v-model="password1" type="password" placeholder="Crear contraseña"
-                            class="p-2 border rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#642d81]" />
+                            class="p-2 border rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
                         <input v-model="password2" type="password" placeholder="Confirmar contraseña"
-                            class="p-2 border rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[#642d81]" />
+                            class="p-2 border rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
                         <p class="text-xs text-red-500">Mínimo 8 caracteres, mayúscula, minúscula y número.</p>
                     </section>
                     <p v-if="successMsg" class="text-green-500 text-sm">{{ successMsg }}</p>
                     <p v-if="errorMsg" class="text-red-500 text-sm">{{ errorMsg }}</p>
                     <button v-if="justLogin && !forgotPassword" @click="login(email, password1)"
-                        class="bg-[#642d81] text-white px-4 py-2 rounded-lg hover:bg-[#422d4d] transition-colors hover:cursor-pointer">
+                        class="bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
                         Iniciar sesión
                     </button>
                     <button v-else-if="!justLogin && !forgotPassword" @click="register(email, password1, password2)"
-                        class="bg-[#642d81] text-white px-4 py-2 rounded-lg hover:bg-[#422d4d] transition-colors hover:cursor-pointer">
+                        class="bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
                         Crear cuenta
                     </button>
                     <button v-if="forgotPassword" @click="resetPassword(email)"
-                        class="bg-[#642d81] text-white px-4 py-2 rounded-lg hover:bg-[#422d4d] transition-colors hover:cursor-pointer">
+                        class="bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
                         Enviar correo de recuperación
                     </button>
                 </section>
                 <section v-if="justLogin" class="text-center text-sm border-t pt-3">
                     <p class="text-gray-600">¿No tenés cuenta? <a href="#"
                             @click="justLogin = false; forgotPassword = false"
-                            class="text-[#642d81] font-bold">Regístrate</a></p>
-                    <button class="text-[#642d81] text-sm mt-2 hover:cursor-pointer"
+                            class="text-[var(--primary)] font-bold">Regístrate</a></p>
+                    <button class="text-[var(--primary)] text-sm mt-2 hover:cursor-pointer"
                         @click="forgotPassword = true">¿Olvidaste tu contraseña?</button>
                 </section>
                 <section v-if="!justLogin" class="text-center text-sm border-t pt-3">
                     <p class="text-gray-600">¿Ya tenés cuenta? <a href="#" @click="justLogin = true"
-                            class="text-[#642d81] font-bold">Iniciá sesión</a></p>
+                            class="text-[var(--primary)] font-bold">Iniciá sesión</a></p>
                 </section>
             </div>
         </div>
@@ -111,14 +111,14 @@
                 <span class="text-sm font-bold">{{ user.emailVerified ? '✅ Email verificado' : '⚠️ Email no verificado'
                 }}</span>
                 <button @click="cerrarSesion"
-                    class="w-full bg-[#642d81] text-white px-4 py-2 rounded-lg hover:bg-[#422d4d] transition-colors hover:cursor-pointer">
+                    class="w-full bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
                     Cerrar sesión
                 </button>
             </section>
         </section>
     </header>
 
-    <body v-if="!loader" @click="menuOpen = false" class="fontColor pt-32">
+    <main v-if="!loader" @click="menuOpen = false" class="fontColor pt-32">
         <div>
             <HeroCarousel />
             <section id="sucursales">
@@ -128,7 +128,7 @@
 
             <div class="text-center px-4">
                 <div>
-                    <h1 id="extrabold" class="text-4xl my-8 p-1">
+                    <h1 class="extrabold text-4xl my-8 p-1">
                         ¿Dónde comprar tu <span class="title"> antojo</span> ?
                     </h1>
                 </div>
@@ -156,9 +156,9 @@
                 <section v-else class="p-2 text-center text-lg">
                     <h1 class="text-center">
                         Tu sucursal más cercana es:
-                        <span id="extrabold">{{ locationStore.sucursalCercana }}</span>
+                        <span class="extrabold">{{ locationStore.sucursalCercana }}</span>
                         la cual esta a
-                        <span id="extrabold">{{ locationStore.distancia }}</span>
+                        <span class="extrabold">{{ locationStore.distancia }}</span>
                         km de ti.
                     </h1>
                 </section>
@@ -167,7 +167,7 @@
         </div>
         <section id="menu">
             <div class="text-center px-4">
-                <h1 id="extrabold" class="text-4xl my-8 p-1">Menú</h1>
+                <h1 class="extrabold text-4xl my-8 p-1">Menú</h1>
                 <div class="flex justify-center p-4">
                     <img :src="imageUrlMenu" alt="Menú de Foodmania" />
                 </div>
@@ -177,32 +177,41 @@
                     ¿Estas listo para probar el mejor sabor de tu vida? ¡Ordena ahora y
                     disfruta de una experiencia culinaria única con Foodmania!
                 </p>
-                <button id="extrabold" class="border my-0.5 p-2 pl-3 pr-3 rounded-full hover:cursor-pointer">
+                <button class="extrabold border my-0.5 p-2 pl-3 pr-3 rounded-full hover:cursor-pointer">
                     <RouterLink to="/menu" target="_blank">Ordena aquí</RouterLink>
                 </button>
             </div>
         </section>
         <Footer />
-    </body>
+    </main>
 </template>
 <script setup>
-import { ref as vueRef, onMounted, watch, toRaw } from "vue";
+import { ref as vueRef, onMounted } from "vue";
 import { ref as storageRef, getDownloadURL } from "firebase/storage";
 import { storage } from "../firebase.js";
 import { useRouter } from "vue-router";
 import HeroCarousel from "./HeroCarousel.vue";
-import Dropmenu from "../composable/Dropmenu.vue";
+import Dropmenu from "./Dropmenu.vue";
 import BranchSection from "./BranchSection.vue";
 import WhereBuySection from "./WhereBuySection.vue";
 import Footer from "./Footer.vue";
-import { collection, doc, getDoc, getDocs, query, setDoc, Timestamp, where } from "firebase/firestore";
-import { auth, db } from "../firebase.js";
-import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail, signOut } from "firebase/auth";
-import { useCartStore, useLocationStore, useSucursales } from "../stores/carStores.js";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../firebase.js";
+import { useLocationStore, useSucursales } from "../stores/cartStores.js";
+import { useAuth } from "../composable/useAuth.js";
 import { getLocation } from "../composable/saberDistancia.js";
+
 const router = useRouter();
 const locationStore = useLocationStore()
 const sucursalesStore = useSucursales()
+
+const {
+    user, esAdmin, showUserModal, menuLogIn, justLogin, forgotPassword,
+    email, password1, password2, successMsg, errorMsg,
+    openLogin, cerrarSesion, resetPassword, register, login,
+    verificarAdmin, initAuthListener
+} = useAuth()
+
 const sucursales = vueRef([]);
 const loaderBranchSection = vueRef(true);
 const menuOpen = vueRef(false);
@@ -211,157 +220,39 @@ const imageUrlMenu = vueRef("");
 const loader = vueRef(true);
 const nearestBranch = vueRef(null);
 const branchSectionShow = vueRef(false);
-const distance = vueRef()
-const nombreSucursalMasCercana = vueRef()
-const showUserModal = vueRef(false)
-const editProfileModal = vueRef(false)
-const user = vueRef(null)
-const esAdmin = vueRef(false)
-
-// Auth
-const justLogin = vueRef(true)
-const forgotPassword = vueRef(false)
-const email = vueRef('')
-const password1 = vueRef('')
-const password2 = vueRef('')
-const successMsg = vueRef('')
-const errorMsg = vueRef('')
-const menuLogIn = vueRef(false)
-
-watch(menuLogIn, val => { document.body.style.overflow = val ? 'hidden' : '' })
-
-const openLogin = () => {
-    if (user.value) showUserModal.value = !showUserModal.value
-    else menuLogIn.value = true
-}
-
-const cerrarSesion = async () => {
-    useCartStore().items = []
-    await signOut(auth)
-    showUserModal.value = false
-}
-
-const resetPassword = async (email) => {
-    try {
-        await sendPasswordResetEmail(auth, email)
-        successMsg.value = 'Correo de recuperación enviado 📧'
-        errorMsg.value = ''
-    } catch { errorMsg.value = 'Error al enviar el correo.'; successMsg.value = '' }
-}
-
-const register = async (email, password1, password2) => {
-    if (password1 !== password2) {
-        errorMsg.value = "Las contraseñas no coinciden. Por favor, intentalo de nuevo."
-        return
-    }
-
-    try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password1)
-        await sendEmailVerification(userCredential.user)
-        successMsg.value = "Cuenta creada exitosamente. Por favor verificá tu correo electrónico 📧"
-        errorMsg.value = ""
-    } catch (error) {
-        console.error("Error en Auth:", error.code)
-        errorMsg.value = "Error al crear la cuenta. Verificá que los datos sean correctos."
-        return
-    }
-
-    try {
-        await setDoc(doc(db, 'clientes', auth.currentUser.uid), {
-            email: email,
-            creadoEn: Timestamp.now(),
-            telefono: '',
-            nombre: '',
-            direccion: '',
-            lat: '',
-            lng: ''
-        })
-    } catch (error) {
-        console.error("Error en Firestore:", error)
-    }
-
-    setTimeout(() => {
-        successMsg.value = "Cuenta creada exitosamente. Por favor verificá tu correo electrónico 📧"
-        menuLogIn.value = false
-    }, 2000)
-}
-
-const login = async (email, password) => {
-    try {
-        await signInWithEmailAndPassword(auth, email, password)
-        successMsg.value = 'Inicio de sesión exitoso ✅'
-        errorMsg.value = ''
-        setTimeout(() => {
-        successMsg.value = 'Inicio de sesión exitoso ✅'
-        menuLogIn.value = false
-    }, 1000)
-    } catch { errorMsg.value = 'Credenciales incorrectas.'; successMsg.value = '' }
-}
 
 const irAAdmin = () => {
     router.push("/adminControl")
 }
 
-const verificarAdmin = async (currentUser) => {
-    if (!currentUser) {
-        esAdmin.value = false
-        return
-    }
-    try {
-        const docRef = doc(db, "superUser", currentUser.uid)
-        const docSnap = await getDoc(docRef)
-
-        if (docSnap.exists()) {
-            const superUserData = docSnap.data()
-            esAdmin.value = superUserData.rol === "administrador"
-        }
-    } catch (error) {
-        console.error("Error verificando admin:", error)
-        esAdmin.value = false
-    }
-}
-
 const getLocations = () => {
     branchSectionShow.value = true
-    const resultado = getLocation(toRaw(sucursales.value))
+    getLocation(sucursales.value)
     setTimeout(() => {
         loaderBranchSection.value = false
-        distance.value = locationStore.distancia
-        nombreSucursalMasCercana.value = locationStore.sucursalCercana
     }, 2000);
 }
 
 
 onMounted(async () => {
-    onAuthStateChanged(auth, (currentUser) => {
-        user.value = currentUser
-        if (currentUser) {
-            verificarAdmin(currentUser)
-        } else {
-            esAdmin.value = false
-        }
+    initAuthListener((currentUser) => {
+        verificarAdmin(currentUser)
     })
 
-    const docRef = collection(db, "Sucursales de Foodmania");
-    const docSnap = await getDocs(docRef);
+    const [sucursalesSnap, logoUrl, menuUrl] = await Promise.all([
+        getDocs(collection(db, "Sucursales de Foodmania")),
+        getDownloadURL(storageRef(storage, "FoodMania/logoFoodmania4.PNG")),
+        getDownloadURL(storageRef(storage, "FoodMania/amenuFoodmania.jpeg"))
+    ])
 
+    const sucursalesData = []
+    sucursalesSnap.forEach(doc => sucursalesData.push(doc.data()))
+    sucursales.value = sucursalesData
+    sucursalesStore.sucursalesFoodMania = sucursalesData
 
-    docSnap.forEach(async (doc) => {
-        const docData = doc.data();
+    imageUrl.value = logoUrl
+    imageUrlMenu.value = menuUrl
 
-        sucursales.value.push({
-            ...docData,
-        });
-    });
-    sucursalesStore.sucursalesFoodMania = sucursales.value
-
-
-    const imgRefmenu = storageRef(storage, "FoodMania/amenuFoodmania.jpeg");
-    const imgRef = storageRef(storage, "FoodMania/logoFoodmania4.PNG");
-    imageUrlMenu.value = await getDownloadURL(imgRefmenu);
-    imageUrl.value = await getDownloadURL(imgRef);
-    setTimeout(() => {
-        loader.value = false;
-    }, 2000);
+    loader.value = false
 });
 </script>

@@ -2,8 +2,8 @@
   <!-- Pantallas pequeñas -->
   <section class="flex flex-col justify-center items-center p-4">
     <div class="flex space-x-2 mb-4 items-center">
-      <span id="extrabold" class="text-4xl">Nuestras</span>
-      <span id="extrabold" class="text-4xl title">sucursales</span>
+      <span class="extrabold text-4xl">Nuestras</span>
+      <span class="extrabold text-4xl title">sucursales</span>
     </div>
     <div class="flex flex-wrap justify-center gap-4">
       <div
@@ -16,7 +16,7 @@
           :alt="value.Nombre"
           class="w-full h-40 object-cover rounded-lg"
         />
-        <h2 id="extrabold" class="text-2xl mt-4 mb-2">
+        <h2 class="extrabold text-2xl mt-4 mb-2">
           {{ value.Nombre }}
         </h2>
         <p>📍 Dirección: {{ value.Direccion }}</p>
@@ -45,28 +45,31 @@
 
 <script setup>
 import { ref as vueRef, onMounted } from "vue";
-// storage
 import { ref as storageRef, getDownloadURL } from "firebase/storage";
 import { storage } from "../firebase.js";
-// docs
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase.js";
+import { useSucursales } from "../stores/cartStores.js";
 
+const sucursalesStore = useSucursales()
 const sucursales = vueRef([]);
 
 onMounted(async () => {
-  const docRef = collection(db, "Sucursales de Foodmania");
-  const docSnap = await getDocs(docRef);
+  let data = sucursalesStore.sucursalesFoodMania
 
-  docSnap.forEach(async (doc) => {
-    const docData = doc.data();
-    const imgRef = storageRef(storage, docData.foto_local);
+  if (data.length === 0) {
+    const docSnap = await getDocs(collection(db, "Sucursales de Foodmania"));
+    data = []
+    docSnap.forEach(doc => data.push(doc.data()))
+    sucursalesStore.sucursalesFoodMania = data
+  }
+
+  const results = await Promise.all(data.map(async (item) => {
+    const imgRef = storageRef(storage, item.foto_local);
     const url = await getDownloadURL(imgRef);
+    return { ...item, foto_local: url };
+  }))
 
-    sucursales.value.push({
-      ...docData,
-      foto_local: url,
-    });
-  });
+  sucursales.value = results;
 });
 </script>

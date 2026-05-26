@@ -14,7 +14,7 @@
       </div>
 
       <div v-if="loadingUsuario" class="flex justify-center items-center p-6">
-        <span class="pi pi-spinner animate-spin text-3xl text-[#642d81]"></span>
+        <span class="pi pi-spinner animate-spin text-3xl text-[var(--primary)]"></span>
       </div>
 
       <div v-else>
@@ -25,7 +25,7 @@
           <p class="text-lg font-bold text-gray-500">Tu carrito está vacío</p>
           <p class="text-sm text-gray-400">Agregá productos al carrito antes de finalizar la compra.</p>
           <button @click="$emit('update:modelValue', false)"
-            class="bg-[#642d81] text-white px-6 py-2 rounded-full font-bold hover:bg-[#422d4d] transition-colors hover:cursor-pointer">
+            class="bg-[var(--primary)] text-white px-6 py-2 rounded-full font-bold hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
             Ver menú
           </button>
         </div>
@@ -39,7 +39,7 @@
             Podés programar un retiro en sucursal para otra hora.
           </p>
           <button @click="withDrawType = 'sucursal'"
-            class="bg-[#642d81] text-white px-6 py-2 rounded-full font-bold hover:bg-[#422d4d] transition-colors hover:cursor-pointer">
+            class="bg-[var(--primary)] text-white px-6 py-2 rounded-full font-bold hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
             Programar retiro en sucursal
           </button>
         </div>
@@ -98,12 +98,12 @@
               <!-- Agrandar papas (pollofrito con papas == true) -->
               <div v-if="item.papas === true" class="mt-2 ml-2 flex flex-wrap items-center gap-2">
                 <label class="flex items-center gap-1 text-xs text-gray-600 hover:cursor-pointer">
-                  <input type="checkbox" v-model="agrandarMap[item._uid]" class="accent-[#642d81]" />
+                  <input type="checkbox" v-model="agrandarMap[item._uid]" class="accent-[var(--primary)]" />
                   Agrandar papas
                 </label>
                 <div v-if="agrandarMap[item._uid]" class="flex gap-1">
                   <button @click="toggleAgrandarPuntos(item, false)"
-                    :class="!agrandarPuntosMap[item._uid] ? 'bg-[#642d81] text-white' : 'bg-gray-200 text-gray-600'"
+                    :class="!agrandarPuntosMap[item._uid] ? 'bg-[var(--primary)] text-white' : 'bg-gray-200 text-gray-600'"
                     class="text-[10px] px-2 py-0.5 rounded-full font-bold hover:cursor-pointer transition-colors">
                     ₡{{ AGRANDAR_COSTO }}
                   </button>
@@ -149,7 +149,7 @@
             <div class="mt-3 bg-purple-50 border border-purple-200 rounded-xl p-3 flex items-center gap-3">
               <span class="text-2xl">⭐</span>
               <div>
-                <p class="text-sm font-bold text-[#642d81]">
+                <p class="text-sm font-bold text-[var(--primary)]">
                   Ganarás {{ puntosAGanar }} punto{{ puntosAGanar !== 1 ? 's' : '' }} con esta compra
                 </p>
                 <p class="text-xs text-gray-400">
@@ -158,7 +158,7 @@
                 <p v-if="puntosActuales !== null && totalPuntosAGastar > 0" class="text-xs text-yellow-700 font-bold mt-0.5">
                   ⚡ Los {{ puntosAGanar }} puntos de esta compra se suman después del canje
                 </p>
-                <p v-if="puntosActuales !== null" class="text-xs text-[#642d81] font-bold mt-0.5">
+                <p v-if="puntosActuales !== null" class="text-xs text-[var(--primary)] font-bold mt-0.5">
                   Saldo final estimado: {{ puntosActuales - totalPuntosAGastar + puntosAGanar }} puntos
                 </p>
               </div>
@@ -172,12 +172,12 @@
               <div>
                 <label class="text-sm text-gray-500 block mb-1">Nombre</label>
                 <input v-model="datosCliente.nombre" type="text" placeholder="Tu nombre completo"
-                  class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#642d81]" />
+                  class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
               </div>
               <div>
                 <label class="text-sm text-gray-500 block mb-1">Teléfono</label>
                 <input v-model="datosCliente.telefono" type="tel" placeholder="Ej: 8888-0000"
-                  class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#642d81]" />
+                  class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
               </div>
             </div>
           </div>
@@ -187,12 +187,12 @@
             <h2 class="font-bold mb-3">Tipo de retiro</h2>
             <div class="flex gap-2">
               <button @click="withDrawType = 'sucursal'"
-                :class="withDrawType === 'sucursal' ? 'bg-[#642d81] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
+                :class="withDrawType === 'sucursal' ? 'bg-[var(--primary)] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
                 class="flex-1 py-2 rounded transition-colors duration-300 hover:cursor-pointer">
                 🏪 Sucursal
               </button>
               <button @click="withDrawType = 'domicilio'"
-                :class="withDrawType === 'domicilio' ? 'bg-[#642d81] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
+                :class="withDrawType === 'domicilio' ? 'bg-[var(--primary)] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
                 class="flex-1 py-2 rounded transition-colors duration-300 hover:cursor-pointer">
                 🛵 Domicilio
               </button>
@@ -204,7 +204,7 @@
             <div v-if="withDrawType === 'sucursal'" class="flex flex-col gap-4">
               <div>
                 <label class="text-sm text-gray-500 block mb-1">Sucursal de retiro</label>
-                <select v-model="sucursalSeleccionada" @change="actualizarNcelularPorSucursal"
+                <select v-model="sucursalSeleccionada" @change="actualizarDatosSinpe"
                   class="w-full p-2 border rounded-lg">
                   <option value="">Seleccioná una sucursal</option>
                   <option v-for="suc in sucursalesStore.sucursalesFoodMania" :key="suc.Nombre" :value="suc.Nombre">
@@ -234,7 +234,7 @@
               <div>
                 <label class="text-sm text-gray-500 block mb-1">Tu ubicación GPS</label>
                 <button @click="obtenerUbicacion()"
-                  class="w-full py-2 border-2 border-dashed border-[#642d81] rounded-lg text-[#642d81] font-bold hover:bg-purple-50 transition-colors hover:cursor-pointer">
+                  class="w-full py-2 border-2 border-dashed border-[var(--primary)] rounded-lg text-[var(--primary)] font-bold hover:bg-purple-50 transition-colors hover:cursor-pointer">
                   📍 Usar mi ubicación actual
                 </button>
                 <div v-if="ubicacionObtenida"
@@ -243,14 +243,14 @@
                     <p class="text-green-600 font-bold">✅ Ubicación obtenida</p>
                     <p class="text-gray-500 mt-1">Sucursal más cercana: <strong>{{ locationStore.sucursalCercana }}</strong></p>
                     <p class="text-gray-500">Distancia: {{ locationStore.distancia }} km</p>
-                    <p class="text-[#642d81] text-xs font-bold mt-1">
+                    <p class="text-[var(--primary)] text-xs font-bold mt-1">
                       Envío: ₡1,000 base
                       <span v-if="kmAdicionales > 0"> + {{ kmAdicionales }} km × ₡400 = ₡{{ costoEnvio }}</span>
                       <span v-else> = ₡{{ costoEnvio }}</span>
                     </p>
                   </div>
                   <button @click="abrirEnMaps"
-                    class="ml-2 bg-[#642d81] text-white px-3 py-2 rounded-lg text-xs font-bold hover:bg-[#422d4d] transition-colors hover:cursor-pointer flex items-center gap-1">
+                    class="ml-2 bg-[var(--primary)] text-white px-3 py-2 rounded-lg text-xs font-bold hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer flex items-center gap-1">
                     <span class="pi pi-map-marker"></span>
                     Ver en Maps
                   </button>
@@ -264,12 +264,12 @@
             <h2 class="font-bold mb-3">Método de pago</h2>
             <div class="flex gap-2 mb-4">
               <button @click="metodoPago = 'efectivo'"
-                :class="metodoPago === 'efectivo' ? 'bg-[#642d81] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
+                :class="metodoPago === 'efectivo' ? 'bg-[var(--primary)] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
                 class="flex-1 py-2 rounded transition-colors duration-300 hover:cursor-pointer">
                 💵 Efectivo
               </button>
               <button @click="metodoPago = 'sinpe'"
-                :class="metodoPago === 'sinpe' ? 'bg-[#642d81] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
+                :class="metodoPago === 'sinpe' ? 'bg-[var(--primary)] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
                 class="flex-1 py-2 rounded transition-colors duration-300 hover:cursor-pointer">
                 📱 SINPE Móvil
               </button>
@@ -289,10 +289,11 @@
             </div>
 
             <div v-if="metodoPago === 'sinpe'" class="bg-gray-50 rounded-lg p-3 text-sm text-center">
-              <p class="font-bold mb-1">SINPE Móvil al número:</p>
-              <p class="text-2xl font-bold text-[#642d81]">{{ nCelular || '—' }}</p>
+              <p class="font-bold mb-1">SINPE Móvil</p>
+              <p class="text-2xl font-bold text-[var(--primary)]">{{ sinpeNumero || '—' }}</p>
+              <p v-if="sinpeTitular" class="text-sm text-gray-500 mt-1">A nombre de: <strong>{{ sinpeTitular }}</strong></p>
               <p class="text-xs text-gray-400 mt-1">
-                {{ withDrawType === 'sucursal' ? 'Número de la sucursal seleccionada' : 'Número de la sucursal más cercana' }}
+                {{ withDrawType === 'sucursal' ? 'Datos de la sucursal seleccionada' : 'Datos de la sucursal más cercana' }}
               </p>
               <p class="text-gray-500 mt-2">Enviá el comprobante por WhatsApp al finalizar 📲</p>
             </div>
@@ -307,7 +308,7 @@
           <!-- Botón confirmar -->
           <div class="p-5">
             <button @click="confirmarPedido" :disabled="loading"
-              class="w-full bg-[#642d81] text-white py-3 rounded-xl font-bold hover:bg-[#422d4d] transition-colors duration-300 hover:cursor-pointer disabled:opacity-50">
+              class="w-full bg-[var(--primary)] text-white py-3 rounded-xl font-bold hover:bg-[var(--primary-dark)] transition-colors duration-300 hover:cursor-pointer disabled:opacity-50">
               <span v-if="loading" class="pi pi-spinner animate-spin mr-2"></span>
               {{ loading ? 'Enviando pedido...' : 'Confirmar pedido 🎉' }}
             </button>
@@ -321,7 +322,7 @@
 
 <script setup>
 import { ref as vueRef, computed, watch, reactive } from 'vue'
-import { useCartStore, useLocationStore, useSucursales } from '../stores/carStores.js'
+import { useCartStore, useLocationStore, useSucursales } from '../stores/cartStores.js'
 import { db, auth } from '../firebase.js'
 import { doc, getDoc, updateDoc, increment } from 'firebase/firestore'
 import { getFunctions, httpsCallable } from 'firebase/functions'
@@ -356,6 +357,8 @@ const horaRetiro = vueRef('')
 const metodoPago = vueRef('efectivo')
 const montoEfectivo = vueRef('')
 const nCelular = vueRef('')
+const sinpeNumero = vueRef('')
+const sinpeTitular = vueRef('')
 const ubicacionObtenida = vueRef(false)
 const loading = vueRef(false)
 const loadingUsuario = vueRef(false)
@@ -482,17 +485,25 @@ const cargarDatosUsuario = async () => {
   }
 }
 
-const actualizarNcelularPorSucursal = () => {
+const actualizarDatosSinpe = () => {
   const suc = sucursalesStore.sucursalesFoodMania.find(s => s.Nombre === sucursalSeleccionada.value)
-  if (suc) nCelular.value = suc.nCelular
+  if (suc) {
+    nCelular.value = suc.nCelular || ''
+    sinpeNumero.value = suc.sinpe || ''
+    sinpeTitular.value = suc.aNombre || ''
+  }
 }
 
 watch(withDrawType, (tipo) => {
   if (tipo === 'sucursal') {
-    actualizarNcelularPorSucursal()
+    actualizarDatosSinpe()
   } else {
     const suc = sucursalesStore.sucursalesFoodMania.find(s => s.Nombre === locationStore.sucursalCercana)
-    if (suc) nCelular.value = suc.nCelular
+    if (suc) {
+      nCelular.value = suc.nCelular || ''
+      sinpeNumero.value = suc.sinpe || ''
+      sinpeTitular.value = suc.aNombre || ''
+    }
   }
 })
 
@@ -501,7 +512,9 @@ const obtenerUbicacion = () => {
   ubicacionObtenida.value = true
   sucursalesStore.sucursalesFoodMania.forEach((item) => {
     if (item.Nombre === locationStore.sucursalCercana) {
-      nCelular.value = item.nCelular
+      nCelular.value = item.nCelular || ''
+      sinpeNumero.value = item.sinpe || ''
+      sinpeTitular.value = item.aNombre || ''
     }
   })
 }

@@ -7,7 +7,7 @@
         :href="value.url"
         target="_blank"
         rel="noopener noreferrer"
-        class="flex flex-col items-center justify-center gap-3 p-5 rounded-2xl shadow-md border border-transparent hover:border-[#642d81] hover:shadow-xl transition-all duration-300 cursor-pointer"
+        class="flex flex-col items-center justify-center gap-3 p-5 rounded-2xl shadow-md border border-transparent hover:border-[var(--primary)] hover:shadow-xl transition-all duration-300 cursor-pointer"
       >
         <img
           :src="value.logo"

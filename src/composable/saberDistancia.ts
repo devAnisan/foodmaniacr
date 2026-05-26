@@ -1,6 +1,5 @@
-import { useLocationStore } from "../stores/carStores";
+import { useLocationStore } from "../stores/cartStores";
 
-import { ref as vueRef } from "vue";
 interface Insucursal {
     Direccion: string,
     Nombre: string,
@@ -10,9 +9,10 @@ interface Insucursal {
     lat: string,
     lng: string,
     maps: string,
-    nCelular: string
+    nCelular: string,
+    sinpe: string,
+    aNombre: string
 }
-const sucursal = vueRef([])
 // Haversine formula to calculate distance between two points
 export const calcDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
     const R = 6371;
@@ -28,45 +28,33 @@ export const calcDistance = (lat1: number, lng1: number, lat2: number, lng2: num
 };
 
 
-// find the nearest branch based on user's current location
 const findNearBranch = (lat: number, lng: number, sucursales: Insucursal[]) => {
     const locationStore = useLocationStore()
     let minDistance = Infinity;
 
-    console.log(sucursales);
-
     for (let i = 0; i < sucursales.length; i++) {
         const branch = sucursales[i]
-
         const distance = calcDistance(lat, lng, parseFloat(branch.lat), parseFloat(branch.lng))
         if (distance < minDistance) {
             minDistance = distance;
             locationStore.sucursalCercana = branch.Nombre;
             locationStore.distancia = distance.toFixed(2);
         }
-
     }
-    console.log(locationStore.sucursalCercana)
 }
 
 
 // and get user's current location
 
 export const getLocation = (sucursales: Insucursal[]) => {
-
     navigator.geolocation.getCurrentPosition(
         (position) => {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
             findNearBranch(lat, lng, sucursales);
-            const local = useLocationStore()
-
-
-            return false;
         },
         (error) => {
             console.error("Error getting geolocation:", error);
-            return false;
         },
     );
 };

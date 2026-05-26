@@ -19,8 +19,7 @@
       </button>
     </li>
     <button
-      id="extrabold"
-      class="border my-0.5 p-2 pl-3 pr-3 rounded-full hover:cursor-pointer"
+      class="extrabold border my-0.5 p-2 pl-3 pr-3 rounded-full hover:cursor-pointer"
     >
       <a href="/menu" target="_blank">Ordena aquí</a>
     </button>
@@ -33,7 +32,7 @@ import { useRouter } from "vue-router"
 import { auth, db } from "../firebase.js"
 import { onAuthStateChanged, signOut } from "firebase/auth"
 import { doc, getDoc } from "firebase/firestore"
-import { useCartStore } from "../stores/carStores.js"
+import { useCartStore } from "../stores/cartStores.js"
 
 const router = useRouter()
 const user = vueRef(null)

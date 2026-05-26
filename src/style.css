@@ -2,6 +2,11 @@
 
 @import "primeicons/primeicons.css";
 
+:root {
+  --primary: #642d81;
+  --primary-dark: #422d4d;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -9,18 +14,18 @@ html {
   font-family: "Baloo Bhai 2", sans-serif;
 }
 .fontColor {
-  color: #642d81;
+  color: var(--primary);
 }
 
 .title {
   color: white;
-  background: #642d81;
+  background: var(--primary);
   padding: 0.15rem 0.2rem;
   border-radius: 0.25rem;
   margin: -0.45rem;
 }
 
-#extrabold {
+.extrabold {
   font-family: "Baloo Bhai 2", sans-serif;
   font-weight: 800;
 }

@@ -2,7 +2,7 @@
     <!-- Loader de verificación de rol -->
     <div v-if="verificando" class="flex items-center justify-center h-screen fontColor">
         <div class="text-center">
-            <span class="pi pi-spinner animate-spin text-4xl text-[#642d81] block mb-4"></span>
+            <span class="pi pi-spinner animate-spin text-4xl text-[var(--primary)] block mb-4"></span>
             <p class="text-gray-500">Verificando acceso...</p>
         </div>
     </div>
@@ -13,7 +13,7 @@
         <h1 class="text-2xl font-bold">Acceso denegado</h1>
         <p class="text-gray-500">No tenés permisos para ver esta página.</p>
         <button @click="router.push('/')"
-            class="bg-[#642d81] text-white px-6 py-2 rounded-full font-bold hover:bg-[#422d4d] transition-colors hover:cursor-pointer">
+            class="bg-[var(--primary)] text-white px-6 py-2 rounded-full font-bold hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
             Volver al inicio
         </button>
     </div>
@@ -26,7 +26,7 @@
             <div class="flex items-center gap-3">
                 <span class="text-2xl">👑</span>
                 <div>
-                    <h1 class="text-xl font-bold text-[#642d81]">Panel de Control</h1>
+                    <h1 class="text-xl font-bold text-[var(--primary)]">Panel de Control</h1>
                     <p class="text-xs text-gray-400">Bienvenido, {{ adminNombre }} — Sucursal {{ adminSucursal }}</p>
                 </div>
             </div>
@@ -57,7 +57,7 @@
                 </div>
                 <div class="flex gap-2 flex-wrap">
                     <button v-for="estado in estados" :key="estado.value" @click="estadoActivo = estado.value" :class="estadoActivo === estado.value
-                        ? 'bg-[#642d81] text-white'
+                        ? 'bg-[var(--primary)] text-white'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
                         class="px-4 py-2 rounded-full text-sm font-bold transition-colors hover:cursor-pointer flex items-center gap-2">
                         {{ estado.emoji }} {{ estado.label }}
@@ -68,7 +68,7 @@
 
             <!-- Loader de pedidos -->
             <div v-if="cargandoPedidos" class="flex justify-center py-10">
-                <span class="pi pi-spinner animate-spin text-3xl text-[#642d81]"></span>
+                <span class="pi pi-spinner animate-spin text-3xl text-[var(--primary)]"></span>
             </div>
 
             <!-- Sin resultados -->
@@ -81,7 +81,7 @@
             <div v-else class="hidden md:block bg-white rounded-xl shadow-sm overflow-hidden">
                 <table class="w-full text-sm">
                     <thead>
-                        <tr class="bg-[#642d81] text-white">
+                        <tr class="bg-[var(--primary)] text-white">
                             <th class="p-3 text-left">Cliente</th>
                             <th class="p-3 text-left">Contacto</th>
                             <th class="p-3 text-left">Pedido</th>
@@ -105,7 +105,7 @@
                             </td>
                             <td class="p-3">
                                 <button @click="verDetalle(pedido)"
-                                    class="text-[#642d81] font-bold hover:underline hover:cursor-pointer text-xs">
+                                    class="text-[var(--primary)] font-bold hover:underline hover:cursor-pointer text-xs">
                                     Ver {{ pedido.items?.length }} ítem(s)
                                 </button>
                             </td>
@@ -127,7 +127,7 @@
                                     Vuelto: ₡{{ pedido.vuelto }}
                                 </span>
                             </td>
-                            <td class="p-3 font-bold text-[#642d81]">₡{{ pedido.total }}</td>
+                            <td class="p-3 font-bold text-[var(--primary)]">₡{{ pedido.total }}</td>
                             <td class="p-3 text-center">⭐ {{ pedido.puntosGanados || 0 }}</td>
                             <td class="p-3 text-center">
                                 <span v-if="pedido.puntosCanjeados" class="text-red-500 font-bold">🔥 {{ pedido.puntosCanjeados }}</span>
@@ -144,7 +144,7 @@
                             </td>
                             <td class="p-3">
                                 <select :value="pedido.estado" @change="cambiarEstado(pedido, $event.target.value)"
-                                    class="border rounded-lg p-1 text-xs hover:cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#642d81]">
+                                    class="border rounded-lg p-1 text-xs hover:cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--primary)]">
                                     <option value="pendiente">Pendiente</option>
                                     <option value="en transcurso">En transcurso</option>
                                     <option value="finalizado">Finalizado</option>
@@ -172,7 +172,7 @@
                     </div>
                     <div class="text-sm text-gray-600 flex flex-col gap-1 mb-3">
                         <p>📞 {{ pedido.telefono }}</p>
-                        <p>💰 Total: <strong class="text-[#642d81]">₡{{ pedido.total }}</strong></p>
+                        <p>💰 Total: <strong class="text-[var(--primary)]">₡{{ pedido.total }}</strong></p>
                         <p>⭐ Puntos: {{ pedido.puntosGanados || 0 }} <span v-if="pedido.puntosCanjeados" class="text-red-500">🔥 -{{ pedido.puntosCanjeados }}</span></p>
                         <p>{{ pedido.tipoRetiro === 'sucursal' ? `🏪 ${pedido.sucursal}` : `🛵 ${pedido.direccion}` }}
                         </p>
@@ -180,11 +180,11 @@
                     </div>
                     <div class="flex gap-2">
                         <button @click="verDetalle(pedido)"
-                            class="flex-1 border border-[#642d81] text-[#642d81] py-2 rounded-lg text-sm font-bold hover:cursor-pointer">
+                            class="flex-1 border border-[var(--primary)] text-[var(--primary)] py-2 rounded-lg text-sm font-bold hover:cursor-pointer">
                             Ver detalle
                         </button>
                         <select :value="pedido.estado" @change="cambiarEstado(pedido, $event.target.value)"
-                            class="flex-1 border rounded-lg p-2 text-sm hover:cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#642d81]">
+                            class="flex-1 border rounded-lg p-2 text-sm hover:cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--primary)]">
                             <option value="pendiente">Pendiente</option>
                             <option value="en transcurso">En transcurso</option>
                             <option value="finalizado">Finalizado</option>
@@ -235,7 +235,7 @@
                         </div>
                         <div class="flex justify-between font-bold border-t pt-2 mt-2">
                             <span>Total</span>
-                            <span class="text-[#642d81]">₡{{ pedidoDetalle.total }}</span>
+                            <span class="text-[var(--primary)]">₡{{ pedidoDetalle.total }}</span>
                         </div>
                         <div class="flex justify-between text-sm mt-1 text-amber-600">
                             <span>⭐ Puntos ganados</span>
@@ -260,7 +260,7 @@
                             <p class="text-sm text-gray-500">📍 {{ pedidoDetalle.direccion }}</p>
                             <a v-if="pedidoDetalle.ubicacionLat && pedidoDetalle.ubicacionLng"
                                 :href="`https://www.google.com/maps?q=${pedidoDetalle.ubicacionLat},${pedidoDetalle.ubicacionLng}`"
-                                target="_blank" class="text-sm text-[#642d81] font-bold hover:underline">
+                                target="_blank" class="text-sm text-[var(--primary)] font-bold hover:underline">
                                 🗺️ Ver en Maps
                             </a>
                         </div>
@@ -280,7 +280,7 @@
                         <p class="text-xs text-gray-400 uppercase font-bold mb-2">Cambiar estado</p>
                         <select :value="pedidoDetalle.estado"
                             @change="cambiarEstado(pedidoDetalle, $event.target.value); pedidoDetalle.estado = $event.target.value"
-                            class="w-full border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-[#642d81] hover:cursor-pointer">
+                            class="w-full border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] hover:cursor-pointer">
                             <option value="pendiente">Pendiente</option>
                             <option value="en transcurso">En transcurso</option>
                             <option value="finalizado">Finalizado</option>
@@ -297,14 +297,13 @@
 
 <script setup>
 import { ref as vueRef, computed, onMounted } from 'vue'
-import { collection, getDocs, doc, getDoc, addDoc, Timestamp, updateDoc, query, where, getFirestore, increment } from 'firebase/firestore'
-import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth'
+import { collection, getDocs, doc, getDoc, addDoc, Timestamp, updateDoc, query, where, increment } from 'firebase/firestore'
+import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { useRouter } from 'vue-router'
-import { useCartStore } from '../stores/carStores.js'
+import { useCartStore } from '../stores/cartStores.js'
+import { db, auth } from '../firebase.js'
 
 const router = useRouter()
-const db = getFirestore()
-const auth = getAuth()
 
 // ── Estado ─────────────────────────────────────────────────────────────────
 const verificando = vueRef(true)
