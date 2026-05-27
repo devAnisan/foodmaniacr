@@ -330,8 +330,8 @@
                         búsqueda</button>
                 </div>
                 <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    <ProductCard v-for="item in resultadosBusqueda" :key="item.id" :item="item"
-                        @personalizar="abrirPersonalizador(item)" />
+                    <ProductCard v-for="{ item, esPromocion } in resultadosBusqueda" :key="item.id" :item="item"
+                        :esPromocion="esPromocion" @personalizar="abrirPersonalizador(item)" />
                 </div>
             </div>
 
@@ -616,8 +616,11 @@ const resultadosBusqueda = computed(() => {
     if (!busqueda.value.trim()) return []
     const q = busqueda.value.toLowerCase()
     return categorias.value
-        .flatMap(cat => cat.productos)
-        .filter(p => p.nombre?.toLowerCase().includes(q) || p.descripcion?.toLowerCase().includes(q))
+        .flatMap(cat =>
+            cat.productos
+                .filter(p => p.nombre?.toLowerCase().includes(q) || p.descripcion?.toLowerCase().includes(q))
+                .map(p => ({ item: p, esPromocion: cat.coleccion === 'promociones' }))
+        )
 })
 
 // ── onMounted: carga logo + primera categoría ─────────────────────────────
