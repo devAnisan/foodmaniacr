@@ -32,8 +32,89 @@ function getTransporter() {
   return transporter
 }
 
+function generateCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString()
+}
+
 const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000
 const RATE_LIMIT_MAX = 3
+
+exports.sendVerificationCode = onCall({ secrets: [emailConfig] }, async (request) => {
+  const email = request.data.email
+  if (!email) throw new HttpsError('invalid-argument', 'Email requerido')
+
+  const code = generateCode()
+  const expiresAt = admin.firestore.Timestamp.fromMillis(Date.now() + 10 * 60 * 1000)
+
+  await db.collection('codigos_verificacion').doc(email).set({
+    code,
+    expiresAt,
+    usado: false,
+    creadoEn: admin.firestore.Timestamp.now()
+  })
+
+  const mailTransporter = getTransporter()
+  if (!mailTransporter) {
+    throw new HttpsError('unavailable', 'Servicio de correo no disponible')
+  }
+
+  const cfg = emailConfig.value()
+  await mailTransporter.sendMail({
+    from: `"Foodmania CR" <${cfg.email.user}>`,
+    to: email,
+    subject: '🔐 Tu código de verificación — Foodmania CR',
+    html: `
+      <div style="max-width:600px;margin:0 auto;font-family:Arial,sans-serif;">
+        <div style="background:#642d81;color:white;padding:24px;text-align:center;border-radius:12px 12px 0 0;">
+          <h1 style="margin:0;">🍔 Foodmania CR</h1>
+          <p style="margin:8px 0 0;opacity:0.9;">Verificá tu correo</p>
+        </div>
+        <div style="padding:24px;text-align:center;">
+          <p style="font-size:16px;margin:0 0 16px;">Usá este código para verificar tu cuenta:</p>
+          <div style="background:#f3e8ff;border:2px solid #642d81;border-radius:12px;padding:16px;display:inline-block;">
+            <span style="font-size:36px;font-weight:bold;letter-spacing:8px;color:#642d81;">${code}</span>
+          </div>
+          <p style="color:#888;font-size:13px;margin-top:16px;">Válido por 10 minutos.</p>
+        </div>
+        <div style="padding:16px;text-align:center;color:#888;font-size:12px;border-top:1px solid #ddd;">
+          Foodmania CR — Tu antojo, nuestra especialidad
+        </div>
+      </div>
+    `
+  })
+
+  logger.log('Verification code sent to:', email)
+  return { success: true }
+})
+
+exports.verifyCode = onCall(async (request) => {
+  const { email, code } = request.data
+  if (!email || !code) throw new HttpsError('invalid-argument', 'Email y código requeridos')
+
+  const docRef = db.collection('codigos_verificacion').doc(email)
+  const docSnap = await docRef.get()
+
+  if (!docSnap.exists) {
+    throw new HttpsError('not-found', 'No se encontró un código para este correo. Solicita uno nuevo.')
+  }
+
+  const data = docSnap.data()
+  if (data.usado) {
+    throw new HttpsError('already-exists', 'Este código ya fue usado. Solicita uno nuevo.')
+  }
+
+  if (data.expiresAt.toMillis() < Date.now()) {
+    throw new HttpsError('deadline-exceeded', 'El código expiró. Solicita uno nuevo.')
+  }
+
+  if (data.code !== code) {
+    throw new HttpsError('unauthenticated', 'Código incorrecto.')
+  }
+
+  await docRef.update({ usado: true })
+  logger.log('Code verified for:', email)
+  return { success: true }
+})
 
 exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
   const data = request.data

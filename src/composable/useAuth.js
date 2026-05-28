@@ -4,12 +4,15 @@ import {
   onAuthStateChanged,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  sendEmailVerification,
   sendPasswordResetEmail,
   signOut
 } from 'firebase/auth'
 import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore'
+import { getFunctions, httpsCallable } from 'firebase/functions'
 import { useCartStore } from '../stores/cartStores.js'
+
+const sendVerificationCode = httpsCallable(getFunctions(), 'sendVerificationCode')
+const verifyCodeFn = httpsCallable(getFunctions(), 'verifyCode')
 
 export function useAuth() {
   const user = vueRef(null)
@@ -23,12 +26,27 @@ export function useAuth() {
   const errorMsg = vueRef('')
   const menuLogIn = vueRef(false)
   const showUserModal = vueRef(false)
+  const showVerifyCode = vueRef(false)
+  const showCompleteProfile = vueRef(false)
+  const pendingEmail = vueRef('')
+  const codigoInput = vueRef('')
+  const datosNuevos = vueRef({ nombre: '', telefono: '', direccion: '', lat: '', lng: '' })
 
   watch(menuLogIn, val => { document.body.style.overflow = val ? 'hidden' : '' })
 
   const openLogin = () => {
     if (user.value) showUserModal.value = !showUserModal.value
     else menuLogIn.value = true
+  }
+
+  const resetState = () => {
+    showVerifyCode.value = false
+    showCompleteProfile.value = false
+    pendingEmail.value = ''
+    codigoInput.value = ''
+    datosNuevos.value = { nombre: '', telefono: '', direccion: '', lat: '', lng: '' }
+    errorMsg.value = ''
+    successMsg.value = ''
   }
 
   const cerrarSesion = async () => {
@@ -47,23 +65,15 @@ export function useAuth() {
 
   const register = async (email, password1, password2) => {
     if (password1 !== password2) {
-      errorMsg.value = "Las contraseñas no coinciden. Por favor, intentalo de nuevo."
+      errorMsg.value = "Las contraseñas no coinciden."
       return
     }
 
+    let uid
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password1)
-      await sendEmailVerification(userCredential.user)
-      successMsg.value = "Cuenta creada exitosamente. Por favor verificá tu correo electrónico 📧"
-      errorMsg.value = ""
-    } catch (error) {
-      console.error("Error en Auth:", error.code)
-      errorMsg.value = "Error al crear la cuenta. Verificá que los datos sean correctos."
-      return
-    }
-
-    try {
-      await setDoc(doc(db, 'clientes', auth.currentUser.uid), {
+      uid = userCredential.user.uid
+      await setDoc(doc(db, 'clientes', uid), {
         email: email,
         creadoEn: Timestamp.now(),
         telefono: '',
@@ -72,14 +82,77 @@ export function useAuth() {
         lat: '',
         lng: ''
       })
+      await signOut(auth)
     } catch (error) {
-      console.error("Error en Firestore:", error)
+      console.error("Error en Auth:", error.code)
+      errorMsg.value = "Error al crear la cuenta. Verificá que los datos sean correctos."
+      return
     }
 
-    setTimeout(() => {
-      successMsg.value = "Cuenta creada exitosamente. Por favor verificá tu correo electrónico 📧"
-      menuLogIn.value = false
-    }, 2000)
+    try {
+      await sendVerificationCode({ email })
+      pendingEmail.value = email
+      showVerifyCode.value = true
+      justLogin.value = false
+      successMsg.value = `Te enviamos un código a ${email} 📧`
+      errorMsg.value = ''
+    } catch (error) {
+      errorMsg.value = 'Error al enviar el código. Intentá de nuevo.'
+    }
+  }
+
+  const verificarCodigo = async () => {
+    if (!codigoInput.value || codigoInput.value.length !== 6) {
+      errorMsg.value = 'Ingresá el código de 6 dígitos.'
+      return
+    }
+    try {
+      errorMsg.value = ''
+      await verifyCodeFn({ email: pendingEmail.value, code: codigoInput.value })
+      successMsg.value = '✅ Correo verificado correctamente'
+      showVerifyCode.value = false
+      showCompleteProfile.value = true
+    } catch (error) {
+      errorMsg.value = error.message || 'Código incorrecto o expirado.'
+    }
+  }
+
+  const completarPerfil = async () => {
+    if (!datosNuevos.value.nombre) return errorMsg.value = 'Ingresá tu nombre.'
+    if (!datosNuevos.value.telefono) return errorMsg.value = 'Ingresá tu teléfono.'
+
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, pendingEmail.value, password1.value)
+      await setDoc(doc(db, 'clientes', userCredential.user.uid), {
+        nombre: datosNuevos.value.nombre,
+        telefono: datosNuevos.value.telefono,
+        direccion: datosNuevos.value.direccion,
+        lat: datosNuevos.value.lat,
+        lng: datosNuevos.value.lng
+      }, { merge: true })
+      successMsg.value = '¡Perfil completado! ✅'
+      resetState()
+      setTimeout(() => { menuLogIn.value = false }, 1000)
+    } catch {
+      errorMsg.value = 'Error al iniciar sesión. Ingresá manualmente.'
+      showCompleteProfile.value = false
+      justLogin.value = true
+    }
+  }
+
+  const obtenerUbicacionPerfil = () => {
+    if (!navigator.geolocation) {
+      errorMsg.value = 'Geolocalización no disponible.'
+      return
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        datosNuevos.value.lat = pos.coords.latitude.toString()
+        datosNuevos.value.lng = pos.coords.longitude.toString()
+        successMsg.value = '📍 Ubicación obtenida'
+      },
+      () => { errorMsg.value = 'No se pudo obtener la ubicación.' }
+    )
   }
 
   const login = async (email, password) => {
@@ -120,7 +193,9 @@ export function useAuth() {
   return {
     user, esAdmin, justLogin, forgotPassword, email, password1, password2,
     successMsg, errorMsg, menuLogIn, showUserModal,
-    openLogin, cerrarSesion, resetPassword, register, login,
+    showVerifyCode, showCompleteProfile, pendingEmail, codigoInput, datosNuevos,
+    openLogin, cerrarSesion, resetPassword, resetState,
+    register, login, verificarCodigo, completarPerfil, obtenerUbicacionPerfil,
     verificarAdmin, initAuthListener
   }
 }

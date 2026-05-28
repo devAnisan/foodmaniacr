@@ -3,13 +3,53 @@
     <div v-if="menuLogIn" class="fixed inset-0 z-60 bg-black/50 h-full w-full flex items-center justify-center">
         <div class="p-4 rounded-2xl shadow-2xl z-80 w-80 bg-white fontColor">
             <section class="flex justify-between border-b text-center pb-3">
-                <span class="text-2xl font-bold">Iniciar Sesión</span>
-                <button @click="menuLogIn = false; forgotPassword = false; justLogin = true"
+                <span class="text-2xl font-bold">{{ showCompleteProfile ? 'Completá tu perfil' : showVerifyCode ? 'Verificá tu correo' : 'Iniciar Sesión' }}</span>
+                <button @click="menuLogIn = false; forgotPassword = false; justLogin = true; resetState()"
                     class="text-red-500 hover:text-red-700 p-2 rounded hover:cursor-pointer">
                     <span class="pi pi-times"></span>
                 </button>
             </section>
-            <section class="flex flex-col p-4 text-center gap-3">
+
+            <!-- Código de verificación -->
+            <section v-if="showVerifyCode" class="flex flex-col p-4 text-center gap-3">
+                <p class="text-sm text-green-600 font-bold">{{ successMsg }}</p>
+                <p class="text-sm text-gray-500">Ingresá el código de 6 dígitos que te enviamos</p>
+                <input v-model="codigoInput" type="text" maxlength="6" placeholder="000000"
+                    class="p-2 border w-full rounded-lg text-center text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                <p v-if="errorMsg" class="text-red-500 text-sm">{{ errorMsg }}</p>
+                <button @click="verificarCodigo"
+                    class="bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
+                    Verificar código
+                </button>
+                <button @click="register(email, password1, password2)"
+                    class="text-sm text-[var(--primary)] hover:cursor-pointer">
+                    Reenviar código
+                </button>
+            </section>
+
+            <!-- Completar perfil -->
+            <section v-else-if="showCompleteProfile" class="flex flex-col p-4 text-center gap-3">
+                <p class="text-sm text-green-600 font-bold">{{ successMsg }}</p>
+                <p class="text-sm text-gray-500">Contanos de vos para terminar</p>
+                <input v-model="datosNuevos.nombre" type="text" placeholder="Nombre completo"
+                    class="p-2 border w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                <input v-model="datosNuevos.telefono" type="tel" placeholder="Teléfono"
+                    class="p-2 border w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                <input v-model="datosNuevos.direccion" type="text" placeholder="Dirección"
+                    class="p-2 border w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                <button @click="obtenerUbicacionPerfil"
+                    class="w-full py-2 border-2 border-dashed border-[var(--primary)] rounded-lg text-[var(--primary)] font-bold hover:bg-purple-50 transition-colors hover:cursor-pointer text-sm">
+                    📍 Usar mi ubicación actual
+                </button>
+                <p v-if="errorMsg" class="text-red-500 text-sm">{{ errorMsg }}</p>
+                <button @click="completarPerfil"
+                    class="bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
+                    Finalizar
+                </button>
+            </section>
+
+            <!-- Login / Register -->
+            <section v-else class="flex flex-col p-4 text-center gap-3">
                 <img :src="imageUrl" to="/" alt="logo_foodmania" class="w-20 mx-auto mb-2" />
                 <input v-model="email" type="email" placeholder="Correo electrónico"
                     class="p-2 border w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
@@ -39,14 +79,14 @@
                     Enviar correo de recuperación
                 </button>
             </section>
-            <section v-if="justLogin" class="text-center text-sm border-t pt-3">
+            <section v-if="justLogin && !showVerifyCode && !showCompleteProfile" class="text-center text-sm border-t pt-3">
                 <p class="text-gray-600">¿No tenés cuenta? <a href="#"
                         @click="justLogin = false; forgotPassword = false"
                         class="text-[var(--primary)] font-bold">Regístrate</a></p>
                 <button class="text-[var(--primary)] text-sm mt-2 hover:cursor-pointer"
                     @click="forgotPassword = true">¿Olvidaste tu contraseña?</button>
             </section>
-            <section v-if="!justLogin" class="text-center text-sm border-t pt-3">
+            <section v-if="!justLogin && !showVerifyCode && !showCompleteProfile" class="text-center text-sm border-t pt-3">
                 <p class="text-gray-600">¿Ya tenés cuenta? <a href="#" @click="justLogin = true"
                         class="text-[var(--primary)] font-bold">Iniciá sesión</a></p>
             </section>
@@ -456,7 +496,9 @@ const drinkMsg = vueRef('')
 const {
     user, showUserModal, menuLogIn, justLogin, forgotPassword,
     email, password1, password2, successMsg, errorMsg,
+    showVerifyCode, showCompleteProfile, codigoInput, datosNuevos,
     openLogin, cerrarSesion, resetPassword, register, login,
+    verificarCodigo, completarPerfil, obtenerUbicacionPerfil, resetState,
     initAuthListener
 } = useAuth()
 
