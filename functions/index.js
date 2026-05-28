@@ -1,31 +1,63 @@
-const functions = require('firebase-functions')
 const admin = require('firebase-admin')
+const nodemailer = require('nodemailer')
+const { onCall, HttpsError } = require('firebase-functions/v2/https')
+const { defineJsonSecret } = require('firebase-functions/params')
+const { logger } = require('firebase-functions')
+
+const emailConfig = defineJsonSecret('FUNCTIONS_CONFIG_EXPORT')
 
 admin.initializeApp()
 
 const db = admin.firestore()
 
+let transporter = null
+
+function getTransporter() {
+  if (transporter) return transporter
+  try {
+    const cfg = emailConfig.value()
+    const emailUser = cfg.email?.user
+    const emailPass = cfg.email?.pass
+    if (emailUser && emailPass) {
+      transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user: emailUser, pass: emailPass }
+      })
+    } else {
+      logger.warn('Email config missing — email.user or email.pass not set')
+    }
+  } catch (e) {
+    logger.warn('Email config error:', e.message)
+  }
+  return transporter
+}
+
 const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000
 const RATE_LIMIT_MAX = 3
 
-exports.createOrder = functions.https.onCall(async (data, context) => {
+exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
+  const data = request.data
   const pedidoData = data.pedido
-  const email = context.auth?.token?.email || null
-  const uid = context.auth?.uid || null
-  const ip = context.rawRequest?.ip
-  const rateKey = email || ip || 'unknown'
+  const auth = request.auth
+  const email = auth?.token?.email || null
+  const uid = auth?.uid || null
+
+  logger.log('Order request from:', auth?.token?.email || 'Anonymous', 'UID:', uid)
 
   const cincoMinAtras = new Date(Date.now() - RATE_LIMIT_WINDOW_MS)
   const recent = await db.collection('pedidos')
-    .where('usuario', '==', rateKey)
     .where('creadoEn', '>', cincoMinAtras)
     .get()
 
-  if (recent.size >= RATE_LIMIT_MAX) {
-    throw new functions.https.HttpsError(
-      'resource-exhausted',
-      'Demasiados pedidos en poco tiempo. Esperá unos minutos e intentá de nuevo.'
-    )
+  let count = 0
+  recent.forEach(doc => {
+    const d = doc.data()
+    if (d.usuario === email || d.usuario === 'Anónimo') count++
+  })
+
+  if (count >= RATE_LIMIT_MAX) {
+    throw new HttpsError('resource-exhausted',
+      'Demasiados pedidos en poco tiempo. Esperá unos minutos e intentá de nuevo.')
   }
 
   const order = {
@@ -48,6 +80,55 @@ exports.createOrder = functions.https.onCall(async (data, context) => {
         })
       }
     }
+  }
+
+  const mailTransporter = getTransporter()
+  if (mailTransporter && email) {
+    try {
+      const cfg = emailConfig.value()
+      const itemsHtml = (pedidoData.items || []).map(item =>
+        `<tr><td style="padding:6px 0;border-bottom:1px solid #eee;">${item.nombre} x${item.cantidad}</td><td style="padding:6px 0;border-bottom:1px solid #eee;text-align:right;">₡${item.precio * item.cantidad}</td></tr>`
+      ).join('')
+
+      logger.log('Sending email to:', email)
+
+      await mailTransporter.sendMail({
+        from: `"Foodmania CR" <${cfg.email.user}>`,
+        to: email,
+        subject: '✅ Pedido confirmado — Foodmania CR',
+        html: `
+          <div style="max-width:600px;margin:0 auto;font-family:Arial,sans-serif;">
+            <div style="background:#642d81;color:white;padding:24px;text-align:center;border-radius:12px 12px 0 0;">
+              <h1 style="margin:0;">🍔 Foodmania CR</h1>
+              <p style="margin:8px 0 0;opacity:0.9;">¡Tu pedido fue confirmado!</p>
+            </div>
+            <div style="padding:24px;background:#f9f9f9;">
+              <p style="margin:0 0 16px;"><strong>👤 Cliente:</strong> ${pedidoData.nombre || '—'}</p>
+              <p style="margin:0 0 16px;"><strong>📞 Teléfono:</strong> ${pedidoData.telefono || '—'}</p>
+              <table style="width:100%;border-collapse:collapse;">
+                <thead><tr style="background:#642d81;color:white;"><th style="padding:8px;text-align:left;">Producto</th><th style="padding:8px;text-align:right;">Subtotal</th></tr></thead>
+                <tbody>${itemsHtml}</tbody>
+              </table>
+              <hr style="margin:16px 0;border:none;border-top:2px solid #642d81;" />
+              <p style="margin:0;text-align:right;font-size:18px;font-weight:bold;">Total: ₡${pedidoData.total || 0}</p>
+              <hr style="margin:16px 0;border:none;border-top:1px solid #ddd;" />
+              <p style="margin:0 0 4px;"><strong>💳 Pago:</strong> ${pedidoData.metodoPago || '—'}</p>
+              <p style="margin:0 0 4px;"><strong>🏪 Retiro:</strong> ${pedidoData.tipoRetiro === 'sucursal' ? pedidoData.sucursal : 'Domicilio'}</p>
+              <p style="margin:0 0 4px;"><strong>⭐ Puntos ganados:</strong> ${pedidoData.puntosGanados || 0}</p>
+              ${pedidoData.puntosCanjeados ? `<p style="margin:0;"><strong>🔥 Puntos canjeados:</strong> ${pedidoData.puntosCanjeados}</p>` : ''}
+            </div>
+            <div style="padding:16px;text-align:center;color:#888;font-size:12px;border-top:1px solid #ddd;">
+              Foodmania CR — Tu antojo, nuestra especialidad
+            </div>
+          </div>
+        `
+      })
+      logger.log('Email sent successfully to:', email)
+    } catch (mailError) {
+      logger.error('Error enviando correo:', mailError.message, mailError.stack)
+    }
+  } else {
+    logger.log('Email skipped — transporter:', !!mailTransporter, 'email:', !!email)
   }
 
   return { id: docRef.id }

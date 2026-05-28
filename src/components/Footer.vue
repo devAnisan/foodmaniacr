@@ -1,7 +1,7 @@
 <template>
   <footer class="bg-[var(--primary)] text-white py-4">
     <div class="container mx-auto text-center">
-      <p>&copy; 2025 Foodmania. Todos los derechos reservados.</p>
+      <p>&copy; {{ GetYear  }} Foodmania. Todos los derechos reservados.</p>
       <p>
         Desarrollado por Daniel Mejía |
         <a
@@ -17,4 +17,8 @@
   </footer>
 </template>
 
-<script setup></script>
+<script setup>
+const dateYear = new Date();
+const GetYear = dateYear.getFullYear();
+
+</script>

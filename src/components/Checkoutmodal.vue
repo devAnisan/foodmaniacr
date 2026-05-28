@@ -19,7 +19,18 @@
 
       <div v-else>
 
-        <div v-if="cartStore.items.length === 0"
+        <div v-if="successMsg"
+          class="flex flex-col items-center justify-center p-10 gap-4 text-center">
+          <p class="text-5xl">✅</p>
+          <p class="text-lg font-bold text-green-700">{{ successMsg }}</p>
+          <p class="text-sm text-green-600">📧 Te enviamos el comprobante del pedido a tu correo</p>
+          <button @click="emit('update:modelValue', false)"
+            class="bg-[var(--primary)] text-white px-6 py-2 rounded-full font-bold hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
+            Cerrar
+          </button>
+        </div>
+
+        <div v-else-if="cartStore.items.length === 0"
           class="flex flex-col items-center justify-center p-10 gap-4 text-center">
           <p class="text-5xl">🛒</p>
           <p class="text-lg font-bold text-gray-500">Tu carrito está vacío</p>
@@ -273,6 +284,11 @@
                 class="flex-1 py-2 rounded transition-colors duration-300 hover:cursor-pointer">
                 📱 SINPE Móvil
               </button>
+              <button @click="metodoPago = 'datafono'"
+                :class="metodoPago === 'datafono' ? 'bg-[var(--primary)] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
+                class="flex-1 py-2 rounded transition-colors duration-300 hover:cursor-pointer">
+                💳 Datafono
+              </button>
             </div>
 
             <div v-if="metodoPago === 'efectivo'" class="flex flex-col gap-2">
@@ -297,12 +313,15 @@
               </p>
               <p class="text-gray-500 mt-2">Enviá el comprobante por WhatsApp al finalizar 📲</p>
             </div>
-          </div>
 
-          <!-- Mensajes -->
-          <div class="px-5 pt-3">
-            <p v-if="errorMsg" class="text-red-500 text-sm">{{ errorMsg }}</p>
-            <p v-if="successMsg" class="text-green-500 text-sm">{{ successMsg }}</p>
+            <div v-if="metodoPago === 'datafono'" class="bg-gray-50 rounded-lg p-3 text-sm text-center">
+              <p class="font-bold mb-1">💳 Datafono</p>
+              <p class="text-gray-500">
+                Pagás con tarjeta de crédito/débito directamente
+                {{ withDrawType === 'sucursal' ? 'en el local.' : 'cuando el express llegue a tu domicilio.' }}
+              </p>
+              <p class="text-xs text-gray-400 mt-1">El express lleva el datafono consigo. Aceptamos Visa, Mastercard y BAC.</p>
+            </div>
           </div>
 
           <!-- Botón confirmar -->
@@ -552,7 +571,7 @@ const armarMensajeWhatsApp = () => {
   const items = cartStore.items.map(armarLineaItem).join('\n')
   const pagoCadena = metodoPago.value === 'efectivo'
     ? `Efectivo (paga con ₡${montoEfectivo.value}, vuelto ₡${Number(montoEfectivo.value) - totalConEnvio.value})`
-    : 'SINPE Móvil'
+    : metodoPago.value === 'sinpe' ? 'SINPE Móvil' : '💳 Datafono'
 
   const puntosCadena = totalPuntosAGastar.value > 0
     ? `\n⭐ Puntos canjeados: ${totalPuntosAGastar.value} pts`
@@ -667,9 +686,9 @@ const confirmarPedido = async () => {
     const numeroLimpio = nCelular.value.replace(/[^0-9]/g, '')
     window.open(`https://wa.me/506${numeroLimpio}?text=${encodeURIComponent(mensaje)}`, '_blank')
 
-    successMsg.value = `¡Pedido confirmado! 🎉 ${totalPuntosAGastar.value > 0 ? `Canjeaste ${totalPuntosAGastar.value} puntos ⭐ ` : ''}Ganaste ${puntosAGanar.value} puntos ⭐`
     cartStore.items = []
-    setTimeout(() => emit('update:modelValue', false), 2500)
+    successMsg.value = `¡Pedido confirmado! 🎉`
+    puntosActuales.value = (puntosActuales.value || 0) - totalPuntosAGastar.value + puntosAGanar.value
 
   } catch (error) {
     console.error(error)

@@ -10,7 +10,7 @@
                 </button>
             </section>
             <section class="flex flex-col p-4 text-center gap-3">
-                <img :src="imageUrl" alt="logo_foodmania" class="w-20 mx-auto mb-2" />
+                <img :src="imageUrl" to="/" alt="logo_foodmania" class="w-20 mx-auto mb-2" />
                 <input v-model="email" type="email" placeholder="Correo electrónico"
                     class="p-2 border w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
                 <section v-if="justLogin && !forgotPassword">
@@ -233,7 +233,10 @@
 
         <!-- Nav desktop -->
         <nav class="hidden md:flex items-center justify-between px-8 py-3">
-            <img class="w-20 object-contain" :src="imageUrl" alt="Foodmania Logo" />
+            <RouterLink to="/">
+                <img class="w-20 object-contain" :src="imageUrl" alt="Foodmania Logo" />
+            </RouterLink>
+            
             <section class="flex items-center space-x-4">
                 <div v-if="user && puntosUsuario !== null"
                     class="flex items-center gap-1 text-sm font-bold text-yellow-700 bg-yellow-50 border border-yellow-200 px-3 py-1.5 rounded-full">

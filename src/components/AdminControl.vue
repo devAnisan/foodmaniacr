@@ -302,8 +302,8 @@
 </template>
 
 <script setup>
-import { ref as vueRef, computed, onMounted } from 'vue'
-import { collection, getDocs, doc, getDoc, addDoc, Timestamp, updateDoc, query, where, increment } from 'firebase/firestore'
+import { ref as vueRef, computed, onMounted, onUnmounted } from 'vue'
+import { collection, doc, getDoc, addDoc, Timestamp, updateDoc, query, where, increment, onSnapshot } from 'firebase/firestore'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '../stores/cartStores.js'
@@ -344,7 +344,7 @@ const verificarAdmin = async (user) => {
                 adminEmail.value = user.email
                 adminNombre.value = superUserData.usuario || user.email
                 adminSucursal.value = superUserData.sucursal || ''
-                await cargarPedidos()
+                await setupPedidosListener()
             }
         }
     } catch (error) {
@@ -354,17 +354,20 @@ const verificarAdmin = async (user) => {
     }
 }
 
-// ── Cargar pedidos ─────────────────────────────────────────────────────────
-const cargarPedidos = async () => {
+// ── Listener en tiempo real para pedidos ───────────────────────────────────
+let unsuscribePedidos = null
+
+const setupPedidosListener = () => {
+    if (unsuscribePedidos) unsuscribePedidos()
+
     cargandoPedidos.value = true
-    try {
-        const snap = await getDocs(collection(db, 'pedidos'))
-        pedidos.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-    } catch (error) {
-        console.error('Error cargando pedidos:', error)
-    } finally {
+    unsuscribePedidos = onSnapshot(collection(db, 'pedidos'), (snapshot) => {
+        pedidos.value = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
         cargandoPedidos.value = false
-    }
+    }, (error) => {
+        console.error('Error en listener de pedidos:', error)
+        cargandoPedidos.value = false
+    })
 }
 
 // ── ✅ Filtrar pedidos por sucursal del admin Y estado ─────────────────────
@@ -517,5 +520,9 @@ onMounted(() => {
             router.push('/')
         }
     })
+})
+
+onUnmounted(() => {
+    if (unsuscribePedidos) unsuscribePedidos()
 })
 </script>

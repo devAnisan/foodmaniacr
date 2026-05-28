@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: myFont;
+  src: url(../public/fonts/Cheap_Potatoes_Black_Thin.ttf);
+}
+
 @import "primeicons/primeicons.css";
 
 :root {
@@ -13,6 +18,10 @@ html {
 * {
   font-family: "Baloo Bhai 2", sans-serif;
 }
+
+#title {
+  font-family: myFont;
+}
 .fontColor {
   color: var(--primary);
 }
@@ -20,9 +29,9 @@ html {
 .title {
   color: white;
   background: var(--primary);
-  padding: 0.15rem 0.2rem;
+  padding: 1rem 0.2rem;
   border-radius: 0.25rem;
-  margin: -0.45rem;
+  margin: -0.25rem;
 }
 
 .extrabold {

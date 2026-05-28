@@ -2,8 +2,8 @@
   <!-- Pantallas pequeñas -->
   <section class="flex flex-col justify-center items-center p-4">
     <div class="flex space-x-2 mb-4 items-center">
-      <span class="extrabold text-4xl">Nuestras</span>
-      <span class="extrabold text-4xl title">sucursales</span>
+      <span id="title" class="extrabold text-4xl">Nuestras</span>
+      <span id="title" class="extrabold text-4xl title">sucursales</span>
     </div>
     <div class="flex flex-wrap justify-center gap-4">
       <div

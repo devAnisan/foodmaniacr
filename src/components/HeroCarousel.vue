@@ -1,11 +1,14 @@
 <template>
-  <div class="w-full relative h-64 md:h-150">
-    <img
-      v-if="images.length > 0"
-      :src="images[currentIndex]"
-      alt="heroImages"
-      class="w-full h-full object-cover"
-    />
+  <div class="w-full relative aspect-video overflow-hidden">
+    <Transition name="fade">
+      <img
+        :key="currentIndex"
+        v-if="images.length > 0"
+        :src="images[currentIndex]"
+        alt="heroImages"
+        class="w-full h-full object-cover absolute inset-0"
+      />
+    </Transition>
     <button
       class="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white text-black p-2 rounded-full shadow-lg"
       @click="emitBackCarousel()"
@@ -67,3 +70,14 @@ onUnmounted(() => {
   clearInterval(intervalo);
 });
 </script>
+
+<style>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.6s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>

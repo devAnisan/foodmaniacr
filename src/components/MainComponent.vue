@@ -118,7 +118,7 @@
         </section>
     </header>
 
-    <main v-if="!loader" @click="menuOpen = false" class="fontColor pt-32">
+    <main v-if="!loader" @click="menuOpen = false" class="fontColor pt-20 md:pt-28">
         <div>
             <HeroCarousel />
             <section id="sucursales">
@@ -169,15 +169,17 @@
             <div class="text-center px-4">
                 <h1 class="extrabold text-4xl my-8 p-1">Menú</h1>
                 <div class="flex justify-center p-4">
-                    <img :src="imageUrlMenu" alt="Menú de Foodmania" />
+                    <div class="w-full max-w-4xl rounded-2xl shadow-lg overflow-hidden transition-transform duration-300 hover:scale-[1.02]">
+                        <img :src="imageUrlMenu" alt="Menú de Foodmania" class="w-full h-auto" />
+                    </div>
                 </div>
             </div>
-            <div class="text-3xl text-center w-full md:w-2/3 mx-auto mb-8 px-4">
-                <p>
+            <div class="text-3xl text-center w-full md:w-2/3 mx-auto mb-12 px-4">
+                <p class="mb-6">
                     ¿Estas listo para probar el mejor sabor de tu vida? ¡Ordena ahora y
                     disfruta de una experiencia culinaria única con Foodmania!
                 </p>
-                <button class="extrabold border my-0.5 p-2 pl-3 pr-3 rounded-full hover:cursor-pointer">
+                <button class="bg-[var(--primary)] text-white font-bold px-8 py-3 rounded-full hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer shadow-md">
                     <RouterLink to="/menu" target="_blank">Ordena aquí</RouterLink>
                 </button>
             </div>
