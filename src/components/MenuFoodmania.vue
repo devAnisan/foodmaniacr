@@ -105,9 +105,23 @@
             <span> </span>
             <span class="text-sm font-bold">{{ user.emailVerified ? '✅ Email verificado' : '⚠️ Email no verificado'
                 }}</span>
-            <div v-if="puntosUsuario !== null" class="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-2 w-full flex items-center justify-center gap-2">
-                <span class="text-lg">⭐</span>
-                <span class="font-bold text-yellow-700">{{ puntosUsuario }} puntos</span>
+            <div v-if="puntosUsuario !== null" class="bg-gradient-to-r from-purple-50 to-yellow-50 border border-purple-200 rounded-lg px-4 py-2 w-full">
+              <div class="flex items-center justify-center gap-2">
+                <span class="text-lg">🪙</span>
+                <span class="font-bold text-yellow-700">{{ coinsValidos }} ManiaCoins</span>
+              </div>
+              <p v-if="tiempoRestante" class="text-[10px] text-gray-400 text-center mt-0.5">
+                ⏳ Expiran en {{ tiempoRestante }}
+              </p>
+              <p v-if="nivelUsuario" class="text-[10px] text-purple-600 font-bold text-center mt-0.5">
+                👑 {{ nivelUsuario.nombre }} — {{ nivelUsuario.beneficios }}
+              </p>
+              <p v-else-if="puntosUsuario >= 500" class="text-[10px] text-red-400 text-center mt-0.5">
+                ⚠️ Coins vencidos o sin compras recientes
+              </p>
+              <p v-else class="text-[10px] text-gray-400 text-center mt-0.5">
+                Faltan {{ 500 - puntosUsuario }} 🪙 para Rookie
+              </p>
             </div>
             <button @click="editProfileModal = true"
                 class="w-full bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
@@ -201,8 +215,9 @@
         <section v-if="menuOpen">
             <ul class="flex flex-col p-2 absolute top-20 right-4 bg-white rounded-xl shadow-lg w-44 space-y-1 border">
                 <li v-if="user && puntosUsuario !== null" class="p-2 text-sm font-bold text-yellow-700 border-b flex items-center gap-1">
-                    <span>⭐</span>
-                    <span>{{ puntosUsuario }} puntos</span>
+                    <span>🪙</span>
+                    <span>{{ coinsValidos }} ManiaCoins</span>
+                    <span v-if="nivelUsuario" class="text-[10px] text-purple-500 ml-auto">👑 {{ nivelUsuario.nombre }}</span>
                 </li>
                 <li class="p-2">
                     <button @click="openLogin" class="w-full text-left font-bold">
@@ -279,9 +294,11 @@
             
             <section class="flex items-center space-x-4">
                 <div v-if="user && puntosUsuario !== null"
-                    class="flex items-center gap-1 text-sm font-bold text-yellow-700 bg-yellow-50 border border-yellow-200 px-3 py-1.5 rounded-full">
-                    <span>⭐</span>
-                    <span>{{ puntosUsuario }}</span>
+                    class="flex items-center gap-1 text-sm font-bold text-yellow-700 bg-gradient-to-r from-purple-50 to-yellow-50 border border-purple-200 px-3 py-1.5 rounded-full">
+                    <span>🪙</span>
+                    <span>{{ coinsValidos }}</span>
+                    <span v-if="nivelUsuario" class="text-[10px] text-purple-500 ml-0.5">👑 {{ nivelUsuario.nombre }}</span>
+                    <span v-else-if="puntosUsuario > 0" class="text-[10px] text-red-400 ml-0.5">Rookie caído</span>
                 </div>
                 <button @click="openLogin"
                     class="border px-4 py-2 rounded-full hover:cursor-pointer font-bold hover:bg-gray-50 transition-colors">
@@ -330,7 +347,7 @@
 
         <div v-else>
             <!-- Barra de búsqueda -->
-            <div class="sticky top-20 z-40 bg-gray-50 px-4 py-3 shadow-sm">
+            <div class="sticky top-18 z-40 bg-gray-50 px-4 py-3 shadow-sm">
                 <div class="max-w-6xl mx-auto flex flex-col md:flex-row gap-3 items-center">
                     <!-- Search -->
                     <div class="relative w-full md:w-80">
@@ -408,7 +425,12 @@
                 <div v-else>
                     <div v-for="cat in categorias" :key="cat.coleccion" class="mb-10">
                         <div class="flex items-center justify-between mb-4">
-                            <h2 class="text-2xl font-bold">{{ cat.emoji }} {{ cat.nombre }}</h2>
+                            <div class="hidden md:block">
+                                <h2 id="title" class="text-2xl font-bold">{{ cat.emoji }} {{ cat.nombre }}</h2>
+                            </div>
+                            <div class="block md:hidden">
+                                <h2 id="title" class="text-1xl font-bold">{{ cat.emoji }} {{ cat.nombre }}</h2>
+                            </div>
                             <button @click="seleccionarCategoria(cat)"
                                 class="text-[var(--primary)] text-sm font-bold hover:underline hover:cursor-pointer">
                                 Ver todos →
@@ -439,7 +461,7 @@
 </template>
 
 <script setup>
-import { ref as vueRef, computed, onMounted, defineComponent, h } from 'vue'
+import { ref as vueRef, computed, onMounted, watch, defineComponent, h } from 'vue'
 import { ref as storageRef, getDownloadURL } from 'firebase/storage'
 import { storage } from '../firebase.js'
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore'
@@ -449,6 +471,7 @@ import { useAuth } from '../composable/useAuth.js'
 import Footer from './Footer.vue'
 import CheckoutModal from './Checkoutmodal.vue'
 import { esPromocionActiva, diaPromocion } from '../composable/promociones.js'
+import { obtenerNivelReal, obtenerCoinsValidos, obtenerSiguienteNivel, obtenerTiempoRestanteExpiracion } from '../utils/maniacoins.js'
 import EditProfileModal from './EditProfileModal.vue'
 // ── Componente inline ProductCard ──────────────────────────────────────────
 const ProductCard = defineComponent({
@@ -597,18 +620,36 @@ const confirmarPersonalizacion = () => {
 
 
 const puntosUsuario = vueRef(null)
+const ultimaCompra = vueRef(null)
+const ultimaGananciaCoins = vueRef(null)
 
 const cargarPuntosUsuario = async (uid) => {
   if (!uid) { puntosUsuario.value = null; return }
   try {
     const docSnap = await getDoc(doc(db, 'clientes', uid))
     if (docSnap.exists()) {
-      puntosUsuario.value = docSnap.data().puntos || 0
+      const data = docSnap.data()
+      puntosUsuario.value = data.puntos || 0
+      ultimaCompra.value = data.ultimaCompra || null
+      ultimaGananciaCoins.value = data.ultimaGananciaCoins || null
+      console.log('🐛 Debug puntos:', { puntos: puntosUsuario.value, ultimaCompra: data.ultimaCompra?.toMillis?.(), ultimaGananciaCoins: data.ultimaGananciaCoins?.toMillis?.() })
     }
   } catch (e) {
     console.error('Error cargando puntos:', e)
   }
 }
+
+watch(showUserModal, (val) => {
+  if (val && user?.value?.uid) cargarPuntosUsuario(user.value.uid)
+})
+watch(showCheckout, (val) => {
+  if (!val && user?.value?.uid) cargarPuntosUsuario(user.value.uid)
+})
+
+const coinsValidos = computed(() => obtenerCoinsValidos(puntosUsuario.value, ultimaGananciaCoins.value))
+const nivelUsuario = computed(() => obtenerNivelReal(puntosUsuario.value, ultimaGananciaCoins.value, ultimaCompra.value))
+const siguienteNivelUsuario = computed(() => obtenerSiguienteNivel(puntosUsuario.value, ultimaGananciaCoins.value))
+const tiempoRestante = computed(() => obtenerTiempoRestanteExpiracion(ultimaGananciaCoins.value))
 
 initAuthListener((currentUser) => {
   if (currentUser) cargarPuntosUsuario(currentUser.uid)

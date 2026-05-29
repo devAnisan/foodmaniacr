@@ -55,7 +55,7 @@ service cloud.firestore {
       allow read: if autenticado() && (request.auth.uid == userId || esAdmin());
       allow create: if autenticado() && request.auth.uid == userId;
       allow update: if (autenticado() && request.auth.uid == userId) ||
-                     (esAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['puntos']));
+                     (esAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['puntos', 'ultimaCompra', 'ultimaGananciaCoins']));
       allow delete: if false;
     }
 

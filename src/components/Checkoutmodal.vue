@@ -65,17 +65,18 @@
                 <div>
                   <span class="font-bold">{{ item.nombre }}</span>
                   <span class="text-gray-400"> x{{ item.cantidad }}</span>
-                  <!-- Canje para bebida independiente o producto normal -->
-                  <button v-if="userLogueado && item.esBebida" @click="toggleItemPuntos(item)"
+                  <!-- Canjear item con ManiaCoins -->
+                  <button v-if="userLogueado" @click="toggleItemCoins(item)"
                     :class="itemPuntosMap[item._uid] ? 'bg-green-100 text-green-700 border-green-300' : 'bg-gray-100 text-gray-500 border-gray-200'"
                     class="text-[10px] px-2 py-0.5 rounded-full border font-bold ml-2 hover:cursor-pointer transition-colors">
-                    {{ itemPuntosMap[item._uid] ? '⭐ Canjeado' : 'Canjear ⭐' }}
+                    <template v-if="itemPuntosMap[item._uid]">⭐ Canjeado</template>
+                    <template v-else>🪙 {{ costoEnManiaCoins(item.precio) }} coins</template>
                   </button>
                 </div>
                 <span :class="itemPuntosMap[item._uid] ? 'text-green-600 line-through' : ''">
                   ₡{{ item.precio * item.cantidad }}
                   <span v-if="itemPuntosMap[item._uid]" class="text-green-600 font-bold ml-1 no-underline">
-                    ({{ puntosItem(item) }} pts)
+                    ({{ costoEnManiaCoins(item.precio) }} 🪙)
                   </span>
                 </span>
               </div>
@@ -84,16 +85,17 @@
               <div v-if="item.bebida" class="flex justify-between text-xs text-gray-500 mt-1 ml-2">
                 <div class="flex items-center gap-1">
                   <span>🥤 {{ item.bebida.nombre }} x{{ item.cantidad }}</span>
-                  <button v-if="userLogueado" @click="toggleBebidaPuntos(item)"
+                  <button v-if="userLogueado" @click="toggleBebidaCoins(item)"
                     :class="bebidaPuntosMap[item._uid] ? 'bg-green-100 text-green-700 border-green-300' : 'bg-gray-100 text-gray-500 border-gray-200'"
                     class="text-[10px] px-2 py-0.5 rounded-full border font-bold ml-2 hover:cursor-pointer transition-colors">
-                    {{ bebidaPuntosMap[item._uid] ? '⭐ Canjeado' : 'Canjear ⭐' }}
+                    <template v-if="bebidaPuntosMap[item._uid]">⭐ Canjeado</template>
+                    <template v-else>🪙 {{ costoBebidaManiaCoins(item.bebida.precio) }} coins</template>
                   </button>
                 </div>
                 <span :class="bebidaPuntosMap[item._uid] ? 'text-green-600 line-through' : ''">
                   +₡{{ item.bebida.precio * item.cantidad }}
                   <span v-if="bebidaPuntosMap[item._uid]" class="text-green-600 font-bold ml-1 no-underline">
-                    ({{ puntosBebida(item) }} pts)
+                    ({{ costoBebidaManiaCoins(item.bebida.precio) }} 🪙)
                   </span>
                 </span>
               </div>
@@ -113,15 +115,15 @@
                   Agrandar papas
                 </label>
                 <div v-if="agrandarMap[item._uid]" class="flex gap-1">
-                  <button @click="toggleAgrandarPuntos(item, false)"
+                  <button @click="toggleAgrandarCoins(item, false)"
                     :class="!agrandarPuntosMap[item._uid] ? 'bg-[var(--primary)] text-white' : 'bg-gray-200 text-gray-600'"
                     class="text-[10px] px-2 py-0.5 rounded-full font-bold hover:cursor-pointer transition-colors">
                     ₡{{ AGRANDAR_COSTO }}
                   </button>
-                  <button v-if="userLogueado" @click="toggleAgrandarPuntos(item, true)"
+                  <button v-if="userLogueado" @click="toggleAgrandarCoins(item, true)"
                     :class="agrandarPuntosMap[item._uid] ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-600'"
                     class="text-[10px] px-2 py-0.5 rounded-full font-bold hover:cursor-pointer transition-colors">
-                    ⭐ {{ AGRANDAR_PUNTOS }} pts
+                    🪙 {{ COIN_COSTOS.AGRANDAR }} coins
                   </button>
                 </div>
               </div>
@@ -133,7 +135,7 @@
               <div>
                 <span>🛵 Envío</span>
                 <span class="text-xs text-gray-400 ml-1">
-                  (base ₡1,000 + {{ kmAdicionales }} km × ₡400)
+                  ({{ descripcionTarifaEnvio(distancia) }})
                 </span>
               </div>
               <span>₡{{ costoEnvio }}</span>
@@ -144,33 +146,60 @@
               <span>₡{{ totalConEnvio }}</span>
             </div>
 
-            <!-- Resumen de canje -->
-            <div v-if="userLogueado && totalPuntosAGastar > 0 && puntosActuales !== null"
-              class="mt-2 bg-yellow-50 border border-yellow-200 rounded-xl p-3">
-              <p class="text-xs font-bold text-yellow-700">
-                ⭐ Canjeando con puntos: {{ totalPuntosAGastar }} pts
-              </p>
-              <p v-if="puntosActuales < totalPuntosAGastar" class="text-xs text-red-600 font-bold">
-                ⚠️ Tenés {{ puntosActuales }} pts acumulados, necesitás {{ totalPuntosAGastar }} pts.
-              </p>
-              <p v-else class="text-xs text-green-700">Puntos acumulados disponibles: {{ puntosActuales }} pts ✅</p>
+            <!-- Nivel ManiaCoins -->
+            <div v-if="userLogueado && puntosActuales !== null"
+              class="mt-2 bg-gradient-to-r from-purple-50 to-yellow-50 border border-purple-200 rounded-xl p-3">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-xs font-bold text-purple-700">
+                    🪙 {{ coinsValidosComp }} ManiaCoins
+                    <span v-if="coinsValidosComp < puntosActuales" class="text-[10px] text-red-400 font-normal">({{ puntosActuales - coinsValidosComp }} vencidos)</span>
+                  </p>
+                  <p v-if="nivelActual" class="text-[10px] font-bold text-yellow-700 mt-0.5">
+                    👑 {{ nivelActual.nombre }} — {{ nivelActual.beneficios }}
+                  </p>
+                  <p v-else-if="puntosActuales >= 500" class="text-[10px] text-red-400 mt-0.5">
+                    ⚠️ Coins vencidos o sin compras recientes
+                  </p>
+                  <p v-else class="text-[10px] text-gray-400 mt-0.5">
+                    Acumulá 500 ManiaCoins para alcanzar nivel Rookie
+                  </p>
+                </div>
+                <div v-if="siguienteNivel" class="text-right">
+                  <p class="text-[10px] text-gray-400">Próximo nivel:</p>
+                  <p class="text-xs font-bold text-purple-600">{{ siguienteNivel.nombre }}</p>
+                  <p class="text-[10px] text-gray-400">Faltan {{ siguienteNivel.coinsFaltantes }} 🪙</p>
+                </div>
+              </div>
             </div>
 
-            <!-- Puntos a ganar -->
-            <div class="mt-3 bg-purple-50 border border-purple-200 rounded-xl p-3 flex items-center gap-3">
-              <span class="text-2xl">⭐</span>
+            <!-- Resumen de canje -->
+            <div v-if="userLogueado && totalCoinsAGastar > 0 && puntosActuales !== null"
+              class="mt-2 bg-yellow-50 border border-yellow-200 rounded-xl p-3">
+              <p class="text-xs font-bold text-yellow-700">
+                🪙 Canjeando: {{ totalCoinsAGastar }} ManiaCoins
+              </p>
+              <p v-if="coinsValidosComp < totalCoinsAGastar" class="text-xs text-red-600 font-bold">
+                ⚠️ Tenés {{ coinsValidosComp }} 🪙 disponibles, necesitás {{ totalCoinsAGastar }} 🪙.
+              </p>
+              <p v-else class="text-xs text-green-700">ManiaCoins disponibles: {{ coinsValidosComp }} 🪙 ✅</p>
+            </div>
+
+            <!-- ManiaCoins a ganar -->
+            <div class="mt-3 bg-gradient-to-r from-purple-50 to-yellow-50 border border-purple-200 rounded-xl p-3 flex items-center gap-3">
+              <span class="text-2xl">🪙</span>
               <div>
                 <p class="text-sm font-bold text-[var(--primary)]">
-                  Ganarás {{ puntosAGanar }} punto{{ puntosAGanar !== 1 ? 's' : '' }} con esta compra
+                  Ganarás {{ coinsAGanarComp }} ManiaCoin{{ coinsAGanarComp !== 1 ? 's' : '' }} con esta compra
                 </p>
                 <p class="text-xs text-gray-400">
-                  Calculado sobre ₡{{ baseCashTotal }} en productos (₡500 = 1 punto)
+                  Calculado sobre ₡{{ baseCashTotal }} en productos (₡100 = 1 🪙)
                 </p>
-                <p v-if="puntosActuales !== null && totalPuntosAGastar > 0" class="text-xs text-yellow-700 font-bold mt-0.5">
-                  ⚡ Los {{ puntosAGanar }} puntos de esta compra se suman después del canje
+                <p v-if="puntosActuales !== null && totalCoinsAGastar > 0" class="text-xs text-yellow-700 font-bold mt-0.5">
+                  ⚡ Los {{ coinsAGanarComp }} ManiaCoins de esta compra se suman después del canje
                 </p>
                 <p v-if="puntosActuales !== null" class="text-xs text-[var(--primary)] font-bold mt-0.5">
-                  Saldo final estimado: {{ puntosActuales - totalPuntosAGastar + puntosAGanar }} puntos
+                  Saldo final estimado: {{ coinsValidosComp - totalCoinsAGastar + coinsAGanarComp }} 🪙
                 </p>
               </div>
             </div>
@@ -255,9 +284,7 @@
                     <p class="text-gray-500 mt-1">Sucursal más cercana: <strong>{{ locationStore.sucursalCercana }}</strong></p>
                     <p class="text-gray-500">Distancia: {{ locationStore.distancia }} km</p>
                     <p class="text-[var(--primary)] text-xs font-bold mt-1">
-                      Envío: ₡1,000 base
-                      <span v-if="kmAdicionales > 0"> + {{ kmAdicionales }} km × ₡400 = ₡{{ costoEnvio }}</span>
-                      <span v-else> = ₡{{ costoEnvio }}</span>
+                      Envío ({{ descripcionTarifaEnvio(distancia) }}): ₡{{ costoEnvio }}
                     </p>
                   </div>
                   <button @click="abrirEnMaps"
@@ -345,14 +372,12 @@ import { useCartStore, useLocationStore, useSucursales } from '../stores/cartSto
 import { db, auth } from '../firebase.js'
 import { doc, getDoc, updateDoc, increment } from 'firebase/firestore'
 import { getFunctions, httpsCallable } from 'firebase/functions'
-import { getLocation } from '../composable/saberDistancia.js'
+import { getLocation, calcularTarifaEnvio, descripcionTarifaEnvio } from '../composable/saberDistancia.js'
+import { costoEnManiaCoins, costoBebidaManiaCoins, coinsAGanar, obtenerCoinsValidos, obtenerNivelReal, obtenerSiguienteNivel, COIN_COSTOS } from '../utils/maniacoins.js'
 
 const createOrder = httpsCallable(getFunctions(), 'createOrder')
 
 const AGRANDAR_COSTO = 500
-const AGRANDAR_PUNTOS = 25
-const PUNTOS_BEBIDA_REGULAR = 35
-const PUNTOS_BEBIDA_GRANDE = 55
 
 const props = defineProps({ modelValue: Boolean })
 const emit = defineEmits(['update:modelValue'])
@@ -384,6 +409,8 @@ const loadingUsuario = vueRef(false)
 const errorMsg = vueRef('')
 const successMsg = vueRef('')
 const puntosActuales = vueRef(null)
+const ultimaCompraVal = vueRef(null)
+const ultimaGananciaCoinsVal = vueRef(null)
 
 const datosCliente = vueRef({
   nombre: '',
@@ -399,25 +426,21 @@ const agrandarPuntosMap = reactive({})
 const bebidaPuntosMap = reactive({})
 const itemPuntosMap = reactive({})
 
-const puntosBebida = (item) => {
-  const precio = item.bebida?.precio || 0
-  return precio >= 2500 ? PUNTOS_BEBIDA_GRANDE : PUNTOS_BEBIDA_REGULAR
-}
-const puntosItem = (item) => {
-  return item.precio >= 2500 ? PUNTOS_BEBIDA_GRANDE : PUNTOS_BEBIDA_REGULAR
-}
-
-const toggleBebidaPuntos = (item) => {
+const toggleBebidaCoins = (item) => {
   bebidaPuntosMap[item._uid] = !bebidaPuntosMap[item._uid]
 }
 
-const toggleItemPuntos = (item) => {
+const toggleItemCoins = (item) => {
   itemPuntosMap[item._uid] = !itemPuntosMap[item._uid]
 }
 
-const toggleAgrandarPuntos = (item, val) => {
+const toggleAgrandarCoins = (item, val) => {
   agrandarPuntosMap[item._uid] = val
 }
+
+const coinsValidosComp = computed(() => obtenerCoinsValidos(puntosActuales.value, ultimaGananciaCoinsVal.value))
+const nivelActual = computed(() => obtenerNivelReal(puntosActuales.value, ultimaGananciaCoinsVal.value, ultimaCompraVal.value))
+const siguienteNivel = computed(() => obtenerSiguienteNivel(puntosActuales.value, ultimaGananciaCoinsVal.value))
 
 const baseCashTotal = computed(() => {
   return cartStore.items.reduce((acc, item) => {
@@ -444,39 +467,38 @@ const totalAgrandarCash = computed(() => {
   }, 0)
 })
 
-const totalPuntosAGastar = computed(() => {
-  let pts = 0
+const totalCoinsAGastar = computed(() => {
+  let coins = 0
   for (const item of cartStore.items) {
     if (itemPuntosMap[item._uid]) {
-      pts += puntosItem(item) * item.cantidad
+      coins += costoEnManiaCoins(item.precio) * item.cantidad
     }
     if (bebidaPuntosMap[item._uid] && item.bebida) {
-      pts += puntosBebida(item) * item.cantidad
+      coins += costoBebidaManiaCoins(item.bebida.precio) * item.cantidad
     }
     if (agrandarMap[item._uid] && agrandarPuntosMap[item._uid]) {
-      pts += AGRANDAR_PUNTOS * item.cantidad
+      coins += COIN_COSTOS.AGRANDAR * item.cantidad
     }
   }
-  return pts
+  return coins
 })
 
 const cashTotalSinEnvio = computed(() => {
   return baseCashTotal.value + totalBebidasCash.value + totalAgrandarCash.value
 })
 
-const kmAdicionales = computed(() => {
-  const distancia = parseFloat(locationStore.distancia) || 0
-  return distancia > 1 ? Math.ceil(distancia - 1) : 0
+const distancia = computed(() => {
+  return parseFloat(locationStore.distancia) || 0
 })
 
 const costoEnvio = computed(() => {
   if (withDrawType.value !== 'domicilio' || !locationStore.distancia) return 0
-  return 1000 + (kmAdicionales.value * 400)
+  return calcularTarifaEnvio(distancia.value)
 })
 
 const totalConEnvio = computed(() => cashTotalSinEnvio.value + costoEnvio.value)
 
-const puntosAGanar = computed(() => Math.floor(cashTotalSinEnvio.value / 500))
+const coinsAGanarComp = computed(() => coinsAGanar(cashTotalSinEnvio.value))
 
 const cargarDatosUsuario = async () => {
   if (!auth.currentUser) {
@@ -496,6 +518,8 @@ const cargarDatosUsuario = async () => {
       datosCliente.value.lat = data.lat || ''
       datosCliente.value.lng = data.lng || ''
       puntosActuales.value = data.puntos || 0
+      ultimaCompraVal.value = data.ultimaCompra || null
+      ultimaGananciaCoinsVal.value = data.ultimaGananciaCoins || null
     }
   } catch (error) {
     console.error('Error cargando datos:', error)
@@ -546,13 +570,13 @@ const abrirEnMaps = () => {
 const armarLineaItem = (item) => {
   let linea = `• ${item.nombre} x${item.cantidad}`
   if (itemPuntosMap[item._uid]) {
-    linea += ` (⭐ ${puntosItem(item) * item.cantidad} pts)`
+    linea += ` (🪙 ${costoEnManiaCoins(item.precio) * item.cantidad})`
   } else {
     linea += ` — ₡${item.precio * item.cantidad}`
   }
   if (item.bebida) {
     const esCanje = bebidaPuntosMap[item._uid]
-    linea += `\n  🥤 ${item.bebida.nombre} x${item.cantidad}${esCanje ? ` (⭐ ${puntosBebida(item) * item.cantidad} pts)` : ` — ₡${item.bebida.precio * item.cantidad}`}`
+    linea += `\n  🥤 ${item.bebida.nombre} x${item.cantidad}${esCanje ? ` (🪙 ${costoBebidaManiaCoins(item.bebida.precio) * item.cantidad})` : ` — ₡${item.bebida.precio * item.cantidad}`}`
   }
   if (item.papasConSalsa) {
     linea += `\n  🍟 Papas con salsa`
@@ -562,7 +586,7 @@ const armarLineaItem = (item) => {
   }
   if (agrandarMap[item._uid]) {
     const esCanje = agrandarPuntosMap[item._uid]
-    linea += `\n  ⬆️ Papas agrandadas${esCanje ? ` (⭐ ${AGRANDAR_PUNTOS * item.cantidad} pts)` : ` (+₡${AGRANDAR_COSTO * item.cantidad})`}`
+    linea += `\n  ⬆️ Papas agrandadas${esCanje ? ` (🪙 ${COIN_COSTOS.AGRANDAR * item.cantidad})` : ` (+₡${AGRANDAR_COSTO * item.cantidad})`}`
   }
   return linea
 }
@@ -573,8 +597,8 @@ const armarMensajeWhatsApp = () => {
     ? `Efectivo (paga con ₡${montoEfectivo.value}, vuelto ₡${Number(montoEfectivo.value) - totalConEnvio.value})`
     : metodoPago.value === 'sinpe' ? 'SINPE Móvil' : '💳 Datafono'
 
-  const puntosCadena = totalPuntosAGastar.value > 0
-    ? `\n⭐ Puntos canjeados: ${totalPuntosAGastar.value} pts`
+  const puntosCadena = totalCoinsAGastar.value > 0
+    ? `\n🪙 ManiaCoins canjeados: ${totalCoinsAGastar.value}`
     : ''
 
   const base = `🍔 *Nuevo pedido en Foodmania*\n\n` +
@@ -582,7 +606,7 @@ const armarMensajeWhatsApp = () => {
     `📞 Teléfono: ${datosCliente.value.telefono}\n\n` +
     `📋 *Pedido:*\n${items}\n` +
     `💰 Total: ₡${totalConEnvio.value}${puntosCadena}\n` +
-    `⭐ Puntos ganados: ${puntosAGanar.value}\n` +
+    `🪙 ManiaCoins ganados: ${coinsAGanarComp.value}\n` +
     `💳 Pago: ${pagoCadena}\n\n`
 
   if (withDrawType.value === 'sucursal') {
@@ -624,12 +648,22 @@ const confirmarPedido = async () => {
       return errorMsg.value = 'El monto es menor al total del pedido.'
   }
 
-  if (totalPuntosAGastar.value > 0) {
+  if (totalCoinsAGastar.value > 0) {
     if (puntosActuales.value === null)
-      return errorMsg.value = 'Iniciá sesión para canjear puntos.'
-    const puntosDisponibles = puntosActuales.value
-    if (puntosDisponibles < totalPuntosAGastar.value)
-      return errorMsg.value = `No tenés suficientes puntos acumulados. Tenés ${puntosDisponibles}, necesitás ${totalPuntosAGastar.value}.`
+      return errorMsg.value = 'Iniciá sesión para canjear ManiaCoins.'
+    const coinsDisponibles = coinsValidosComp.value
+    if (coinsDisponibles < totalCoinsAGastar.value)
+      return errorMsg.value = `No tenés suficientes ManiaCoins. Tenés ${coinsDisponibles} 🪙 disponibles, necesitás ${totalCoinsAGastar.value} 🪙.`
+  }
+
+  const hayItemsCash = cartStore.items.some(item => {
+    if (itemPuntosMap[item._uid]) return false
+    if (item.bebida && bebidaPuntosMap[item._uid]) return false
+    if (agrandarMap[item._uid] && agrandarPuntosMap[item._uid]) return false
+    return true
+  })
+  if (totalCoinsAGastar.value > 0 && !hayItemsCash) {
+    return errorMsg.value = 'Para canjear ManiaCoins, tenés que comprar también (no canje solo).'
   }
 
   try {
@@ -663,8 +697,8 @@ const confirmarPedido = async () => {
       costoAgrandar: totalAgrandarCash.value,
       costoEnvio: costoEnvio.value,
       total: totalConEnvio.value,
-      puntosGanados: puntosAGanar.value,
-      puntosCanjeados: totalPuntosAGastar.value,
+      puntosGanados: coinsAGanarComp.value,
+      puntosCanjeados: totalCoinsAGastar.value,
       metodoPago: metodoPago.value,
       montoEfectivo: metodoPago.value === 'efectivo' ? Number(montoEfectivo.value) : null,
       vuelto: metodoPago.value === 'efectivo' ? Number(montoEfectivo.value) - totalConEnvio.value : null,
@@ -688,7 +722,7 @@ const confirmarPedido = async () => {
 
     cartStore.items = []
     successMsg.value = `¡Pedido confirmado! 🎉`
-    puntosActuales.value = (puntosActuales.value || 0) - totalPuntosAGastar.value + puntosAGanar.value
+    puntosActuales.value = coinsValidosComp.value - totalCoinsAGastar.value + coinsAGanarComp.value
 
   } catch (error) {
     console.error(error)

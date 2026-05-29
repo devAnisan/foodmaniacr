@@ -167,9 +167,14 @@
             <br />
 
             <div class="text-center px-4">
-                <div>
-                    <h1 class="extrabold text-4xl my-8 p-1">
-                        ¿Dónde comprar tu <span class="title"> antojo</span> ?
+                <div class="hidden md:block">
+                    <h1 id="title" class="extrabold text-4xl my-8 p-1">
+                        ¿Dónde comprar tu <span id="title" class="title"> antojo</span> ?
+                    </h1>
+                </div>
+                <div class="block md:hidden">
+                    <h1 id="title" class="extrabold text-1xl my-8 p-1">
+                        ¿Dónde comprar tu <span id="title" class="title"> antojo</span> ?
                     </h1>
                 </div>
                 <p class="text-lg w-full md:w-2/3 mx-auto">
@@ -207,7 +212,7 @@
         </div>
         <section id="menu">
             <div class="text-center px-4">
-                <h1 class="extrabold text-4xl my-8 p-1">Menú</h1>
+                <h1 id="title" class="extrabold text-4xl my-8 p-1">Menú</h1>
                 <div class="flex justify-center p-4">
                     <div class="w-full max-w-4xl rounded-2xl shadow-lg overflow-hidden transition-transform duration-300 hover:scale-[1.02]">
                         <img :src="imageUrlMenu" alt="Menú de Foodmania" class="w-full h-auto" />

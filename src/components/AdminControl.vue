@@ -134,7 +134,7 @@
                                 </span>
                             </td>
                             <td class="p-3 font-bold text-[var(--primary)]">₡{{ pedido.total }}</td>
-                            <td class="p-3 text-center">⭐ {{ pedido.puntosGanados || 0 }}</td>
+                            <td class="p-3 text-center">🪙 {{ pedido.puntosGanados || 0 }}</td>
                             <td class="p-3 text-center">
                                 <span v-if="pedido.puntosCanjeados" class="text-red-500 font-bold">🔥 {{ pedido.puntosCanjeados }}</span>
                                 <span v-else class="text-gray-300">—</span>
@@ -179,7 +179,7 @@
                     <div class="text-sm text-gray-600 flex flex-col gap-1 mb-3">
                         <p>📞 {{ pedido.telefono }}</p>
                         <p>💰 Total: <strong class="text-[var(--primary)]">₡{{ pedido.total }}</strong></p>
-                        <p>⭐ Puntos: {{ pedido.puntosGanados || 0 }} <span v-if="pedido.puntosCanjeados" class="text-red-500">🔥 -{{ pedido.puntosCanjeados }}</span></p>
+                        <p>🪙 ManiaCoins: {{ pedido.puntosGanados || 0 }} <span v-if="pedido.puntosCanjeados" class="text-red-500">🔥 -{{ pedido.puntosCanjeados }}</span></p>
                         <p>{{ pedido.tipoRetiro === 'sucursal' ? `🏪 ${pedido.sucursal}` : `🛵 ${pedido.direccion}` }}
                         </p>
                         <p class="text-xs text-gray-400">{{ formatearFecha(pedido.creadoEn) }}</p>
@@ -244,11 +244,11 @@
                             <span class="text-[var(--primary)]">₡{{ pedidoDetalle.total }}</span>
                         </div>
                         <div class="flex justify-between text-sm mt-1 text-amber-600">
-                            <span>⭐ Puntos ganados</span>
+                            <span>🪙 ManiaCoins ganados</span>
                             <span>{{ pedidoDetalle.puntosGanados || 0 }}</span>
                         </div>
                         <div v-if="pedidoDetalle.puntosCanjeados" class="flex justify-between text-sm text-red-600">
-                            <span>🔥 Puntos canjeados</span>
+                            <span>🔥 ManiaCoins canjeados</span>
                             <span>{{ pedidoDetalle.puntosCanjeados }}</span>
                         </div>
                     </div>
@@ -303,7 +303,7 @@
 
 <script setup>
 import { ref as vueRef, computed, onMounted, onUnmounted } from 'vue'
-import { collection, doc, getDoc, addDoc, Timestamp, updateDoc, query, where, increment, onSnapshot } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, addDoc, Timestamp, updateDoc, query, where, increment, onSnapshot } from 'firebase/firestore'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '../stores/cartStores.js'
@@ -456,10 +456,10 @@ const otorgarPuntos = async (pedido) => {
             const q = query(collection(db, 'clientes'), where('email', '==', pedido.usuario))
             const snap = await getDocs(q)
             if (!snap.empty) {
-                await updateDoc(doc(db, 'clientes', snap.docs[0].id), {
-                    puntos: increment(pts)
-                })
-                console.log(`✅ ${pts} puntos otorgados a ${pedido.usuario}`)
+                const clienteRef = doc(db, 'clientes', snap.docs[0].id)
+                await updateDoc(clienteRef, { puntos: increment(pts) })
+                await updateDoc(clienteRef, { ultimaGananciaCoins: Timestamp.now() })
+                console.log(`✅ ${pts} ManiaCoins otorgados a ${pedido.usuario}`)
             }
         }
     } catch (error) {

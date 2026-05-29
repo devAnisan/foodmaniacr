@@ -149,6 +149,12 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
 
   const docRef = await db.collection('pedidos').add(order)
 
+  if (uid) {
+    await db.collection('clientes').doc(uid).set({
+      ultimaCompra: admin.firestore.Timestamp.now()
+    }, { merge: true })
+  }
+
   if (uid && pedidoData.puntosCanjeados > 0) {
     const clientRef = db.collection('clientes').doc(uid)
     const clientSnap = await clientRef.get()
@@ -195,8 +201,8 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
               <hr style="margin:16px 0;border:none;border-top:1px solid #ddd;" />
               <p style="margin:0 0 4px;"><strong>💳 Pago:</strong> ${pedidoData.metodoPago || '—'}</p>
               <p style="margin:0 0 4px;"><strong>🏪 Retiro:</strong> ${pedidoData.tipoRetiro === 'sucursal' ? pedidoData.sucursal : 'Domicilio'}</p>
-              <p style="margin:0 0 4px;"><strong>⭐ Puntos ganados:</strong> ${pedidoData.puntosGanados || 0}</p>
-              ${pedidoData.puntosCanjeados ? `<p style="margin:0;"><strong>🔥 Puntos canjeados:</strong> ${pedidoData.puntosCanjeados}</p>` : ''}
+              <p style="margin:0 0 4px;"><strong>🪙 ManiaCoins ganados:</strong> ${pedidoData.puntosGanados || 0}</p>
+              ${pedidoData.puntosCanjeados ? `<p style="margin:0;"><strong>🔥 ManiaCoins canjeados:</strong> ${pedidoData.puntosCanjeados}</p>` : ''}
             </div>
             <div style="padding:16px;text-align:center;color:#888;font-size:12px;border-top:1px solid #ddd;">
               Foodmania CR — Tu antojo, nuestra especialidad

@@ -13,6 +13,27 @@ interface Insucursal {
     sinpe: string,
     aNombre: string
 }
+export const calcularTarifaEnvio = (distanciaKm: number): number => {
+  if (distanciaKm <= 0) return 0
+  if (distanciaKm <= 1) return 1000
+  if (distanciaKm <= 3) return 1600
+  if (distanciaKm <= 5) return 2000
+  if (distanciaKm <= 8) return 2500
+  if (distanciaKm <= 12) return 3500
+  return 3500 + Math.ceil(distanciaKm - 12) * 300
+}
+
+export const descripcionTarifaEnvio = (distanciaKm: number): string => {
+  if (distanciaKm <= 0) return ''
+  if (distanciaKm <= 1) return '0–1 km'
+  if (distanciaKm <= 3) return '1–3 km'
+  if (distanciaKm <= 5) return '3–5 km'
+  if (distanciaKm <= 8) return '5–8 km'
+  if (distanciaKm <= 12) return '8–12 km'
+  const extra = Math.ceil(distanciaKm - 12)
+  return `12 km+ (${extra} km adicionales)`
+}
+
 // Haversine formula to calculate distance between two points
 export const calcDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
     const R = 6371;

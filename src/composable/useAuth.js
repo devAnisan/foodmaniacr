@@ -80,7 +80,9 @@ export function useAuth() {
         nombre: '',
         direccion: '',
         lat: '',
-        lng: ''
+        lng: '',
+        ultimaCompra: null,
+        ultimaGananciaCoins: null
       })
       await signOut(auth)
     } catch (error) {

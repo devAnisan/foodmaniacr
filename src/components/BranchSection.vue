@@ -1,9 +1,16 @@
 <template>
   <!-- Pantallas pequeñas -->
-  <section class="flex flex-col justify-center items-center p-4">
+  <section class="flex flex-col justify-center items-center p-4 pt-20 pb-3">
     <div class="flex space-x-2 mb-4 items-center">
-      <span id="title" class="extrabold text-4xl">Nuestras</span>
-      <span id="title" class="extrabold text-4xl title">sucursales</span>
+      <div class="hidden md:block">
+        <span id="title" class="extrabold text-4xl mr-2">Nuestras</span>
+        <span id="title" class="extrabold text-4xl title">sucursales</span>
+      </div>
+      <div class="block md:hidden">
+        <span id="title" class="extrabold text-1xl mr-1">Nuestras</span>
+        
+        <span id="title" class="extrabold text-1xl title">sucursales</span>
+      </div>
     </div>
     <div class="flex flex-wrap justify-center gap-4">
       <div
