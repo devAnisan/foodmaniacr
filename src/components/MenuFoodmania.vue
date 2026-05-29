@@ -367,8 +367,10 @@
                             class="px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap border transition-all duration-200 flex-shrink-0">
                             🍽️ Todo
                         </button>
-                        <button v-for="cat in categorias" :key="cat.coleccion" @click="seleccionarCategoria(cat)"
-                            :class="categoriaActiva?.coleccion === cat.coleccion ? 'bg-[var(--primary)] text-white' : 'bg-white text-gray-600 hover:bg-gray-100'"
+                        <button v-for="cat in categorias" :key="cat.nombre" @click="seleccionarCategoria(cat)"
+                            :class="categoriaActiva?.nombre === cat.nombre
+                              ? (cat.esCanje ? 'bg-yellow-500 text-white' : 'bg-[var(--primary)] text-white')
+                              : (cat.esCanje ? 'bg-yellow-50 text-yellow-700 border-yellow-300 hover:bg-yellow-100' : 'bg-white text-gray-600 hover:bg-gray-100')"
                             class="px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap border transition-all duration-200 flex-shrink-0 flex items-center gap-1">
                             <span v-if="cat.cargando" class="pi pi-spinner animate-spin text-xs"></span>
                             {{ cat.emoji }} {{ cat.nombre }}
@@ -391,7 +393,7 @@
                 </div>
                 <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <ProductCard v-for="{ item, esPromocion } in resultadosBusqueda" :key="item.id" :item="item"
-                        :esPromocion="esPromocion" @personalizar="abrirPersonalizador(item)" />
+                        :esPromocion="esPromocion" :esCanje="false" @personalizar="abrirPersonalizador(item)" />
                 </div>
             </div>
 
@@ -415,15 +417,16 @@
                     </div>
 
                     <div v-else class="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <ProductCard v-for="item in categoriaActiva.productos" :key="item.id" :item="item"
+                        <ProductCard v-for="item in categoriaActiva.productos.filter(p => categoriaActiva.esCanje || p.precio)" :key="item.id" :item="item"
                             :esPromocion="categoriaActiva.coleccion === 'promociones'"
-                            @personalizar="abrirPersonalizador(item)" />
+                            :esCanje="categoriaActiva.esCanje"
+                            @personalizar="abrirPersonalizador(item, categoriaActiva.esCanje)" />
                     </div>
                 </div>
 
                 <!-- Todas las categorías -->
                 <div v-else>
-                    <div v-for="cat in categorias" :key="cat.coleccion" class="mb-10">
+                    <div v-for="cat in categorias" :key="cat.nombre" v-show="!cat.esCanje || cat.productos.length > 0" class="mb-10">
                         <div class="flex items-center justify-between mb-4">
                             <div class="hidden md:block">
                                 <h2 id="title" class="text-2xl font-bold">{{ cat.emoji }} {{ cat.nombre }}</h2>
@@ -448,8 +451,9 @@
 
                         <!-- Productos (solo los primeros 5 en vista general) -->
                         <div v-else class="grid grid-cols-2 md:grid-cols-5 gap-4">
-                            <ProductCard v-for="item in cat.productos.slice(0, 5)" :key="item.id" :item="item"
-                                :esPromocion="cat.coleccion === 'promociones'" @personalizar="abrirPersonalizador(item)" />
+                            <ProductCard v-for="item in cat.productos.filter(p => cat.esCanje || p.precio).slice(0, 5)" :key="item.id" :item="item"
+                                :esPromocion="cat.coleccion === 'promociones'" :esCanje="cat.esCanje"
+                                @personalizar="abrirPersonalizador(item, cat.esCanje)" />
                         </div>
                     </div>
                 </div>
@@ -475,34 +479,32 @@ import { obtenerNivelReal, obtenerCoinsValidos, obtenerSiguienteNivel, obtenerTi
 import EditProfileModal from './EditProfileModal.vue'
 // ── Componente inline ProductCard ──────────────────────────────────────────
 const ProductCard = defineComponent({
-    props: { item: Object, esPromocion: Boolean },
+    props: { item: Object, esPromocion: Boolean, esCanje: Boolean },
     emits: ['personalizar'],
     setup(props, { emit }) {
-
-        const esCanje = computed(() => props.item.puntosCanje > 0)
 
         const activo = computed(() =>
             props.esPromocion ? esPromocionActiva(props.item.nombre) : true
         )
 
-        return () => h('div', { class: 'bg-white rounded-xl shadow-md p-3 flex flex-col hover:shadow-lg transition-shadow duration-200' + (esCanje.value ? ' border-2 border-yellow-400' : '') }, [
+        return () => h('div', { class: 'bg-white rounded-xl shadow-md p-3 flex flex-col hover:shadow-lg transition-shadow duration-200' + (props.esCanje ? ' border-2 border-yellow-400' : '') }, [
             props.item.imageUrl
                 ? h('img', { src: props.item.imageUrl, alt: props.item.nombre, loading: 'lazy', class: 'w-full h-32 object-cover rounded-lg mb-3' })
                 : h('div', { class: 'w-full h-32 bg-gray-100 rounded-lg mb-3 flex items-center justify-center text-3xl' }, '🍽️'),
             h('h3', { class: 'font-bold text-sm mb-1 flex-1 line-clamp-2' }, props.item.nombre),
             props.item.descripcion ? h('p', { class: 'text-gray-400 text-xs mb-2 line-clamp-1' }, props.item.descripcion) : null,
-            esCanje.value
+            props.esCanje
                 ? h('p', { class: 'font-bold text-yellow-600 mb-3' }, `🪙 ${props.item.puntosCanje}`)
                 : h('p', { class: 'font-bold text-[var(--primary)] mb-3' }, `₡${props.item.precio}`),
             h('button', {
                 disabled: !activo.value,
                 class: activo.value
-                    ? (esCanje.value
+                    ? (props.esCanje
                         ? 'w-full bg-yellow-500 text-white py-2 rounded-lg text-sm font-bold hover:bg-yellow-600 transition-colors hover:cursor-pointer'
                         : 'w-full bg-[var(--primary)] text-white py-2 rounded-lg text-sm font-bold hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer')
                     : 'w-full bg-gray-200 text-gray-400 py-2 rounded-lg text-sm font-bold cursor-not-allowed',
                 onClick: () => activo.value && emit('personalizar')
-            }, activo.value ? '+ Canjear 🎉' : diaPromocion(props.item.nombre))
+            }, activo.value ? (props.esCanje ? '+ Canjear 🎉' : '+ Agregar 🎉') : diaPromocion(props.item.nombre))
         ])
     }
 })
@@ -576,7 +578,11 @@ const cargarSalsas = async () => {
   }
 }
 
-const abrirPersonalizador = (item) => {
+const abrirPersonalizador = (item, esCanje = false) => {
+  if (esCanje) {
+    cartStore.addItem(item, { esCanje: true })
+    return
+  }
   const esBebida = categorias.value
     .find(c => c.coleccion === 'bebidas')
     ?.productos.some(p => p.id === item.id)
@@ -584,10 +590,6 @@ const abrirPersonalizador = (item) => {
     cartStore.addItem(item, { esBebida: true })
     drinkMsg.value = '🥤 Refresco añadido'
     setTimeout(() => drinkMsg.value = '', 2000)
-    return
-  }
-  if (item.puntosCanje > 0) {
-    cartStore.addItem(item, { puntosCanje: item.puntosCanje })
     return
   }
   itemPersonalizando.value = item
@@ -675,11 +677,12 @@ const categorias = vueRef([
     { nombre: 'Supremos', coleccion: 'supremos', emoji: '👑', productos: [], cargando: false, cargada: false },
     { nombre: 'Surtidos', coleccion: 'surtidos', emoji: '🎁', productos: [], cargando: false, cargada: false },
     { nombre: 'Bebidas', coleccion: 'bebidas', emoji: '🥤', productos: [], cargando: false, cargada: false },
+    { nombre: 'Canjear', coleccion: null, esCanje: true, emoji: '🪙', productos: [], cargando: false, cargada: false },
 ])
 
 // ── Cargar una categoría (lazy) ────────────────────────────────────────────
 const cargarCategoria = async (cat) => {
-    if (cat.cargada || cat.cargando) return
+    if (!cat.coleccion || cat.cargada || cat.cargando) return
     cat.cargando = true
     try {
         const snap = await getDocs(collection(db, cat.coleccion))
@@ -693,6 +696,7 @@ const cargarCategoria = async (cat) => {
             cat.productos.push({ id: doc.id, ...data, imageUrl: itemImageUrl })
         }
         cat.cargada = true
+        actualizarCanje()
     } catch (error) {
         console.error(`Error cargando ${cat.nombre}:`, error)
     } finally {
@@ -700,10 +704,26 @@ const cargarCategoria = async (cat) => {
     }
 }
 
+const actualizarCanje = () => {
+    const canjeCat = categorias.value.find(c => c.esCanje)
+    if (!canjeCat) return
+    canjeCat.productos = categorias.value
+        .filter(c => c.coleccion && c.cargada)
+        .flatMap(c => c.productos)
+        .filter(p => p.ValidoParaCambio === true && p.puntosCanje > 0)
+    canjeCat.cargada = true
+}
+
 // ── Seleccionar categoría (carga lazy) ────────────────────────────────────
 const seleccionarCategoria = async (cat) => {
     categoriaActiva.value = cat
     busqueda.value = ''
+    if (cat.esCanje) {
+        for (const c of categorias.value) {
+            if (c.coleccion) await cargarCategoria(c)
+        }
+        return
+    }
     await cargarCategoria(cat)
 }
 
@@ -712,9 +732,10 @@ const resultadosBusqueda = computed(() => {
     if (!busqueda.value.trim()) return []
     const q = busqueda.value.toLowerCase()
     return categorias.value
+        .filter(cat => !cat.esCanje)
         .flatMap(cat =>
             cat.productos
-                .filter(p => p.nombre?.toLowerCase().includes(q) || p.descripcion?.toLowerCase().includes(q))
+                .filter(p => p.precio && (p.nombre?.toLowerCase().includes(q) || p.descripcion?.toLowerCase().includes(q)))
                 .map(p => ({ item: p, esPromocion: cat.coleccion === 'promociones' }))
         )
 })
