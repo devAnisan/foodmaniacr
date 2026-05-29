@@ -82,7 +82,8 @@ export function useAuth() {
         lat: '',
         lng: '',
         ultimaCompra: null,
-        ultimaGananciaCoins: null
+        ultimaGananciaCoins: null,
+        primeraCompra: true
       })
       await signOut(auth)
     } catch (error) {

@@ -65,20 +65,8 @@
                 <div>
                   <span class="font-bold">{{ item.nombre }}</span>
                   <span class="text-gray-400"> x{{ item.cantidad }}</span>
-                  <!-- Canjear item con ManiaCoins -->
-                  <button v-if="userLogueado" @click="toggleItemCoins(item)"
-                    :class="itemPuntosMap[item._uid] ? 'bg-green-100 text-green-700 border-green-300' : 'bg-gray-100 text-gray-500 border-gray-200'"
-                    class="text-[10px] px-2 py-0.5 rounded-full border font-bold ml-2 hover:cursor-pointer transition-colors">
-                    <template v-if="itemPuntosMap[item._uid]">⭐ Canjeado</template>
-                    <template v-else>🪙 {{ costoEnManiaCoins(item.precio) }} coins</template>
-                  </button>
                 </div>
-                <span :class="itemPuntosMap[item._uid] ? 'text-green-600 line-through' : ''">
-                  ₡{{ item.precio * item.cantidad }}
-                  <span v-if="itemPuntosMap[item._uid]" class="text-green-600 font-bold ml-1 no-underline">
-                    ({{ costoEnManiaCoins(item.precio) }} 🪙)
-                  </span>
-                </span>
+                <span>₡{{ item.precio * item.cantidad }}</span>
               </div>
 
               <!-- Bebida asociada a un producto -->
@@ -194,6 +182,9 @@
                 </p>
                 <p class="text-xs text-gray-400">
                   Calculado sobre ₡{{ baseCashTotal }} en productos (₡100 = 1 🪙)
+                </p>
+                <p v-if="primeraCompra" class="text-xs text-green-600 font-bold mt-0.5">
+                  🆕 ¡Primera compra! ManiaCoins x2 — Ganarás {{ coinsAGanarComp * 2 }} 🪙
                 </p>
                 <p v-if="puntosActuales !== null && totalCoinsAGastar > 0" class="text-xs text-yellow-700 font-bold mt-0.5">
                   ⚡ Los {{ coinsAGanarComp }} ManiaCoins de esta compra se suman después del canje
@@ -373,7 +364,7 @@ import { db, auth } from '../firebase.js'
 import { doc, getDoc, updateDoc, increment } from 'firebase/firestore'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { getLocation, calcularTarifaEnvio, descripcionTarifaEnvio } from '../composable/saberDistancia.js'
-import { costoEnManiaCoins, costoBebidaManiaCoins, coinsAGanar, obtenerCoinsValidos, obtenerNivelReal, obtenerSiguienteNivel, COIN_COSTOS } from '../utils/maniacoins.js'
+import { costoBebidaManiaCoins, coinsAGanar, obtenerCoinsValidos, obtenerNivelReal, obtenerSiguienteNivel, COIN_COSTOS } from '../utils/maniacoins.js'
 
 const createOrder = httpsCallable(getFunctions(), 'createOrder')
 
@@ -411,6 +402,7 @@ const successMsg = vueRef('')
 const puntosActuales = vueRef(null)
 const ultimaCompraVal = vueRef(null)
 const ultimaGananciaCoinsVal = vueRef(null)
+const primeraCompra = vueRef(false)
 
 const datosCliente = vueRef({
   nombre: '',
@@ -424,14 +416,9 @@ const datosCliente = vueRef({
 const agrandarMap = reactive({})
 const agrandarPuntosMap = reactive({})
 const bebidaPuntosMap = reactive({})
-const itemPuntosMap = reactive({})
 
 const toggleBebidaCoins = (item) => {
   bebidaPuntosMap[item._uid] = !bebidaPuntosMap[item._uid]
-}
-
-const toggleItemCoins = (item) => {
-  itemPuntosMap[item._uid] = !itemPuntosMap[item._uid]
 }
 
 const toggleAgrandarCoins = (item, val) => {
@@ -444,7 +431,6 @@ const siguienteNivel = computed(() => obtenerSiguienteNivel(puntosActuales.value
 
 const baseCashTotal = computed(() => {
   return cartStore.items.reduce((acc, item) => {
-    if (itemPuntosMap[item._uid]) return acc
     return acc + item.precio * item.cantidad
   }, 0)
 })
@@ -470,9 +456,6 @@ const totalAgrandarCash = computed(() => {
 const totalCoinsAGastar = computed(() => {
   let coins = 0
   for (const item of cartStore.items) {
-    if (itemPuntosMap[item._uid]) {
-      coins += costoEnManiaCoins(item.precio) * item.cantidad
-    }
     if (bebidaPuntosMap[item._uid] && item.bebida) {
       coins += costoBebidaManiaCoins(item.bebida.precio) * item.cantidad
     }
@@ -520,6 +503,7 @@ const cargarDatosUsuario = async () => {
       puntosActuales.value = data.puntos || 0
       ultimaCompraVal.value = data.ultimaCompra || null
       ultimaGananciaCoinsVal.value = data.ultimaGananciaCoins || null
+      primeraCompra.value = data.primeraCompra === true
     }
   } catch (error) {
     console.error('Error cargando datos:', error)
@@ -568,12 +552,7 @@ const abrirEnMaps = () => {
 }
 
 const armarLineaItem = (item) => {
-  let linea = `• ${item.nombre} x${item.cantidad}`
-  if (itemPuntosMap[item._uid]) {
-    linea += ` (🪙 ${costoEnManiaCoins(item.precio) * item.cantidad})`
-  } else {
-    linea += ` — ₡${item.precio * item.cantidad}`
-  }
+  let linea = `• ${item.nombre} x${item.cantidad} — ₡${item.precio * item.cantidad}`
   if (item.bebida) {
     const esCanje = bebidaPuntosMap[item._uid]
     linea += `\n  🥤 ${item.bebida.nombre} x${item.cantidad}${esCanje ? ` (🪙 ${costoBebidaManiaCoins(item.bebida.precio) * item.cantidad})` : ` — ₡${item.bebida.precio * item.cantidad}`}`
@@ -657,7 +636,6 @@ const confirmarPedido = async () => {
   }
 
   const hayItemsCash = cartStore.items.some(item => {
-    if (itemPuntosMap[item._uid]) return false
     if (item.bebida && bebidaPuntosMap[item._uid]) return false
     if (agrandarMap[item._uid] && agrandarPuntosMap[item._uid]) return false
     return true
@@ -675,7 +653,6 @@ const confirmarPedido = async () => {
       precio: item.precio,
       cantidad: item.cantidad,
       esBebida: item.esBebida || false,
-      canjeadoConPuntos: !!itemPuntosMap[item._uid],
       bebida: item.bebida ? {
         id: item.bebida.id,
         nombre: item.bebida.nombre,
@@ -739,7 +716,6 @@ watch(() => props.modelValue, (newValue) => {
     Object.keys(agrandarMap).forEach(k => delete agrandarMap[k])
     Object.keys(agrandarPuntosMap).forEach(k => delete agrandarPuntosMap[k])
     Object.keys(bebidaPuntosMap).forEach(k => delete bebidaPuntosMap[k])
-    Object.keys(itemPuntosMap).forEach(k => delete itemPuntosMap[k])
     cargarDatosUsuario()
   }
 })

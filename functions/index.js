@@ -141,19 +141,31 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
       'Demasiados pedidos en poco tiempo. Esperá unos minutos e intentá de nuevo.')
   }
 
+  let puntosGanados = pedidoData.puntosGanados || 0
+  let esPrimeraCompra = false
+
+  if (uid) {
+    const clientRef = db.collection('clientes').doc(uid)
+    const clientSnap = await clientRef.get()
+    if (clientSnap.exists && clientSnap.data().primeraCompra === true) {
+      esPrimeraCompra = true
+      puntosGanados *= 2
+      await clientRef.update({ primeraCompra: false })
+      logger.log('🎉 Primera compra — ManiaCoins x2 para', email)
+    }
+    await clientRef.set({
+      ultimaCompra: admin.firestore.Timestamp.now()
+    }, { merge: true })
+  }
+
   const order = {
     ...pedidoData,
+    puntosGanados,
     usuario: email || 'Anónimo',
     creadoEn: admin.firestore.Timestamp.now()
   }
 
   const docRef = await db.collection('pedidos').add(order)
-
-  if (uid) {
-    await db.collection('clientes').doc(uid).set({
-      ultimaCompra: admin.firestore.Timestamp.now()
-    }, { merge: true })
-  }
 
   if (uid && pedidoData.puntosCanjeados > 0) {
     const clientRef = db.collection('clientes').doc(uid)
@@ -201,8 +213,9 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
               <hr style="margin:16px 0;border:none;border-top:1px solid #ddd;" />
               <p style="margin:0 0 4px;"><strong>💳 Pago:</strong> ${pedidoData.metodoPago || '—'}</p>
               <p style="margin:0 0 4px;"><strong>🏪 Retiro:</strong> ${pedidoData.tipoRetiro === 'sucursal' ? pedidoData.sucursal : 'Domicilio'}</p>
-              <p style="margin:0 0 4px;"><strong>🪙 ManiaCoins ganados:</strong> ${pedidoData.puntosGanados || 0}</p>
-              ${pedidoData.puntosCanjeados ? `<p style="margin:0;"><strong>🔥 ManiaCoins canjeados:</strong> ${pedidoData.puntosCanjeados}</p>` : ''}
+              ${esPrimeraCompra ? '<p style="margin:0 0 4px;color:#642d81;font-weight:bold;">🎉 ¡Primera compra! ManiaCoins x2</p>' : ''}
+              <p style="margin:0 0 4px;"><strong>🪙 ManiaCoins ganados:</strong> ${order.puntosGanados || 0}</p>
+              ${order.puntosCanjeados ? `<p style="margin:0;"><strong>🔥 ManiaCoins canjeados:</strong> ${order.puntosCanjeados}</p>` : ''}
             </div>
             <div style="padding:16px;text-align:center;color:#888;font-size:12px;border-top:1px solid #ddd;">
               Foodmania CR — Tu antojo, nuestra especialidad
