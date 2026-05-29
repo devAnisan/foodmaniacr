@@ -66,7 +66,8 @@
                   <span class="font-bold">{{ item.nombre }}</span>
                   <span class="text-gray-400"> x{{ item.cantidad }}</span>
                 </div>
-                <span>₡{{ item.precio * item.cantidad }}</span>
+                <span v-if="item.puntosCanje > 0" class="font-bold text-yellow-600">🪙 {{ item.puntosCanje * item.cantidad }}</span>
+                <span v-else>₡{{ item.precio * item.cantidad }}</span>
               </div>
 
               <!-- Bebida asociada a un producto -->
@@ -431,6 +432,7 @@ const siguienteNivel = computed(() => obtenerSiguienteNivel(puntosActuales.value
 
 const baseCashTotal = computed(() => {
   return cartStore.items.reduce((acc, item) => {
+    if (item.puntosCanje > 0) return acc
     return acc + item.precio * item.cantidad
   }, 0)
 })
@@ -456,6 +458,9 @@ const totalAgrandarCash = computed(() => {
 const totalCoinsAGastar = computed(() => {
   let coins = 0
   for (const item of cartStore.items) {
+    if (item.puntosCanje > 0) {
+      coins += item.puntosCanje * item.cantidad
+    }
     if (bebidaPuntosMap[item._uid] && item.bebida) {
       coins += costoBebidaManiaCoins(item.bebida.precio) * item.cantidad
     }
@@ -552,7 +557,9 @@ const abrirEnMaps = () => {
 }
 
 const armarLineaItem = (item) => {
-  let linea = `• ${item.nombre} x${item.cantidad} — ₡${item.precio * item.cantidad}`
+  let linea = item.puntosCanje > 0
+    ? `• ${item.nombre} x${item.cantidad} (🪙 ${item.puntosCanje * item.cantidad})`
+    : `• ${item.nombre} x${item.cantidad} — ₡${item.precio * item.cantidad}`
   if (item.bebida) {
     const esCanje = bebidaPuntosMap[item._uid]
     linea += `\n  🥤 ${item.bebida.nombre} x${item.cantidad}${esCanje ? ` (🪙 ${costoBebidaManiaCoins(item.bebida.precio) * item.cantidad})` : ` — ₡${item.bebida.precio * item.cantidad}`}`
@@ -636,6 +643,7 @@ const confirmarPedido = async () => {
   }
 
   const hayItemsCash = cartStore.items.some(item => {
+    if (item.puntosCanje > 0) return false
     if (item.bebida && bebidaPuntosMap[item._uid]) return false
     if (agrandarMap[item._uid] && agrandarPuntosMap[item._uid]) return false
     return true
@@ -653,6 +661,8 @@ const confirmarPedido = async () => {
       precio: item.precio,
       cantidad: item.cantidad,
       esBebida: item.esBebida || false,
+      puntosCanje: item.puntosCanje || 0,
+      canjeadoConManiaCoins: (item.puntosCanje || 0) > 0,
       bebida: item.bebida ? {
         id: item.bebida.id,
         nombre: item.bebida.nombre,

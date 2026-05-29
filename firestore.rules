@@ -26,7 +26,7 @@ service cloud.firestore {
       allow read: if collection in [
         'Sucursales de Foodmania', 'foodmaniaPedir', 'bebidas', 'salsas',
         'comidachina', 'comidarapida', 'hamburguesas', 'pollofrito',
-        'promociones', 'supremos', 'surtidos'
+        'promociones', 'supremos', 'surtidos', 'canjeManiaCoins'
       ];
       allow write: if false;
     }

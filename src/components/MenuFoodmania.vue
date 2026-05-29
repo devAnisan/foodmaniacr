@@ -479,24 +479,30 @@ const ProductCard = defineComponent({
     emits: ['personalizar'],
     setup(props, { emit }) {
 
+        const esCanje = computed(() => props.item.puntosCanje > 0)
+
         const activo = computed(() =>
             props.esPromocion ? esPromocionActiva(props.item.nombre) : true
         )
 
-        return () => h('div', { class: 'bg-white rounded-xl shadow-md p-3 flex flex-col hover:shadow-lg transition-shadow duration-200' }, [
+        return () => h('div', { class: 'bg-white rounded-xl shadow-md p-3 flex flex-col hover:shadow-lg transition-shadow duration-200' + (esCanje.value ? ' border-2 border-yellow-400' : '') }, [
             props.item.imageUrl
                 ? h('img', { src: props.item.imageUrl, alt: props.item.nombre, loading: 'lazy', class: 'w-full h-32 object-cover rounded-lg mb-3' })
                 : h('div', { class: 'w-full h-32 bg-gray-100 rounded-lg mb-3 flex items-center justify-center text-3xl' }, '🍽️'),
             h('h3', { class: 'font-bold text-sm mb-1 flex-1 line-clamp-2' }, props.item.nombre),
             props.item.descripcion ? h('p', { class: 'text-gray-400 text-xs mb-2 line-clamp-1' }, props.item.descripcion) : null,
-            h('p', { class: 'font-bold text-[var(--primary)] mb-3' }, `₡${props.item.precio}`),
+            esCanje.value
+                ? h('p', { class: 'font-bold text-yellow-600 mb-3' }, `🪙 ${props.item.puntosCanje}`)
+                : h('p', { class: 'font-bold text-[var(--primary)] mb-3' }, `₡${props.item.precio}`),
             h('button', {
                 disabled: !activo.value,
                 class: activo.value
-                    ? 'w-full bg-[var(--primary)] text-white py-2 rounded-lg text-sm font-bold hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer'
+                    ? (esCanje.value
+                        ? 'w-full bg-yellow-500 text-white py-2 rounded-lg text-sm font-bold hover:bg-yellow-600 transition-colors hover:cursor-pointer'
+                        : 'w-full bg-[var(--primary)] text-white py-2 rounded-lg text-sm font-bold hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer')
                     : 'w-full bg-gray-200 text-gray-400 py-2 rounded-lg text-sm font-bold cursor-not-allowed',
                 onClick: () => activo.value && emit('personalizar')
-            }, activo.value ? '+ Agregar 🎉' : diaPromocion(props.item.nombre))
+            }, activo.value ? '+ Canjear 🎉' : diaPromocion(props.item.nombre))
         ])
     }
 })
@@ -578,6 +584,10 @@ const abrirPersonalizador = (item) => {
     cartStore.addItem(item, { esBebida: true })
     drinkMsg.value = '🥤 Refresco añadido'
     setTimeout(() => drinkMsg.value = '', 2000)
+    return
+  }
+  if (item.puntosCanje > 0) {
+    cartStore.addItem(item, { puntosCanje: item.puntosCanje })
     return
   }
   itemPersonalizando.value = item
@@ -665,6 +675,7 @@ const categorias = vueRef([
     { nombre: 'Supremos', coleccion: 'supremos', emoji: '👑', productos: [], cargando: false, cargada: false },
     { nombre: 'Surtidos', coleccion: 'surtidos', emoji: '🎁', productos: [], cargando: false, cargada: false },
     { nombre: 'Bebidas', coleccion: 'bebidas', emoji: '🥤', productos: [], cargando: false, cargada: false },
+    { nombre: 'Canje ManiaCoins', coleccion: 'canjeManiaCoins', emoji: '🪙', productos: [], cargando: false, cargada: false },
 ])
 
 // ── Cargar una categoría (lazy) ────────────────────────────────────────────
