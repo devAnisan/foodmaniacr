@@ -675,7 +675,6 @@ const categorias = vueRef([
     { nombre: 'Supremos', coleccion: 'supremos', emoji: '👑', productos: [], cargando: false, cargada: false },
     { nombre: 'Surtidos', coleccion: 'surtidos', emoji: '🎁', productos: [], cargando: false, cargada: false },
     { nombre: 'Bebidas', coleccion: 'bebidas', emoji: '🥤', productos: [], cargando: false, cargada: false },
-    { nombre: 'Canje ManiaCoins', coleccion: 'canjeManiaCoins', emoji: '🪙', productos: [], cargando: false, cargada: false },
 ])
 
 // ── Cargar una categoría (lazy) ────────────────────────────────────────────
