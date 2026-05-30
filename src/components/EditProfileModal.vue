@@ -47,6 +47,13 @@
                         rows="3"></textarea>
                 </div>
 
+                <!-- Cumpleaños -->
+                <div>
+                    <label class="text-sm text-gray-500 block mb-1">🎂 Fecha de cumpleaños</label>
+                    <input v-model="form.cumpleanos" type="date"
+                        class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                </div>
+
                 <!-- Ubicación -->
                 <div>
                     <label class="text-sm text-gray-500 block mb-1">Ubicación GPS</label>
@@ -107,6 +114,7 @@ const form = vueRef({
     nombre: '',
     telefono: '',
     direccion: '',
+    cumpleanos: '',
     lat: '',
     lng: ''
 })
@@ -123,6 +131,7 @@ const cargarDatos = async () => {
             form.value.nombre = data.nombre || ''
             form.value.telefono = data.telefono || ''
             form.value.direccion = data.direccion || ''
+            form.value.cumpleanos = data.cumpleanos || ''
             form.value.lat = data.lat || ''
             form.value.lng = data.lng || ''
         }
@@ -166,6 +175,7 @@ const guardarInformacion = async () => {
             nombre: form.value.nombre,
             telefono: form.value.telefono,
             direccion: form.value.direccion,
+            cumpleanos: form.value.cumpleanos,
             lat: form.value.lat,
             lng: form.value.lng
         })

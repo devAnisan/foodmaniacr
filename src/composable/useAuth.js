@@ -30,7 +30,7 @@ export function useAuth() {
   const showCompleteProfile = vueRef(false)
   const pendingEmail = vueRef('')
   const codigoInput = vueRef('')
-  const datosNuevos = vueRef({ nombre: '', telefono: '', direccion: '', lat: '', lng: '' })
+  const datosNuevos = vueRef({ nombre: '', telefono: '', direccion: '', cumpleanos: '', lat: '', lng: '' })
 
   watch(menuLogIn, val => { document.body.style.overflow = val ? 'hidden' : '' })
 
@@ -44,7 +44,7 @@ export function useAuth() {
     showCompleteProfile.value = false
     pendingEmail.value = ''
     codigoInput.value = ''
-    datosNuevos.value = { nombre: '', telefono: '', direccion: '', lat: '', lng: '' }
+    datosNuevos.value = { nombre: '', telefono: '', direccion: '', cumpleanos: '', lat: '', lng: '' }
     errorMsg.value = ''
     successMsg.value = ''
   }
@@ -79,6 +79,7 @@ export function useAuth() {
         telefono: '',
         nombre: '',
         direccion: '',
+        cumpleanos: '',
         lat: '',
         lng: '',
         ultimaCompra: null,
@@ -123,6 +124,7 @@ export function useAuth() {
   const completarPerfil = async () => {
     if (!datosNuevos.value.nombre) return errorMsg.value = 'Ingresá tu nombre.'
     if (!datosNuevos.value.telefono) return errorMsg.value = 'Ingresá tu teléfono.'
+    if (!datosNuevos.value.cumpleanos) return errorMsg.value = 'Ingresá tu fecha de cumpleaños.'
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, pendingEmail.value, password1.value)
@@ -130,6 +132,7 @@ export function useAuth() {
         nombre: datosNuevos.value.nombre,
         telefono: datosNuevos.value.telefono,
         direccion: datosNuevos.value.direccion,
+        cumpleanos: datosNuevos.value.cumpleanos,
         lat: datosNuevos.value.lat,
         lng: datosNuevos.value.lng
       }, { merge: true })

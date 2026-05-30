@@ -82,6 +82,9 @@
                         class="p-2 border w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
                     <input v-model="datosNuevos.direccion" type="text" placeholder="Dirección"
                         class="p-2 border w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                    <label class="text-sm text-gray-500 text-left block -mb-2">🎂 Fecha de cumpleaños</label>
+                    <input v-model="datosNuevos.cumpleanos" type="date"
+                        class="p-2 border w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
                     <button @click="obtenerUbicacionPerfil"
                         class="w-full py-2 border-2 border-dashed border-[var(--primary)] rounded-lg text-[var(--primary)] font-bold hover:bg-purple-50 transition-colors hover:cursor-pointer text-sm">
                         📍 Usar mi ubicación actual
