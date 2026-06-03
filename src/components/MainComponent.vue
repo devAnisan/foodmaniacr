@@ -234,6 +234,7 @@
         </section>
         <Footer />
     </main>
+    <MartesFoodManiacos />
 </template>
 <script setup>
 import { ref as vueRef, onMounted } from "vue";
@@ -245,6 +246,7 @@ import Dropmenu from "./Dropmenu.vue";
 import BranchSection from "./BranchSection.vue";
 import WhereBuySection from "./WhereBuySection.vue";
 import Footer from "./Footer.vue";
+import MartesFoodManiacos from "./MartesFoodManiacos.vue";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase.js";
 import { useLocationStore, useSucursales } from "../stores/cartStores.js";

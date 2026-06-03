@@ -3,6 +3,7 @@ const nodemailer = require('nodemailer')
 const { onCall, HttpsError } = require('firebase-functions/v2/https')
 const { defineJsonSecret } = require('firebase-functions/params')
 const { logger } = require('firebase-functions')
+const { calculateOrderTotals } = require('./calculos')
 
 const emailConfig = defineJsonSecret('FUNCTIONS_CONFIG_EXPORT')
 
@@ -116,6 +117,26 @@ exports.verifyCode = onCall(async (request) => {
   return { success: true }
 })
 
+exports.calculateOrderTotals = onCall(async (request) => {
+  const { items, distanciaKm, withDrawType, agrandarMap, agrandarPuntosMap, bebidaPuntosMap } = request.data
+
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    throw new HttpsError('invalid-argument', 'Carrito vacío')
+  }
+
+  const totals = calculateOrderTotals(
+    items,
+    parseFloat(distanciaKm) || 0,
+    withDrawType || 'sucursal',
+    agrandarMap || {},
+    agrandarPuntosMap || {},
+    bebidaPuntosMap || {}
+  )
+
+  logger.log('Order totals calculated:', totals)
+  return totals
+})
+
 exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
   const data = request.data
   const pedidoData = data.pedido
@@ -141,8 +162,25 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
       'Demasiados pedidos en poco tiempo. Esperá unos minutos e intentá de nuevo.')
   }
 
-  let puntosGanados = pedidoData.puntosGanados || 0
+  const totals = calculateOrderTotals(
+    pedidoData.items || [],
+    parseFloat(pedidoData.distanciaKm) || parseFloat(pedidoData.distanciaKm || 0),
+    pedidoData.tipoRetiro || 'sucursal',
+    pedidoData.agrandarMap || {},
+    pedidoData.agrandarPuntosMap || {},
+    pedidoData.bebidaPuntosMap || {}
+  )
+
+  let puntosGanados = totals.coinsGanados
   let esPrimeraCompra = false
+  let esMartesFoodManiacos = false
+
+  const hoy = new Date().getDay()
+  if (hoy === 2) {
+    esMartesFoodManiacos = true
+    puntosGanados *= 2
+    logger.log('🔥 Martes FoodManiacos — ManiaCoins x2')
+  }
 
   if (uid) {
     const clientRef = db.collection('clientes').doc(uid)
@@ -160,10 +198,20 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
 
   const order = {
     ...pedidoData,
+    subtotal: totals.baseCashTotal,
+    costoBebidas: totals.totalBebidasCash,
+    costoAgrandar: totals.totalAgrandarCash,
+    costoEnvio: totals.costoEnvio,
+    total: totals.totalConEnvio,
     puntosGanados,
+    cashTotalSinEnvio: totals.cashTotalSinEnvio,
     usuario: email || 'Anónimo',
     creadoEn: admin.firestore.Timestamp.now()
   }
+
+  delete order.agrandarMap
+  delete order.agrandarPuntosMap
+  delete order.bebidaPuntosMap
 
   const docRef = await db.collection('pedidos').add(order)
 
@@ -209,12 +257,13 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
                 <tbody>${itemsHtml}</tbody>
               </table>
               <hr style="margin:16px 0;border:none;border-top:2px solid #642d81;" />
-              <p style="margin:0;text-align:right;font-size:18px;font-weight:bold;">Total: ₡${pedidoData.total || 0}</p>
+              <p style="margin:0;text-align:right;font-size:18px;font-weight:bold;">Total: ₡${totals.totalConEnvio || 0}</p>
               <hr style="margin:16px 0;border:none;border-top:1px solid #ddd;" />
               <p style="margin:0 0 4px;"><strong>💳 Pago:</strong> ${pedidoData.metodoPago || '—'}</p>
               <p style="margin:0 0 4px;"><strong>🏪 Retiro:</strong> ${pedidoData.tipoRetiro === 'sucursal' ? pedidoData.sucursal : 'Domicilio'}</p>
               ${esPrimeraCompra ? '<p style="margin:0 0 4px;color:#642d81;font-weight:bold;">🎉 ¡Primera compra! ManiaCoins x2</p>' : ''}
-              <p style="margin:0 0 4px;"><strong>🪙 ManiaCoins ganados:</strong> ${order.puntosGanados || 0}</p>
+              ${esMartesFoodManiacos ? '<p style="margin:0 0 4px;background:linear-gradient(135deg,#642d81,#eab308);color:white;padding:8px 12px;border-radius:8px;font-weight:bold;text-align:center;">🔥 Martes FoodManiacos — ManiaCoins x2</p>' : ''}
+              <p style="margin:0 0 4px;"><strong>🪙 ManiaCoins ganados:</strong> ${puntosGanados || 0}</p>
               ${order.puntosCanjeados ? `<p style="margin:0;"><strong>🔥 ManiaCoins canjeados:</strong> ${order.puntosCanjeados}</p>` : ''}
             </div>
             <div style="padding:16px;text-align:center;color:#888;font-size:12px;border-top:1px solid #ddd;">

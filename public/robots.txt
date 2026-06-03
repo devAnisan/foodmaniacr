@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://foodmania-c5b76.web.app/sitemap.xml

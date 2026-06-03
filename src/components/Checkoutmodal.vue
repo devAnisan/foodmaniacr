@@ -179,7 +179,10 @@
               <span class="text-2xl">🪙</span>
               <div>
                 <p class="text-sm font-bold text-[var(--primary)]">
-                  Ganarás {{ coinsAGanarComp }} ManiaCoin{{ coinsAGanarComp !== 1 ? 's' : '' }} con esta compra
+                  Ganarás {{ coinsAGanarDisplay }} ManiaCoin{{ coinsAGanarDisplay !== 1 ? 's' : '' }} con esta compra
+                </p>
+                <p v-if="esMartes" class="text-xs bg-gradient-to-r from-purple-700 to-yellow-500 text-white font-bold px-2 py-0.5 rounded-full inline-block mt-1">
+                  🔥 Martes FoodManiacos — ManiaCoins x2
                 </p>
                 <p class="text-xs text-gray-400">
                   Calculado sobre ₡{{ baseCashTotal }} en productos (₡100 = 1 🪙)
@@ -187,11 +190,14 @@
                 <p v-if="primeraCompra" class="text-xs text-green-600 font-bold mt-0.5">
                   🆕 ¡Primera compra! ManiaCoins x2 — Ganarás {{ coinsAGanarComp * 2 }} 🪙
                 </p>
+                <p v-if="esMartes && primeraCompra" class="text-xs text-purple-700 font-bold mt-0.5">
+                  🔥 Combinado con Martes FoodManiacos: Ganarás {{ coinsAGanarComp * 4 }} 🪙 en total
+                </p>
                 <p v-if="puntosActuales !== null && totalCoinsAGastar > 0" class="text-xs text-yellow-700 font-bold mt-0.5">
-                  ⚡ Los {{ coinsAGanarComp }} ManiaCoins de esta compra se suman después del canje
+                  ⚡ Los {{ coinsAGanarDisplay }} ManiaCoins de esta compra se suman después del canje
                 </p>
                 <p v-if="puntosActuales !== null" class="text-xs text-[var(--primary)] font-bold mt-0.5">
-                  Saldo final estimado: {{ coinsValidosComp - totalCoinsAGastar + coinsAGanarComp }} 🪙
+                  Saldo final estimado: {{ coinsValidosComp - totalCoinsAGastar + coinsAGanarDisplay }} 🪙
                 </p>
               </div>
             </div>
@@ -303,11 +309,7 @@
                 class="flex-1 py-2 rounded transition-colors duration-300 hover:cursor-pointer">
                 📱 SINPE Móvil
               </button>
-              <button @click="metodoPago = 'datafono'"
-                :class="metodoPago === 'datafono' ? 'bg-[var(--primary)] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
-                class="flex-1 py-2 rounded transition-colors duration-300 hover:cursor-pointer">
-                💳 Datafono
-              </button>
+
             </div>
 
             <div v-if="metodoPago === 'efectivo'" class="flex flex-col gap-2">
@@ -333,14 +335,7 @@
               <p class="text-gray-500 mt-2">Enviá el comprobante por WhatsApp al finalizar 📲</p>
             </div>
 
-            <div v-if="metodoPago === 'datafono'" class="bg-gray-50 rounded-lg p-3 text-sm text-center">
-              <p class="font-bold mb-1">💳 Datafono</p>
-              <p class="text-gray-500">
-                Pagás con tarjeta de crédito/débito directamente
-                {{ withDrawType === 'sucursal' ? 'en el local.' : 'cuando el express llegue a tu domicilio.' }}
-              </p>
-              <p class="text-xs text-gray-400 mt-1">El express lleva el datafono consigo. Aceptamos Visa, Mastercard y BAC.</p>
-            </div>
+
           </div>
 
           <!-- Botón confirmar -->
@@ -368,6 +363,7 @@ import { getLocation, calcularTarifaEnvio, descripcionTarifaEnvio } from '../com
 import { costoBebidaManiaCoins, coinsAGanar, obtenerCoinsValidos, obtenerNivelReal, obtenerSiguienteNivel, COIN_COSTOS } from '../utils/maniacoins.js'
 
 const createOrder = httpsCallable(getFunctions(), 'createOrder')
+const calculateOrderTotals = httpsCallable(getFunctions(), 'calculateOrderTotals')
 
 const AGRANDAR_COSTO = 500
 
@@ -486,7 +482,11 @@ const costoEnvio = computed(() => {
 
 const totalConEnvio = computed(() => cashTotalSinEnvio.value + costoEnvio.value)
 
+const esMartes = computed(() => new Date().getDay() === 2)
+const multiplicadorCoins = computed(() => esMartes.value ? 2 : 1)
 const coinsAGanarComp = computed(() => coinsAGanar(cashTotalSinEnvio.value))
+const coinsAGanarDisplay = computed(() => coinsAGanarComp.value * multiplicadorCoins.value)
+const coinsAGanarFinal = computed(() => coinsAGanarComp.value * multiplicadorCoins.value * (primeraCompra.value ? 2 : 1))
 
 const cargarDatosUsuario = async () => {
   if (!auth.currentUser) {
@@ -581,7 +581,7 @@ const armarMensajeWhatsApp = () => {
   const items = cartStore.items.map(armarLineaItem).join('\n')
   const pagoCadena = metodoPago.value === 'efectivo'
     ? `Efectivo (paga con ₡${montoEfectivo.value}, vuelto ₡${Number(montoEfectivo.value) - totalConEnvio.value})`
-    : metodoPago.value === 'sinpe' ? 'SINPE Móvil' : '💳 Datafono'
+    : 'SINPE Móvil'
 
   const puntosCadena = totalCoinsAGastar.value > 0
     ? `\n🪙 ManiaCoins canjeados: ${totalCoinsAGastar.value}`
@@ -592,7 +592,7 @@ const armarMensajeWhatsApp = () => {
     `📞 Teléfono: ${datosCliente.value.telefono}\n\n` +
     `📋 *Pedido:*\n${items}\n` +
     `💰 Total: ₡${totalConEnvio.value}${puntosCadena}\n` +
-    `🪙 ManiaCoins ganados: ${coinsAGanarComp.value}\n` +
+    `${esMartes.value ? '🔥 Martes FoodManiacos x2 — ' : ''}🪙 ManiaCoins ganados: ${coinsAGanarDisplay.value}\n` +
     `💳 Pago: ${pagoCadena}\n\n`
 
   if (withDrawType.value === 'sucursal') {
@@ -657,9 +657,11 @@ const confirmarPedido = async () => {
 
     const itemsConExtras = cartStore.items.map(item => ({
       id: item.id,
+      _uid: item._uid,
       nombre: item.nombre,
       precio: item.precio,
       cantidad: item.cantidad,
+      esCanje: item.esCanje || false,
       esBebida: item.esBebida || false,
       puntosCanje: item.esCanje ? (item.puntosCanje || 0) : 0,
       canjeadoConManiaCoins: !!item.esCanje,
@@ -679,12 +681,6 @@ const confirmarPedido = async () => {
       nombre: datosCliente.value.nombre,
       telefono: datosCliente.value.telefono,
       items: itemsConExtras,
-      subtotal: baseCashTotal.value,
-      costoBebidas: totalBebidasCash.value,
-      costoAgrandar: totalAgrandarCash.value,
-      costoEnvio: costoEnvio.value,
-      total: totalConEnvio.value,
-      puntosGanados: coinsAGanarComp.value,
       puntosCanjeados: totalCoinsAGastar.value,
       metodoPago: metodoPago.value,
       montoEfectivo: metodoPago.value === 'efectivo' ? Number(montoEfectivo.value) : null,
@@ -698,7 +694,25 @@ const confirmarPedido = async () => {
       ubicacionLng: datosCliente.value.lng || null,
       sucursalCercana: locationStore.sucursalCercana || null,
       distanciaKm: locationStore.distancia || null,
+      agrandarMap: { ...agrandarMap },
+      agrandarPuntosMap: { ...agrandarPuntosMap },
+      bebidaPuntosMap: { ...bebidaPuntosMap },
       estado: 'pendiente'
+    }
+
+    const validated = await calculateOrderTotals({
+      items: itemsConExtras,
+      distanciaKm: parseFloat(locationStore.distancia) || 0,
+      withDrawType: withDrawType.value,
+      agrandarMap: { ...agrandarMap },
+      agrandarPuntosMap: { ...agrandarPuntosMap },
+      bebidaPuntosMap: { ...bebidaPuntosMap },
+    })
+
+    const serverTotal = validated.data.totalConEnvio
+    const localTotal = totalConEnvio.value
+    if (Math.abs(serverTotal - localTotal) > 1) {
+      console.warn('Discrepancia en total: servidor', serverTotal, 'cliente', localTotal)
     }
 
     const result = await createOrder({ pedido })
@@ -709,11 +723,13 @@ const confirmarPedido = async () => {
 
     cartStore.items = []
     successMsg.value = `¡Pedido confirmado! 🎉`
-    puntosActuales.value = coinsValidosComp.value - totalCoinsAGastar.value + coinsAGanarComp.value
+    puntosActuales.value = coinsValidosComp.value - totalCoinsAGastar.value + coinsAGanarFinal.value
 
   } catch (error) {
     console.error(error)
-    errorMsg.value = 'Hubo un error al enviar el pedido. Intentá de nuevo.'
+    errorMsg.value = error.code === 'functions/invalid-argument'
+      ? error.message
+      : 'Hubo un error al enviar el pedido. Intentá de nuevo.'
   } finally {
     loading.value = false
   }
