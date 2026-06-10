@@ -115,6 +115,16 @@ exports.verifyCode = onCall(async (request) => {
   }
 
   await docRef.update({ usado: true })
+
+  try {
+    const userRecord = await admin.auth().getUserByEmail(email)
+    if (!userRecord.emailVerified) {
+      await admin.auth().updateUser(userRecord.uid, { emailVerified: true })
+    }
+  } catch (e) {
+    logger.warn('Could not update emailVerified in Auth:', e.message)
+  }
+
   logger.log('Code verified for:', email)
   return { success: true }
 })

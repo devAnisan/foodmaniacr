@@ -357,11 +357,50 @@ const verificarAdmin = async (user) => {
 // ── Listener en tiempo real para pedidos ───────────────────────────────────
 let unsuscribePedidos = null
 
+const knownOrderIds = new Set()
+let isInitialLoad = true
+
+function playNotificationSound() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)()
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.frequency.setValueAtTime(880, ctx.currentTime)
+        osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.1)
+        gain.gain.setValueAtTime(0.3, ctx.currentTime)
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3)
+        osc.start(ctx.currentTime)
+        osc.stop(ctx.currentTime + 0.3)
+    } catch (e) {
+        console.warn('No se pudo reproducir el sonido:', e)
+    }
+}
+
 const setupPedidosListener = () => {
     if (unsuscribePedidos) unsuscribePedidos()
 
+    isInitialLoad = true
     cargandoPedidos.value = true
     unsuscribePedidos = onSnapshot(collection(db, 'pedidos'), (snapshot) => {
+        if (!isInitialLoad) {
+            snapshot.docChanges().forEach(change => {
+                if (change.type === 'added' && !knownOrderIds.has(change.doc.id)) {
+                    const data = change.doc.data()
+                    const pertenece = data.tipoRetiro === 'domicilio'
+                        ? data.sucursalCercana === adminSucursal.value
+                        : data.sucursal === adminSucursal.value
+                    if (pertenece && data.estado === 'pendiente') {
+                        playNotificationSound()
+                    }
+                }
+            })
+        } else {
+            isInitialLoad = false
+        }
+
+        snapshot.docs.forEach(d => knownOrderIds.add(d.id))
         pedidos.value = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
         cargandoPedidos.value = false
     }, (error) => {
