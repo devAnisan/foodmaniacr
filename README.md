@@ -7,9 +7,10 @@ Plataforma web de pedidos para FoodMania Costa Rica. Construida con Vue 3 + Vite
 - Menú interactivo con categorías (Comida China, Rápida, Hamburguesas, Pollo Frito, Promociones, Supremos, Surtidos, Bebidas)
 - Personalizador de productos (bebida, papas con salsa, salsas para alitas)
 - Carrito de compras con precios dinámicos
-- Autenticación por SMS (verificación de código + perfil)
-- Checkout con cálculo de envío por distancia
+- Autenticación por SMS con verificación de código + perfil
+- Checkout con cálculo de envío por distancia y confirmación por email (Brevo SMTP)
 - **Sistema ManiaCoins 🪙**: programa de fidelidad
+- **Panel admin en tiempo real** con notificación sonora de nuevas órdenes
 
 ## Sistema ManiaCoins
 
@@ -39,7 +40,18 @@ El nivel se mantiene si hay una compra dentro del plazo. La fecha de `ultimaComp
 - Si `ultimaGanaanciaCoins` es null (usuarios antiguos), se consideran válidos
 
 ### Cloud Functions
-- **createOrder**: crea el pedido en Firestore, actualiza `ultimaCompra`, calcula y asigna puntos, duplica en primera compra, marca `primeraCompra: false`
+
+| Función | Descripción |
+|---------|-------------|
+| **createOrder** | Crea el pedido en Firestore, envía email de confirmación (Brevo SMTP), actualiza `ultimaCompra`, calcula y asigna ManiaCoins, duplica en primera compra |
+| **sendVerificationCode** | Envía código de 6 dígitos al correo para verificar cuenta |
+| **verifyCode** | Valida el código ingresado y marca `emailVerified: true` en Firebase Auth |
+| **calculateOrderTotals** | Calcula totales del pedido (subtotal, envío, extras, puntos) |
+
+### Email (Brevo SMTP)
+- Host: `smtp-relay.brevo.com:587` (STARTTLS)
+- Credenciales almacenadas en Firebase Secret Manager (`FUNCTIONS_CONFIG_EXPORT`)
+- Correos: `pedidos@foodmania.cr` — verificación de cuenta y confirmación de pedido
 
 ### Reglas Firestore
 - Lectura pública para colecciones del menú (`comidachina`, `hamburguesas`, etc.)
@@ -52,12 +64,12 @@ El nivel se mantiene si hay una compra dentro del plazo. La fecha de `ultimaComp
 src/
 ├── components/
 │   ├── MenuFoodmania.vue       # Menú principal, categorías, ProductCard, personalizador
-│   ├── Checkoutmodal.vue        # Checkout, canje, resumen, mapa
-│   ├── AdminControl.vue         # Panel admin (otorgar puntos)
+│   ├── Checkoutmodal.vue       # Checkout, canje, resumen, mapa, WhatsApp + email
+│   ├── AdminControl.vue        # Panel admin en tiempo real con notificación sonora
 │   ├── Footer.vue
 │   └── EditProfileModal.vue
 ├── composable/
-│   ├── useAuth.js               # Auth con SMS, registro, perfil
+│   ├── useAuth.js               # Auth con verificación por código + perfil
 │   ├── promociones.js           # Lógica de promociones activas
 │   └── saberDistancia.ts        # Cálculo de distancia y envío
 ├── stores/
@@ -68,7 +80,8 @@ src/
 │       └── maniacoins.test.js   # 53 tests
 └── firebase.js                  # Configuración Firebase
 functions/
-├── index.js                     # Cloud Functions (createOrder)
+├── index.js                     # Cloud Functions (createOrder, verifyCode, etc.)
+├── calculos.js                  # Lógica de cálculos del pedido
 └── package.json
 firestore.rules                  # Reglas de seguridad
 ```
@@ -93,3 +106,14 @@ firebase deploy --only hosting
 # Build manual
 npm run build
 ```
+
+## Panel de Administración
+
+### Órdenes en Tiempo Real
+El panel (`AdminControl.vue`) usa Firestore `onSnapshot` para escuchar cambios en la colección `pedidos` en tiempo real. Las órdenes se filtran por sucursal asignada al admin.
+
+### Notificación Sonora
+Cuando llega una orden nueva en estado `pendiente` para la sucursal del admin, se reproduce un pitido de alerta usando la Web Audio API (no requiere archivos externos). En la carga inicial no suena — solo detecta órdenes posteriores.
+
+### Historial de Versiones
+- **v1.0.0** — Email transaccional con Brevo SMTP, verificación automática de email, notificación sonora en panel admin

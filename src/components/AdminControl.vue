@@ -363,16 +363,23 @@ let isInitialLoad = true
 function playNotificationSound() {
     try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)()
-        const osc = ctx.createOscillator()
-        const gain = ctx.createGain()
-        osc.connect(gain)
-        gain.connect(ctx.destination)
-        osc.frequency.setValueAtTime(880, ctx.currentTime)
-        osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.1)
-        gain.gain.setValueAtTime(0.3, ctx.currentTime)
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3)
-        osc.start(ctx.currentTime)
-        osc.stop(ctx.currentTime + 0.3)
+        const duration = 0.12
+        const gap = 0.1
+        const volume = 0.5
+
+        for (let i = 0; i < 4; i++) {
+            const t = ctx.currentTime + i * (duration + gap)
+            const osc = ctx.createOscillator()
+            const gain = ctx.createGain()
+            osc.connect(gain)
+            gain.connect(ctx.destination)
+            osc.type = 'square'
+            osc.frequency.setValueAtTime(660 + i * 110, t)
+            gain.gain.setValueAtTime(volume, t)
+            gain.gain.exponentialRampToValueAtTime(0.001, t + duration)
+            osc.start(t)
+            osc.stop(t + duration)
+        }
     } catch (e) {
         console.warn('No se pudo reproducir el sonido:', e)
     }
