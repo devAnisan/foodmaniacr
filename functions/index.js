@@ -174,6 +174,7 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
   let puntosGanados = totals.coinsGanados
   let esPrimeraCompra = false
   let esMartesFoodManiacos = false
+  let esCumpleanos = false
 
   const hoy = new Date().getDay()
   if (hoy === 2) {
@@ -190,6 +191,16 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
       puntosGanados *= 2
       await clientRef.update({ primeraCompra: false })
       logger.log('🎉 Primera compra — ManiaCoins x2 para', email)
+    }
+    const cumpleanos = clientSnap.exists ? clientSnap.data().cumpleanos : null
+    if (cumpleanos) {
+      const hoy = new Date()
+      const [, mes, dia] = cumpleanos.split('-')
+      if (hoy.getMonth() + 1 === parseInt(mes) && hoy.getDate() === parseInt(dia)) {
+        esCumpleanos = true
+        puntosGanados += 100
+        logger.log('🎂 Cumpleaños — 100 ManiaCoins extra para', email)
+      }
     }
     await clientRef.set({
       ultimaCompra: admin.firestore.Timestamp.now()
@@ -263,6 +274,7 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
               <p style="margin:0 0 4px;"><strong>🏪 Retiro:</strong> ${pedidoData.tipoRetiro === 'sucursal' ? pedidoData.sucursal : 'Domicilio'}</p>
               ${esPrimeraCompra ? '<p style="margin:0 0 4px;color:#642d81;font-weight:bold;">🎉 ¡Primera compra! ManiaCoins x2</p>' : ''}
               ${esMartesFoodManiacos ? '<p style="margin:0 0 4px;background:linear-gradient(135deg,#642d81,#eab308);color:white;padding:8px 12px;border-radius:8px;font-weight:bold;text-align:center;">🔥 Martes FoodManiacos — ManiaCoins x2</p>' : ''}
+              ${esCumpleanos ? '<p style="margin:0 0 4px;background:linear-gradient(135deg,#e91e63,#ff6f00);color:white;padding:8px 12px;border-radius:8px;font-weight:bold;text-align:center;">🎂 ¡Feliz cumpleaños! Recibiste 100 ManiaCoins de regalo</p>' : ''}
               <p style="margin:0 0 4px;"><strong>🪙 ManiaCoins ganados:</strong> ${puntosGanados || 0}</p>
               ${order.puntosCanjeados ? `<p style="margin:0;"><strong>🔥 ManiaCoins canjeados:</strong> ${order.puntosCanjeados}</p>` : ''}
             </div>

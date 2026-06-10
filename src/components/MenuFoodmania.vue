@@ -126,6 +126,15 @@
                 Faltan {{ 500 - puntosUsuario }} 🪙 para Rookie
               </p>
             </div>
+            <div v-if="cumpleanosFormateado" class="bg-gradient-to-r from-pink-50 to-red-50 border border-pink-200 rounded-lg px-4 py-2 w-full">
+              <div class="flex items-center justify-center gap-2">
+                <span class="text-lg">🎂</span>
+                <span class="font-bold text-pink-600">{{ cumpleanosFormateado }}</span>
+              </div>
+              <p v-if="esCumpleanosHoy" class="text-[10px] text-red-500 font-bold text-center mt-0.5">
+                🎉 ¡Feliz cumpleaños! Hoy tenés ManiaCoins extra
+              </p>
+            </div>
             <button @click="editProfileModal = true"
                 class="w-full bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
                 Editar perfil
@@ -478,7 +487,7 @@ import { useAuth } from '../composable/useAuth.js'
 import Footer from './Footer.vue'
 import CheckoutModal from './Checkoutmodal.vue'
 import { esPromocionActiva, diaPromocion } from '../composable/promociones.js'
-import { obtenerNivelReal, obtenerCoinsValidos, obtenerSiguienteNivel, obtenerTiempoRestanteExpiracion } from '../utils/maniacoins.js'
+import { obtenerNivelReal, obtenerCoinsValidos, obtenerSiguienteNivel, obtenerTiempoRestanteExpiracion, esCumpleanos, formatearCumpleanos } from '../utils/maniacoins.js'
 import EditProfileModal from './EditProfileModal.vue'
 // ── Componente inline ProductCard ──────────────────────────────────────────
 const ProductCard = defineComponent({
@@ -637,6 +646,9 @@ const confirmarPersonalizacion = () => {
 const puntosUsuario = vueRef(null)
 const ultimaCompra = vueRef(null)
 const ultimaGananciaCoins = vueRef(null)
+const cumpleanosUsuario = vueRef('')
+const esCumpleanosHoy = computed(() => esCumpleanos(cumpleanosUsuario.value))
+const cumpleanosFormateado = computed(() => formatearCumpleanos(cumpleanosUsuario.value))
 
 const cargarPuntosUsuario = async (uid) => {
   if (!uid) { puntosUsuario.value = null; return }
@@ -647,6 +659,7 @@ const cargarPuntosUsuario = async (uid) => {
       puntosUsuario.value = data.puntos || 0
       ultimaCompra.value = data.ultimaCompra || null
       ultimaGananciaCoins.value = data.ultimaGananciaCoins || null
+      cumpleanosUsuario.value = data.cumpleanos || ''
       console.log('🐛 Debug puntos:', { puntos: puntosUsuario.value, ultimaCompra: data.ultimaCompra?.toMillis?.(), ultimaGananciaCoins: data.ultimaGananciaCoins?.toMillis?.() })
     }
   } catch (e) {

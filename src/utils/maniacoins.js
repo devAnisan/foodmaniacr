@@ -102,3 +102,18 @@ export const obtenerTiempoRestanteExpiracion = (ultimaGananciaCoins) => {
 export const coinsAGanar = (cashTotal) => {
   return Math.floor(cashTotal / COLONES_POR_COIN)
 }
+
+export const BONUS_CUMPLEANOS = 100
+
+export const esCumpleanos = (cumpleanos) => {
+  if (!cumpleanos) return false
+  const hoy = new Date()
+  const [, mes, dia] = cumpleanos.split('-')
+  return hoy.getMonth() + 1 === parseInt(mes) && hoy.getDate() === parseInt(dia)
+}
+
+export const formatearCumpleanos = (cumpleanos) => {
+  if (!cumpleanos) return ''
+  const [ano, mes, dia] = cumpleanos.split('-')
+  return `${dia}/${mes}/${ano}`
+}

@@ -153,6 +153,15 @@
                 <span> </span>
                 <span class="text-sm font-bold">{{ user.emailVerified ? '✅ Email verificado' : '⚠️ Email no verificado'
                 }}</span>
+                <div v-if="cumpleanosFormateado" class="bg-gradient-to-r from-pink-50 to-red-50 border border-pink-200 rounded-lg px-4 py-2 w-full">
+                    <div class="flex items-center justify-center gap-2">
+                        <span class="text-lg">🎂</span>
+                        <span class="font-bold text-pink-600">{{ cumpleanosFormateado }}</span>
+                    </div>
+                    <p v-if="esCumpleanosHoy" class="text-xs text-red-500 font-bold text-center mt-1">
+                        🎉 ¡Feliz cumpleaños! Hoy tenés beneficios especiales
+                    </p>
+                </div>
                 <button @click="cerrarSesion"
                     class="w-full bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
                     Cerrar sesión
@@ -237,7 +246,7 @@
     <MartesFoodManiacos />
 </template>
 <script setup>
-import { ref as vueRef, onMounted } from "vue";
+import { ref as vueRef, computed, watch, onMounted } from "vue";
 import { ref as storageRef, getDownloadURL } from "firebase/storage";
 import { storage } from "../firebase.js";
 import { useRouter } from "vue-router";
@@ -247,8 +256,9 @@ import BranchSection from "./BranchSection.vue";
 import WhereBuySection from "./WhereBuySection.vue";
 import Footer from "./Footer.vue";
 import MartesFoodManiacos from "./MartesFoodManiacos.vue";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "../firebase.js";
+import { esCumpleanos, formatearCumpleanos } from "../utils/maniacoins.js";
 import { useLocationStore, useSucursales } from "../stores/cartStores.js";
 import { useAuth } from "../composable/useAuth.js";
 import { getLocation } from "../composable/saberDistancia.js";
@@ -278,6 +288,23 @@ const branchSectionShow = vueRef(false);
 const irAAdmin = () => {
     router.push("/adminControl")
 }
+
+const cumpleanosUsuario = vueRef('')
+const esCumpleanosHoy = computed(() => esCumpleanos(cumpleanosUsuario.value))
+const cumpleanosFormateado = computed(() => formatearCumpleanos(cumpleanosUsuario.value))
+
+watch(showUserModal, async (val) => {
+  if (val && user.value?.uid) {
+    try {
+      const docSnap = await getDoc(doc(db, 'clientes', user.value.uid))
+      if (docSnap.exists()) {
+        cumpleanosUsuario.value = docSnap.data().cumpleanos || ''
+      }
+    } catch (e) {
+      console.error('Error cargando cumpleaños:', e)
+    }
+  }
+})
 
 const getLocations = () => {
     branchSectionShow.value = true
