@@ -9,6 +9,14 @@
     <meta name="author" content="Foodmania CR" />
     <meta name="robots" content="index, follow" />
 
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#642d81" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Foodmania CR" />
+    <link rel="apple-touch-icon" href="/logoFoodmania1.PNG" />
+
     <!-- Open Graph -->
     <meta property="og:title" content="Foodmania CR | Tu antojo, nuestra especialidad" />
     <meta property="og:description" content="Pedí hamburguesas, pollo frito, alas, tacos y más. Delivery y retiro en sucursal." />
@@ -55,5 +63,14 @@
   <body>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' })
+          .catch(function (err) {
+            console.warn('SW registration failed:', err)
+          })
+      }
+    </script>
   </body>
 </html>

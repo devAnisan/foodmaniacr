@@ -174,8 +174,8 @@
               <p v-else class="text-xs text-green-700">ManiaCoins disponibles: {{ coinsValidosComp }} 🪙 ✅</p>
             </div>
 
-            <!-- ManiaCoins a ganar -->
-            <div class="mt-3 bg-gradient-to-r from-purple-50 to-yellow-50 border border-purple-200 rounded-xl p-3 flex items-center gap-3">
+            <!-- ManiaCoins a ganar (solo usuarios logueados) -->
+            <div v-if="userLogueado" class="mt-3 bg-gradient-to-r from-purple-50 to-yellow-50 border border-purple-200 rounded-xl p-3 flex items-center gap-3">
               <span class="text-2xl">🪙</span>
               <div>
                 <p class="text-sm font-bold text-[var(--primary)]">
@@ -199,6 +199,25 @@
                 <p v-if="puntosActuales !== null" class="text-xs text-[var(--primary)] font-bold mt-0.5">
                   Saldo final estimado: {{ coinsValidosComp - totalCoinsAGastar + coinsAGanarDisplay }} 🪙
                 </p>
+              </div>
+            </div>
+
+            <!-- ManiaCoins a ganar (usuarios NO logueados) -->
+            <div v-else class="mt-3 bg-gradient-to-r from-purple-50 to-yellow-50 border border-purple-200 rounded-xl p-3">
+              <div class="flex items-center gap-3">
+                <span class="text-2xl">🪙</span>
+                <div>
+                  <p class="text-sm font-bold text-[var(--primary)]">
+                    Ganarías {{ coinsAGanarDisplay }} ManiaCoin{{ coinsAGanarDisplay !== 1 ? 's' : '' }} con esta compra
+                  </p>
+                  <p v-if="esMartes" class="text-xs bg-gradient-to-r from-purple-700 to-yellow-500 text-white font-bold px-2 py-0.5 rounded-full inline-block mt-1">
+                    🔥 Martes FoodManiacos — ManiaCoins x2
+                  </p>
+                </div>
+              </div>
+              <div class="mt-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
+                <p class="text-sm font-bold text-yellow-800">🔐 Iniciá sesión o registrate</p>
+                <p class="text-xs text-yellow-700 mt-1">Acumulá ManiaCoins, canjeá premios y obtené beneficios exclusivos</p>
               </div>
             </div>
           </div>

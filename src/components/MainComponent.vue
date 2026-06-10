@@ -244,6 +244,8 @@
         <Footer />
     </main>
     <MartesFoodManiacos />
+    <InstallPWAPrompt />
+    <NotificationBanner />
 </template>
 <script setup>
 import { ref as vueRef, computed, watch, onMounted } from "vue";
@@ -256,6 +258,8 @@ import BranchSection from "./BranchSection.vue";
 import WhereBuySection from "./WhereBuySection.vue";
 import Footer from "./Footer.vue";
 import MartesFoodManiacos from "./MartesFoodManiacos.vue";
+import InstallPWAPrompt from "./InstallPWAPrompt.vue";
+import NotificationBanner from "./NotificationBanner.vue";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "../firebase.js";
 import { esCumpleanos, formatearCumpleanos } from "../utils/maniacoins.js";

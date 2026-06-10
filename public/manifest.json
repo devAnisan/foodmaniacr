@@ -1,0 +1,22 @@
+{
+  "name": "Foodmania CR",
+  "short_name": "Foodmania",
+  "description": "Tu antojo, nuestra especialidad. Pedí hamburguesas, pollo frito, alas, tacos y más. Delivery y retiro en sucursal.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#642d81",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/logoFoodmania1.PNG",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logoFoodmania1.PNG",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

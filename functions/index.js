@@ -306,3 +306,59 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
 
   return { id: docRef.id }
 })
+
+exports.sendNotification = onCall(async (request) => {
+  const { title, body, target, data } = request.data
+  if (!title || !body) throw new HttpsError('invalid-argument', 'Faltan titulo o cuerpo')
+
+  let tokens = []
+
+  if (target === 'all') {
+    const snapshot = await db.collection('clientes')
+      .where('fcmToken', '!=', null)
+      .get()
+    snapshot.forEach(doc => {
+      const t = doc.data().fcmToken
+      if (t) tokens.push(t)
+    })
+  } else if (target?.type === 'nivel') {
+    const coinsMin = target.coinsMin || 0
+    const snapshot = await db.collection('clientes')
+      .where('fcmToken', '!=', null)
+      .where('puntos', '>=', coinsMin)
+      .get()
+    snapshot.forEach(doc => {
+      const t = doc.data().fcmToken
+      if (t) tokens.push(t)
+    })
+  } else if (target?.type === 'usuario' && target.uid) {
+    const docSnap = await db.collection('clientes').doc(target.uid).get()
+    if (docSnap.exists && docSnap.data().fcmToken) {
+      tokens = [docSnap.data().fcmToken]
+    }
+  }
+
+  if (tokens.length === 0) {
+    logger.log('No tokens found for target:', target)
+    return { successCount: 0, failureCount: 0 }
+  }
+
+  const message = {
+    notification: { title, body },
+    data: data || {},
+    tokens
+  }
+
+  const response = await admin.messaging().sendEachForMulticast(message)
+  logger.log('Notificacion enviada:', response.successCount, 'exitos,', response.failureCount, 'fallos')
+
+  if (response.failureCount > 0) {
+    response.responses.forEach((resp, idx) => {
+      if (resp.error) {
+        logger.warn('Error en token', idx, ':', resp.error.message)
+      }
+    })
+  }
+
+  return { successCount: response.successCount, failureCount: response.failureCount }
+})

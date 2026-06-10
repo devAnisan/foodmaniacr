@@ -474,6 +474,15 @@
     </main>
 
     <Footer />
+    <InstallPWAPrompt />
+    <NotificationBanner @permiso-concedido="onPermisoNotif" />
+
+    <!-- Toast de notificación en foreground -->
+    <div v-if="notifToast"
+      class="fixed top-24 left-1/2 -translate-x-1/2 z-100 bg-[var(--primary)] text-white px-6 py-3 rounded-xl shadow-lg font-bold text-center transition-all duration-300 max-w-sm">
+      <p class="text-sm">{{ notifToast.title }}</p>
+      <p class="text-xs text-white/80 mt-1">{{ notifToast.body }}</p>
+    </div>
 </template>
 
 <script setup>
@@ -489,6 +498,9 @@ import CheckoutModal from './Checkoutmodal.vue'
 import { esPromocionActiva, diaPromocion } from '../composable/promociones.js'
 import { obtenerNivelReal, obtenerCoinsValidos, obtenerSiguienteNivel, obtenerTiempoRestanteExpiracion, esCumpleanos, formatearCumpleanos } from '../utils/maniacoins.js'
 import EditProfileModal from './EditProfileModal.vue'
+import InstallPWAPrompt from './InstallPWAPrompt.vue'
+import NotificationBanner from './NotificationBanner.vue'
+import { useNotifications } from '../composable/useNotifications.js'
 // ── Componente inline ProductCard ──────────────────────────────────────────
 const ProductCard = defineComponent({
     props: { item: Object, esPromocion: Boolean, esCanje: Boolean },
@@ -535,6 +547,24 @@ const editProfileModal = vueRef(false)
 const busqueda = vueRef('')
 const categoriaActiva = vueRef(null)
 const drinkMsg = vueRef('')
+const notifToast = vueRef(null)
+let notifTimer = null
+
+const { escucharMensajes } = useNotifications()
+
+const onPermisoNotif = () => {
+  // Nada especial por ahora
+}
+
+onMounted(() => {
+  escucharMensajes((payload) => {
+    const title = payload.notification?.title || 'Foodmania CR'
+    const body = payload.notification?.body || ''
+    notifToast.value = { title, body }
+    if (notifTimer) clearTimeout(notifTimer)
+    notifTimer = setTimeout(() => { notifToast.value = null }, 5000)
+  })
+})
 
 const {
     user, showUserModal, menuLogIn, justLogin, forgotPassword,
