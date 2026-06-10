@@ -21,7 +21,9 @@ function getTransporter() {
     const emailPass = cfg.email?.pass
     if (emailUser && emailPass) {
       transporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: 'smtp-relay.brevo.com',
+        port: 587,
+        secure: false,
         auth: { user: emailUser, pass: emailPass }
       })
     } else {
@@ -61,7 +63,7 @@ exports.sendVerificationCode = onCall({ secrets: [emailConfig] }, async (request
 
   const cfg = emailConfig.value()
   await mailTransporter.sendMail({
-    from: `"Foodmania CR" <${cfg.email.user}>`,
+    from: `"Foodmania CR" <pedidos@foodmania.cr>`,
     to: email,
     subject: '🔐 Tu código de verificación — Foodmania CR',
     html: `
@@ -251,7 +253,7 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
       logger.log('Sending email to:', email)
 
       await mailTransporter.sendMail({
-        from: `"Foodmania CR" <${cfg.email.user}>`,
+        from: `"Foodmania CR" <pedidos@foodmania.cr>`,
         to: email,
         subject: '✅ Pedido confirmado — Foodmania CR',
         html: `
