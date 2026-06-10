@@ -30,11 +30,66 @@
                     <p class="text-xs text-gray-400">Bienvenido, {{ adminNombre }} — Sucursal {{ adminSucursal }}</p>
                 </div>
             </div>
-            <button @click="cerrarSesion"
-                class="text-sm border px-4 py-2 rounded-full hover:bg-gray-100 transition-colors hover:cursor-pointer">
-                Cerrar sesión
-            </button>
+            <div class="flex items-center gap-2">
+                <button @click="showNotifModal = !showNotifModal"
+                    class="text-sm border px-4 py-2 rounded-full hover:bg-gray-100 transition-colors hover:cursor-pointer flex items-center gap-1"
+                    :class="showNotifModal ? 'bg-[var(--primary)] text-white border-[var(--primary)]' : ''">
+                    <span>🔔</span>
+                    Notificaciones
+                </button>
+                <button @click="cerrarSesion"
+                    class="text-sm border px-4 py-2 rounded-full hover:bg-gray-100 transition-colors hover:cursor-pointer">
+                    Cerrar sesión
+                </button>
+            </div>
         </header>
+
+        <!-- Modal Notificaciones Push -->
+        <div v-if="showNotifModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" @click="showNotifModal = false">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md" @click.stop>
+                <div class="flex justify-between items-center p-5 border-b">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl">🔔</span>
+                        <h2 class="text-xl font-bold">Enviar notificación</h2>
+                    </div>
+                    <button @click="showNotifModal = false"
+                        class="pi pi-times text-red-500 hover:cursor-pointer p-2"></button>
+                </div>
+                <div class="p-5 flex flex-col gap-4">
+                    <div>
+                        <label class="text-sm text-gray-500 block mb-1">Título</label>
+                        <input v-model="notifTitle" type="text" placeholder="Ej: 🍔 Promo del día"
+                            class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-500 block mb-1">Mensaje</label>
+                        <textarea v-model="notifBody" placeholder="Ej: 2x1 en hamburguesas hoy!"
+                            class="w-full p-2 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                            rows="3"></textarea>
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-500 block mb-1">Enviar a</label>
+                        <select v-model="notifTarget"
+                            class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]">
+                            <option value="all">Todos los clientes</option>
+                            <option value="rookie">Nivel Rookie (500+ 🪙)</option>
+                            <option value="maniaco">Nivel Maniático (1000+ 🪙)</option>
+                            <option value="supremo">Nivel Supremo (2000+ 🪙)</option>
+                            <option value="rey">Nivel Rey FoodMania (3000+ 🪙)</option>
+                        </select>
+                    </div>
+                    <div v-if="notifMsg" class="text-sm font-bold px-3 py-2 rounded-lg"
+                        :class="notifMsgType === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'">
+                        {{ notifMsg }}
+                    </div>
+                    <button @click="enviarNotificacion" :disabled="notifLoading || !notifTitle || !notifBody"
+                        class="w-full bg-[var(--primary)] text-white py-3 rounded-xl font-bold hover:bg-[var(--primary-dark)] transition-colors duration-300 hover:cursor-pointer disabled:opacity-50">
+                        <span v-if="notifLoading" class="pi pi-spinner animate-spin mr-2"></span>
+                        {{ notifLoading ? 'Enviando...' : '📨 Enviar notificación' }}
+                    </button>
+                </div>
+            </div>
+        </div>
 
         <main class="p-6">
 
@@ -296,55 +351,6 @@
 
                 </div>
             </div>
-
-            <!-- Notificaciones Push -->
-            <div class="bg-white rounded-xl shadow-sm p-6 mt-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center gap-2">
-                        <span class="text-2xl">🔔</span>
-                        <h2 class="font-bold text-lg">Notificaciones Push</h2>
-                    </div>
-                    <button @click="showNotifPanel = !showNotifPanel"
-                        class="text-sm text-[var(--primary)] font-bold hover:underline hover:cursor-pointer">
-                        {{ showNotifPanel ? 'Ocultar' : 'Enviar notificación' }}
-                    </button>
-                </div>
-
-                <div v-if="showNotifPanel" class="flex flex-col gap-4">
-                    <div>
-                        <label class="text-sm text-gray-500 block mb-1">Título</label>
-                        <input v-model="notifTitle" type="text" placeholder="Ej: 🍔 Promo del día"
-                            class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
-                    </div>
-                    <div>
-                        <label class="text-sm text-gray-500 block mb-1">Mensaje</label>
-                        <textarea v-model="notifBody" placeholder="Ej: 2x1 en hamburguesas hoy!"
-                            class="w-full p-2 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
-                            rows="3"></textarea>
-                    </div>
-                    <div>
-                        <label class="text-sm text-gray-500 block mb-1">Enviar a</label>
-                        <select v-model="notifTarget"
-                            class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]">
-                            <option value="all">Todos los clientes</option>
-                            <option value="rookie">Nivel Rookie (500+ 🪙)</option>
-                            <option value="maniaco">Nivel Maniático (1000+ 🪙)</option>
-                            <option value="supremo">Nivel Supremo (2000+ 🪙)</option>
-                            <option value="rey">Nivel Rey FoodMania (3000+ 🪙)</option>
-                        </select>
-                    </div>
-                    <div v-if="notifMsg" class="text-sm font-bold px-3 py-2 rounded-lg"
-                        :class="notifMsgType === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'">
-                        {{ notifMsg }}
-                    </div>
-                    <button @click="enviarNotificacion" :disabled="notifLoading || !notifTitle || !notifBody"
-                        class="w-full bg-[var(--primary)] text-white py-3 rounded-xl font-bold hover:bg-[var(--primary-dark)] transition-colors duration-300 hover:cursor-pointer disabled:opacity-50">
-                        <span v-if="notifLoading" class="pi pi-spinner animate-spin mr-2"></span>
-                        {{ notifLoading ? 'Enviando...' : '📨 Enviar notificación' }}
-                    </button>
-                </div>
-            </div>
-
         </div>
     </div>
 </template>
@@ -371,7 +377,7 @@ const cargandoPedidos = vueRef(false)
 const estadoActivo = vueRef('pendiente')
 const pedidoDetalle = vueRef(null)
 const errorMsg = vueRef('')
-const showNotifPanel = vueRef(false)
+const showNotifModal = vueRef(false)
 const notifTitle = vueRef('')
 const notifBody = vueRef('')
 const notifTarget = vueRef('all')
