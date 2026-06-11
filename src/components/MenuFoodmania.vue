@@ -245,6 +245,21 @@
             </ul>
         </section>
 
+        <!-- Instrucciones PWA -->
+        <div v-if="mostrarInstruccionesPWA" class="fixed inset-0 z-60 bg-black/50 flex items-center justify-center p-4" @click="mostrarInstruccionesPWA = false">
+          <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center" @click.stop>
+            <span class="text-5xl block mb-3">📲</span>
+            <h3 class="text-lg font-bold mb-2">Agregá Foodmania a tu inicio</h3>
+            <p class="text-sm text-gray-500 mb-4">
+              En Chrome tocá el menú <strong>⋮</strong> → <strong>Agregar a pantalla de inicio</strong>
+            </p>
+            <button @click="mostrarInstruccionesPWA = false"
+              class="bg-[var(--primary)] text-white px-6 py-2 rounded-full font-bold hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
+              Entendido
+            </button>
+          </div>
+        </div>
+
         <!-- Carrito -->
         <section v-if="menuItems"
             class="border rounded-2xl absolute right-4 top-20 z-50 bg-white shadow-xl w-80 max-h-[80vh] overflow-y-auto">
@@ -586,23 +601,27 @@ const yaInstaladoPWA = () =>
   localStorage.getItem('pwa_installed') === 'true'
 
 const mostrarInstalarApp = vueRef(false)
+const mostrarInstruccionesPWA = vueRef(false)
 
 const verificarInstalable = () => {
   if (yaInstaladoPWA()) return
   if (localStorage.getItem('pwa_install_dismissed')) return
-  mostrarInstalarApp.value = !!window.deferredInstallPrompt
+  mostrarInstalarApp.value = true
 }
 
 const instalarApp = async () => {
   const prompt = window.deferredInstallPrompt
-  if (!prompt) return
-  prompt.prompt()
-  const result = await prompt.userChoice
-  if (result.outcome === 'accepted') {
-    localStorage.setItem('pwa_installed', 'true')
+  if (prompt) {
+    prompt.prompt()
+    const result = await prompt.userChoice
+    if (result.outcome === 'accepted') {
+      localStorage.setItem('pwa_installed', 'true')
+    }
+    window.deferredInstallPrompt = null
     mostrarInstalarApp.value = false
+  } else {
+    mostrarInstruccionesPWA.value = true
   }
-  window.deferredInstallPrompt = null
 }
 
 watch(menuOpen, (val) => { if (val) verificarInstalable() })
