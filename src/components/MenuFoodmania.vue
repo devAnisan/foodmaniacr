@@ -294,7 +294,9 @@
 
         <!-- Nav mobile -->
         <nav class="flex md:hidden items-center justify-between p-4">
-            <img class="w-14 object-contain" :src="imageUrl" alt="Foodmania Logo" />
+            <RouterLink to="/">
+                <img class="w-14 object-contain" :src="imageUrl" alt="Foodmania Logo" />
+            </RouterLink>
             <span class="material-symbols-outlined hover:cursor-pointer" @click="menuOpen = !menuOpen">menu</span>
         </nav>
 
