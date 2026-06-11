@@ -256,9 +256,33 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
   if (mailTransporter && email) {
     try {
       const cfg = emailConfig.value()
-      const itemsHtml = (pedidoData.items || []).map(item =>
-        `<tr><td style="padding:6px 0;border-bottom:1px solid #eee;">${item.nombre} x${item.cantidad}</td><td style="padding:6px 0;border-bottom:1px solid #eee;text-align:right;">₡${item.precio * item.cantidad}</td></tr>`
-      ).join('')
+      const itemsHtml = (pedidoData.items || []).map(item => {
+        let nombreHtml = `${item.nombre} x${item.cantidad}`
+        if (item.bebida) {
+          const precioBebida = Number(item.bebida.precio) * Number(item.cantidad)
+          const canjeada = item.bebida.canjeadoConPuntos
+          nombreHtml += `<div style="font-size:12px;color:#555;padding-left:12px;margin-top:2px;">🥤 ${item.bebida.nombre} x${item.cantidad}${canjeada ? ' (🪙 canjeado)' : ` — ₡${precioBebida}`}</div>`
+        }
+        if (item.papasConSalsa) {
+          nombreHtml += `<div style="font-size:12px;color:#555;padding-left:12px;margin-top:2px;">🍟 Papas con salsa</div>`
+        }
+        if (item.salsasAlitas?.length) {
+          nombreHtml += `<div style="font-size:12px;color:#555;padding-left:12px;margin-top:2px;">🌶️ ${item.salsasAlitas.join(', ')}</div>`
+        }
+        if (item.agrandarPapas) {
+          nombreHtml += `<div style="font-size:12px;color:#555;padding-left:12px;margin-top:2px;">⬆️ Papas agrandadas</div>`
+        }
+        const precioItem = item.esCanje ? `🪙 ${item.puntosCanje * item.cantidad}` : `₡${Number(item.precio) * Number(item.cantidad)}`
+        return `<tr><td style="padding:6px 0;border-bottom:1px solid #eee;">${nombreHtml}</td><td style="padding:6px 0;border-bottom:1px solid #eee;text-align:right;">${precioItem}</td></tr>`
+      }).join('')
+
+      const envioHtml = pedidoData.tipoRetiro === 'domicilio' && totals.costoEnvio > 0
+        ? `<tr><td style="padding:6px 0;border-bottom:1px solid #eee;">🛵 Envío a domicilio</td><td style="padding:6px 0;border-bottom:1px solid #eee;text-align:right;">₡${totals.costoEnvio}</td></tr>`
+        : ''
+
+      const subtotalBebidas = totals.totalBebidasCash || 0
+      const subtotalAgrandar = totals.totalAgrandarCash || 0
+      const tieneExtras = subtotalBebidas > 0 || subtotalAgrandar > 0
 
       logger.log('Sending email to:', email)
 
@@ -277,10 +301,16 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
               <p style="margin:0 0 16px;"><strong>📞 Teléfono:</strong> ${pedidoData.telefono || '—'}</p>
               <table style="width:100%;border-collapse:collapse;">
                 <thead><tr style="background:#642d81;color:white;"><th style="padding:8px;text-align:left;">Producto</th><th style="padding:8px;text-align:right;">Subtotal</th></tr></thead>
-                <tbody>${itemsHtml}</tbody>
+                <tbody>${itemsHtml}${envioHtml}</tbody>
               </table>
               <hr style="margin:16px 0;border:none;border-top:2px solid #642d81;" />
-              <p style="margin:0;text-align:right;font-size:18px;font-weight:bold;">Total: ₡${totals.totalConEnvio || 0}</p>
+              <div style="text-align:right;">
+                ${tieneExtras ? `<p style="margin:0 0 4px;font-size:14px;color:#555;">Subtotal productos: ₡${totals.baseCashTotal || 0}</p>` : ''}
+                ${subtotalBebidas > 0 ? `<p style="margin:0 0 4px;font-size:14px;color:#555;">🥤 Bebidas: ₡${subtotalBebidas}</p>` : ''}
+                ${subtotalAgrandar > 0 ? `<p style="margin:0 0 4px;font-size:14px;color:#555;">⬆️ Agrandar papas: ₡${subtotalAgrandar}</p>` : ''}
+                ${totals.costoEnvio > 0 ? `<p style="margin:0 0 4px;font-size:14px;color:#555;">🛵 Envío: ₡${totals.costoEnvio}</p>` : ''}
+                <p style="margin:0;font-size:20px;font-weight:bold;">Total: ₡${totals.totalConEnvio || 0}</p>
+              </div>
               <hr style="margin:16px 0;border:none;border-top:1px solid #ddd;" />
               <p style="margin:0 0 4px;"><strong>💳 Pago:</strong> ${pedidoData.metodoPago || '—'}</p>
               <p style="margin:0 0 4px;"><strong>🏪 Retiro:</strong> ${pedidoData.tipoRetiro === 'sucursal' ? pedidoData.sucursal : 'Domicilio'}</p>

@@ -67,15 +67,19 @@ const findNearBranch = (lat: number, lng: number, sucursales: Insucursal[]) => {
 
 // and get user's current location
 
-export const getLocation = (sucursales: Insucursal[]) => {
-    navigator.geolocation.getCurrentPosition(
-        (position) => {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-            findNearBranch(lat, lng, sucursales);
-        },
-        (error) => {
-            console.error("Error getting geolocation:", error);
-        },
-    );
+export const getLocation = (sucursales: Insucursal[]): Promise<void> => {
+    return new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                findNearBranch(lat, lng, sucursales);
+                resolve();
+            },
+            (error) => {
+                console.error("Error getting geolocation:", error);
+                reject(error);
+            },
+        );
+    });
 };

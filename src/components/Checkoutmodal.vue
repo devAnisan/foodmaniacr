@@ -558,16 +558,29 @@ watch(withDrawType, (tipo) => {
   }
 })
 
-const obtenerUbicacion = () => {
-  getLocation(sucursalesStore.sucursalesFoodMania)
-  ubicacionObtenida.value = true
-  sucursalesStore.sucursalesFoodMania.forEach((item) => {
-    if (item.Nombre === locationStore.sucursalCercana) {
-      nCelular.value = item.nCelular || ''
-      sinpeNumero.value = item.sinpe || ''
-      sinpeTitular.value = item.aNombre || ''
+watch(metodoPago, (nuevoMetodo) => {
+  if (nuevoMetodo === 'sinpe' && withDrawType.value === 'domicilio' && !ubicacionObtenida.value) {
+    obtenerUbicacion()
+  }
+})
+
+const obtenerUbicacion = async () => {
+  if (!navigator.geolocation) {
+    errorMsg.value = 'Geolocalización no disponible.'
+    return
+  }
+  try {
+    await getLocation(sucursalesStore.sucursalesFoodMania)
+    ubicacionObtenida.value = true
+    const suc = sucursalesStore.sucursalesFoodMania.find(s => s.Nombre === locationStore.sucursalCercana)
+    if (suc) {
+      nCelular.value = suc.nCelular || ''
+      sinpeNumero.value = suc.sinpe || ''
+      sinpeTitular.value = suc.aNombre || ''
     }
-  })
+  } catch {
+    errorMsg.value = 'No se pudo obtener tu ubicación. Verificá los permisos e intentá de nuevo.'
+  }
 }
 
 const abrirEnMaps = () => {

@@ -74,13 +74,13 @@ function calculateOrderTotals(items, distanciaKm, withDrawType, agrandarMap, agr
 
   const baseCashTotal = items.reduce((acc, item) => {
     if (item.esCanje) return acc
-    return acc + item.precio * item.cantidad
+    return acc + Number(item.precio) * Number(item.cantidad)
   }, 0)
 
   const totalBebidasCash = items.reduce((acc, item) => {
     const uid = item._uid || item.id
     if (item.bebida && !bebidaPuntosMap[uid]) {
-      return acc + (item.bebida.precio * item.cantidad)
+      return acc + (Number(item.bebida.precio) * Number(item.cantidad))
     }
     return acc
   }, 0)
@@ -88,7 +88,7 @@ function calculateOrderTotals(items, distanciaKm, withDrawType, agrandarMap, agr
   const totalAgrandarCash = items.reduce((acc, item) => {
     const uid = item._uid || item.id
     if (agrandarMap[uid] && !agrandarPuntosMap[uid]) {
-      return acc + (AGRANDAR_COSTO * item.cantidad)
+      return acc + (AGRANDAR_COSTO * Number(item.cantidad))
     }
     return acc
   }, 0)

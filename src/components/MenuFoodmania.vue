@@ -600,7 +600,7 @@ const cargarBebidas = async () => {
   bebidasCargando.value = true
   try {
     const snap = await getDocs(collection(db, 'bebidas'))
-    bebidas.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    bebidas.value = snap.docs.map(d => ({ id: d.id, ...d.data(), precio: Number(d.data().precio) }))
   } catch (e) {
     console.error('Error cargando bebidas:', e)
   } finally {
@@ -739,7 +739,7 @@ const cargarCategoria = async (cat) => {
                 const imgRef = storageRef(storage, data.imagen)
                 itemImageUrl = await getDownloadURL(imgRef)
             }
-            cat.productos.push({ id: doc.id, ...data, imageUrl: itemImageUrl })
+            cat.productos.push({ id: doc.id, ...data, precio: Number(data.precio), imageUrl: itemImageUrl })
         }
         cat.cargada = true
         actualizarCanje()

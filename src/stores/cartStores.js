@@ -42,7 +42,7 @@ export const useCartStore = defineStore(
         const items = vueRef([]);
 
         const precioFinal = (item) => {
-            return item.precio + (item.bebida?.precio || 0)
+            return Number(item.precio) + Number(item.bebida?.precio || 0)
         }
 
         const addItem = (producto, extras = {}) => {
