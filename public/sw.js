@@ -1,14 +1,6 @@
-const CACHE = 'foodmania-v1'
-const ASSETS = [
-  '/',
-  '/menu',
-  '/index.html',
-]
+const CACHE = 'foodmania-v2'
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(ASSETS))
-  )
+self.addEventListener('install', () => {
   self.skipWaiting()
 })
 
@@ -22,7 +14,21 @@ self.addEventListener('activate', (event) => {
 })
 
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
-  )
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() =>
+        caches.match('/index.html').then((cached) => cached || fetch(event.request))
+      )
+    )
+  } else {
+    event.respondWith(
+      caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
+        if (response.ok && /\.(js|css|png|svg|woff2?)$/.test(event.request.url)) {
+          const cloned = response.clone()
+          caches.open(CACHE).then((cache) => cache.put(event.request, cloned))
+        }
+        return response
+      }))
+    )
+  }
 })
