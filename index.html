@@ -65,6 +65,12 @@
     <script type="module" src="/src/main.js"></script>
 
     <script>
+      window.deferredInstallPrompt = null
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault()
+        window.deferredInstallPrompt = e
+      })
+
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js', { scope: '/' })
           .catch(function (err) {

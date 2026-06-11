@@ -54,6 +54,11 @@ onMounted(() => {
   if (localStorage.getItem('pwa_install_dismissed')) return
   if (localStorage.getItem('pwa_installed')) return
 
+  if (window.deferredInstallPrompt) {
+    deferredPrompt = window.deferredInstallPrompt
+    setTimeout(() => { showBanner.value = true }, 3000)
+  }
+
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault()
     deferredPrompt = e
