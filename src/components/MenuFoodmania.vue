@@ -239,6 +239,9 @@
                 <li class="p-2 border-t">
                     <button @click="openMenu()" class="w-full text-left">🛒 Ver carrito</button>
                 </li>
+                <li v-if="mostrarInstalarApp" class="p-2 border-t">
+                    <button @click="instalarApp" class="w-full text-left text-[var(--primary)] font-bold">📲 Instalar app</button>
+                </li>
             </ul>
         </section>
 
@@ -576,6 +579,34 @@ const {
     verificarCodigo, completarPerfil, obtenerUbicacionPerfil, resetState,
     initAuthListener
 } = useAuth()
+
+const yaInstaladoPWA = () =>
+  window.matchMedia('(display-mode: standalone)').matches ||
+  window.navigator.standalone === true ||
+  localStorage.getItem('pwa_installed') === 'true'
+
+const mostrarInstalarApp = vueRef(false)
+
+const verificarInstalable = () => {
+  if (yaInstaladoPWA()) return
+  if (localStorage.getItem('pwa_install_dismissed')) return
+  mostrarInstalarApp.value = !!window.deferredInstallPrompt
+}
+
+const instalarApp = async () => {
+  const prompt = window.deferredInstallPrompt
+  if (!prompt) return
+  prompt.prompt()
+  const result = await prompt.userChoice
+  if (result.outcome === 'accepted') {
+    localStorage.setItem('pwa_installed', 'true')
+    mostrarInstalarApp.value = false
+  }
+  window.deferredInstallPrompt = null
+}
+
+watch(menuOpen, (val) => { if (val) verificarInstalable() })
+watch(showUserModal, (val) => { if (val) verificarInstalable() })
 
 // ── Personalizador de producto ──────────────────────────────────────────
 const personalizadorAbierto = vueRef(false)
