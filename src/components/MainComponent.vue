@@ -173,74 +173,89 @@
     <main v-if="!loader" @click="menuOpen = false" class="fontColor pt-20 md:pt-28">
         <div>
             <HeroCarousel />
-            <section id="sucursales">
+
+            <!-- Donde comprar + CTA section -->
+            <section class="py-16 px-4">
+                <div class="text-center max-w-4xl mx-auto">
+                    <div class="hidden md:block">
+                        <h1 id="title" class="extrabold text-4xl my-8 p-1">
+                            ¿Dónde comprar tu <span id="title" class="title"> antojo</span> ?
+                        </h1>
+                    </div>
+                    <div class="block md:hidden">
+                        <h1 id="title" class="extrabold text-1xl my-8 p-1">
+                            ¿Dónde comprar tu <span id="title" class="title"> antojo</span> ?
+                        </h1>
+                    </div>
+                    <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                        Te ofrecemos varias opciones para que puedas disfrutar de nuestros
+                        productos. Puedes encontrarnos en los siguientes puntos de venta:
+                    </p>
+                </div>
+
+                <!-- Ordena aquí CTA -->
+                <div class="mt-16 bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)] rounded-3xl py-12 px-6 text-center max-w-4xl mx-auto shadow-xl">
+                    <p class="text-2xl md:text-3xl text-white font-bold mb-4">¿Estas listo para probar el mejor sabor de tu vida?</p>
+                    <p class="text-lg md:text-xl text-white/80 mb-8">¡Ordena ahora y disfruta de una experiencia gastronómica única con Foodmania!</p>
+                    <button class="bg-white text-[var(--primary)] font-bold px-10 py-4 rounded-full hover:bg-gray-100 transition-all hover:cursor-pointer shadow-lg hover:shadow-xl hover:scale-105 transform">
+                        <RouterLink to="/menu" target="_blank">Ordena aquí</RouterLink>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Divider -->
+            <div class="flex justify-center">
+                <div class="w-24 h-1 bg-[var(--primary)] rounded-full opacity-30"></div>
+            </div>
+
+            <!-- Menu section -->
+            <section id="menu" class="py-16 px-4">
+                <div class="text-center max-w-4xl mx-auto">
+                    <h1 id="title" class="extrabold text-4xl my-8 p-1">Menú</h1>
+                    <div class="flex justify-center p-4">
+                        <div class="w-full max-w-4xl rounded-2xl shadow-lg overflow-hidden transition-transform duration-500 hover:scale-[1.02] hover:shadow-xl">
+                            <img :src="imageUrlMenu" alt="Menú de Foodmania" class="w-full h-auto" />
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Divider -->
+            <div class="flex justify-center">
+                <div class="w-24 h-1 bg-[var(--primary)] rounded-full opacity-30"></div>
+            </div>
+
+            <!-- Sucursales section -->
+            <section id="sucursales" class="py-16 px-4">
                 <BranchSection />
             </section>
-            <br />
 
-            <div class="text-center px-4">
-                <div class="hidden md:block">
-                    <h1 id="title" class="extrabold text-4xl my-8 p-1">
-                        ¿Dónde comprar tu <span id="title" class="title"> antojo</span> ?
-                    </h1>
-                </div>
-                <div class="block md:hidden">
-                    <h1 id="title" class="extrabold text-1xl my-8 p-1">
-                        ¿Dónde comprar tu <span id="title" class="title"> antojo</span> ?
-                    </h1>
-                </div>
-                <p class="text-lg w-full md:w-2/3 mx-auto">
-                    Te ofrecemos varias opciones para que puedas disfrutar de nuestros
-                    productos. Puedes encontrarnos en los siguientes puntos de venta:
-                </p>
-            </div>
-            <section class="flex justify-center my-8 px-2">
+            <section class="flex justify-center mb-8 px-2">
                 <button @click="getLocations()"
-                    class="flex justify-center items-center shadow-lg p-2 px-4 rounded-full hover:cursor-pointer">
-                    <span id="dondeComprar" class="text-lg">
+                    class="flex justify-center items-center shadow-lg p-3 px-6 rounded-full hover:cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-300 bg-white border border-[var(--primary)] text-[var(--primary)] font-bold">
+                    <span class="text-lg">
                         Conocer mi sucursal más cercana 📍
                     </span>
                 </button>
             </section>
 
-            <section class="flex flex-col justify-center my-8 px-2 items-center" v-show="branchSectionShow">
+            <section class="flex flex-col justify-center px-2 pb-16 items-center" v-show="branchSectionShow">
                 <section v-if="loaderBranchSection" class="flex items-center justify-center w-32">
                     <section class="fontColor text-2xl animate-spin text-center">
                         <span class="pi pi-spinner"></span>
                     </section>
                 </section>
 
-                <section v-else class="p-2 text-center text-lg">
-                    <h1 class="text-center">
+                <section v-else class="p-6 text-center bg-white rounded-2xl shadow-lg border border-gray-100 max-w-lg mx-auto">
+                    <h1 class="text-gray-700">
                         Tu sucursal más cercana es:
-                        <span class="extrabold">{{ locationStore.sucursalCercana }}</span>
-                        la cual esta a
-                        <span class="extrabold">{{ locationStore.distancia }}</span>
-                        km de ti.
+                        <span class="extrabold text-[var(--primary)] block text-2xl mt-2">{{ locationStore.sucursalCercana }}</span>
+                        <span class="text-[var(--primary)] font-bold">a solo {{ locationStore.distancia }} km de ti.</span>
                     </h1>
                 </section>
                 <WhereBuySection :sucursal="nearestBranch" />
             </section>
         </div>
-        <section id="menu">
-            <div class="text-center px-4">
-                <h1 id="title" class="extrabold text-4xl my-8 p-1">Menú</h1>
-                <div class="flex justify-center p-4">
-                    <div class="w-full max-w-4xl rounded-2xl shadow-lg overflow-hidden transition-transform duration-300 hover:scale-[1.02]">
-                        <img :src="imageUrlMenu" alt="Menú de Foodmania" class="w-full h-auto" />
-                    </div>
-                </div>
-            </div>
-            <div class="text-3xl text-center w-full md:w-2/3 mx-auto mb-12 px-4">
-                <p class="mb-6">
-                    ¿Estas listo para probar el mejor sabor de tu vida? ¡Ordena ahora y
-                    disfruta de una experiencia culinaria única con Foodmania!
-                </p>
-                <button class="bg-[var(--primary)] text-white font-bold px-8 py-3 rounded-full hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer shadow-md">
-                    <RouterLink to="/menu" target="_blank">Ordena aquí</RouterLink>
-                </button>
-            </div>
-        </section>
         <Footer />
     </main>
     <MartesFoodManiacos />
