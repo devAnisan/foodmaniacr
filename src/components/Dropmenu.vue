@@ -1,28 +1,27 @@
 <template>
   <ul
-    class="flex flex-col p-2 box-border absolute top-25 right-4 bg-white rounded-lg shadow-lg w-44 space-y-2"
+    class="flex flex-col p-3 box-border absolute top-full right-4 mt-2 bg-white rounded-xl shadow-xl w-48 border border-gray-100 space-y-1"
   >
-    <li class="p-1"><a href="#">Inicio</a></li>
-    <li class="p-1"><a href="#menu">Menú</a></li>
-    <li class="p-1"><a href="#sucursales">Sucursales</a></li>
-    <li class="p-1"><a href="#dondeComprar">¿Dónde comprar?</a></li>
-    <li v-if="esAdmin">
+    <li><a href="#" class="block px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors">Inicio</a></li>
+    <li><a href="#menu" class="block px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors">Menú</a></li>
+    <li><a href="#sucursales" class="block px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors">Sucursales</a></li>
+    <li><a href="#dondeComprar" class="block px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors">¿Dónde comprar?</a></li>
+    <li v-if="esAdmin" class="pt-1 border-t border-gray-100">
       <button @click="irAAdmin"
-        class="w-full border border-green-500 text-green-600 p-1.5 rounded-full text-sm font-bold hover:bg-green-50 transition-colors hover:cursor-pointer">
+        class="w-full border border-green-500 text-green-600 py-2 rounded-xl text-sm font-bold hover:bg-green-50 transition-colors hover:cursor-pointer">
         Admin
       </button>
     </li>
     <li>
       <button @click="openLogin"
-        class="w-full border p-2 rounded-full font-bold hover:bg-gray-50 transition-colors hover:cursor-pointer">
+        class="w-full border border-gray-300 py-2 rounded-xl font-bold hover:bg-gray-50 transition-colors hover:cursor-pointer">
         {{ user ? user.email.split('@')[0] : "Inicia sesión" }}
       </button>
     </li>
-    <button
-      class="extrabold border my-0.5 p-2 pl-3 pr-3 rounded-full hover:cursor-pointer"
-    >
-      <a href="/menu" target="_blank">Ordena aquí</a>
-    </button>
+    <a href="/menu" target="_blank"
+      class="block text-center extrabold border my-0.5 px-4 py-2 rounded-full hover:bg-gray-50 transition-colors">
+      Ordena aquí
+    </a>
   </ul>
 </template>
 

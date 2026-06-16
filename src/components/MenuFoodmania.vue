@@ -461,10 +461,10 @@
                     <div v-for="cat in categorias" :key="cat.nombre" v-show="!cat.esCanje || cat.productos.length > 0" class="mb-10">
                         <div class="flex items-center justify-between mb-4">
                             <div class="hidden md:block">
-                                <h2 id="title" class="text-2xl font-bold">{{ cat.emoji }} {{ cat.nombre }}</h2>
+                                <h2 class="heading-font text-2xl font-bold">{{ cat.emoji }} {{ cat.nombre }}</h2>
                             </div>
                             <div class="block md:hidden">
-                                <h2 id="title" class="text-1xl font-bold">{{ cat.emoji }} {{ cat.nombre }}</h2>
+                                <h2 class="heading-font text-xl font-bold">{{ cat.emoji }} {{ cat.nombre }}</h2>
                             </div>
                             <button @click="seleccionarCategoria(cat)"
                                 class="text-[var(--primary)] text-sm font-bold hover:underline hover:cursor-pointer">
@@ -742,7 +742,6 @@ const cargarPuntosUsuario = async (uid) => {
       ultimaCompra.value = data.ultimaCompra || null
       ultimaGananciaCoins.value = data.ultimaGananciaCoins || null
       cumpleanosUsuario.value = data.cumpleanos || ''
-      console.log('🐛 Debug puntos:', { puntos: puntosUsuario.value, ultimaCompra: data.ultimaCompra?.toMillis?.(), ultimaGananciaCoins: data.ultimaGananciaCoins?.toMillis?.() })
     }
   } catch (e) {
     console.error('Error cargando puntos:', e)

@@ -19,7 +19,7 @@ html {
   font-family: "Baloo Bhai 2", sans-serif;
 }
 
-#title {
+.heading-font {
   font-family: myFont;
 }
 .fontColor {
@@ -29,12 +29,12 @@ html {
 .title {
   color: white;
   background: var(--primary);
-  padding: 1rem 0.2rem;
-  border-radius: 0.25rem;
+  padding: 1rem 0.6rem;
+  border-radius: 0.5rem;
   margin: -0.25rem;
+  display: inline-block;
 }
 
 .extrabold {
-  font-family: "Baloo Bhai 2", sans-serif;
   font-weight: 800;
 }

@@ -50,30 +50,18 @@ const instalar = async () => {
 }
 
 onMounted(() => {
-  if (yaInstalado()) {
-    console.log('[PWA] Ya instalada (standalone)')
-    return
-  }
-  if (localStorage.getItem('pwa_install_dismissed')) {
-    console.log('[PWA] Banner descartado por el usuario')
-    return
-  }
-  if (localStorage.getItem('pwa_installed')) {
-    console.log('[PWA] Ya instalada (localStorage)')
-    return
-  }
+  if (yaInstalado()) return
+  if (localStorage.getItem('pwa_install_dismissed')) return
+  if (localStorage.getItem('pwa_installed')) return
 
   navigator.serviceWorker.ready.then(() => {
-    console.log('[PWA] SW ready — checking deferredInstallPrompt')
     if (window.deferredInstallPrompt) {
       deferredPrompt = window.deferredInstallPrompt
-      console.log('[PWA] Usando evento capturado globalmente')
       showBanner.value = true
     }
   })
 
   window.addEventListener('beforeinstallprompt', (e) => {
-    console.log('[PWA] beforeinstallprompt disparado')
     e.preventDefault()
     deferredPrompt = e
     window.deferredInstallPrompt = e
@@ -81,7 +69,6 @@ onMounted(() => {
   })
 
   window.addEventListener('appinstalled', () => {
-    console.log('[PWA] App instalada')
     showBanner.value = false
     deferredPrompt = null
     localStorage.setItem('pwa_installed', 'true')

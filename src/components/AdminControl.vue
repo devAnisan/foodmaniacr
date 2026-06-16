@@ -567,7 +567,6 @@ const otorgarPuntos = async (pedido) => {
                 const clienteRef = doc(db, 'clientes', snap.docs[0].id)
                 await updateDoc(clienteRef, { puntos: increment(pts) })
                 await updateDoc(clienteRef, { ultimaGananciaCoins: Timestamp.now() })
-                console.log(`✅ ${pts} ManiaCoins otorgados a ${pedido.usuario}`)
             }
         }
     } catch (error) {

@@ -39,9 +39,10 @@
                     class="border px-4 py-2 rounded-full hover:cursor-pointer font-bold hover:bg-gray-50 transition-colors">
                     {{ user ? user.email.split('@')[0] : "Inicia sesión" }}
                 </button>
-                <button class="extrabold border my-0.5 p-2 pl-3 pr-3 rounded-full hover:cursor-pointer">
-                    <RouterLink to="/menu" target="_blank">Ordena aquí</RouterLink>
-                </button>
+                <RouterLink to="/menu" target="_blank"
+                    class="extrabold border my-0.5 px-5 py-2 rounded-full inline-block hover:cursor-pointer hover:bg-gray-50 transition-colors">
+                    Ordena aquí
+                </RouterLink>
             </section>
         </nav>
         <!-- Modal de inicio de sesión -->
@@ -176,30 +177,16 @@
 
             <!-- Donde comprar + CTA section -->
             <section class="py-16 px-4">
-                <div class="text-center max-w-4xl mx-auto">
-                    <div class="hidden md:block">
-                        <h1 id="title" class="extrabold text-4xl my-8 p-1">
-                            ¿Dónde comprar tu <span id="title" class="title"> antojo</span> ?
-                        </h1>
-                    </div>
-                    <div class="block md:hidden">
-                        <h1 id="title" class="extrabold text-1xl my-8 p-1">
-                            ¿Dónde comprar tu <span id="title" class="title"> antojo</span> ?
-                        </h1>
-                    </div>
-                    <p class="text-lg text-gray-600 max-w-2xl mx-auto">
-                        Te ofrecemos varias opciones para que puedas disfrutar de nuestros
-                        productos. Puedes encontrarnos en los siguientes puntos de venta:
-                    </p>
-                </div>
+                
 
                 <!-- Ordena aquí CTA -->
                 <div class="mt-16 bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)] rounded-3xl py-12 px-6 text-center max-w-4xl mx-auto shadow-xl">
                     <p class="text-2xl md:text-3xl text-white font-bold mb-4">¿Estas listo para probar el mejor sabor de tu vida?</p>
                     <p class="text-lg md:text-xl text-white/80 mb-8">¡Ordena ahora y disfruta de una experiencia gastronómica única con Foodmania!</p>
-                    <button class="bg-white text-[var(--primary)] font-bold px-10 py-4 rounded-full hover:bg-gray-100 transition-all hover:cursor-pointer shadow-lg hover:shadow-xl hover:scale-105 transform">
-                        <RouterLink to="/menu" target="_blank">Ordena aquí</RouterLink>
-                    </button>
+                    <RouterLink to="/menu" target="_blank"
+                        class="inline-block bg-white text-[var(--primary)] font-bold px-10 py-4 rounded-full hover:bg-gray-100 transition-all hover:cursor-pointer shadow-lg hover:shadow-xl hover:scale-105 transform">
+                        Ordena aquí
+                    </RouterLink>
                 </div>
             </section>
 
@@ -211,7 +198,7 @@
             <!-- Menu section -->
             <section id="menu" class="py-16 px-4">
                 <div class="text-center max-w-4xl mx-auto">
-                    <h1 id="title" class="extrabold text-4xl my-8 p-1">Menú</h1>
+                    <h1 class="heading-font extrabold text-4xl my-8 p-1">Menú</h1>
                     <div class="flex justify-center p-4">
                         <div class="w-full max-w-4xl rounded-2xl shadow-lg overflow-hidden transition-transform duration-500 hover:scale-[1.02] hover:shadow-xl">
                             <img :src="imageUrlMenu" alt="Menú de Foodmania" class="w-full h-auto" />
@@ -224,9 +211,24 @@
             <div class="flex justify-center">
                 <div class="w-24 h-1 bg-[var(--primary)] rounded-full opacity-30"></div>
             </div>
-
+<div class="text-center max-w-4xl mx-auto">
+                    <div class="hidden md:block">
+                        <h1 class="heading-font title extrabold text-4xl my-8 p-1 ">
+                            ¿Dónde comprar tu <span class="heading-font title"> antojo</span> ?
+                        </h1>
+                    </div>
+                    <div class="block md:hidden">
+                        <h1 class="heading-font extrabold text-2xl my-6 p-1">
+                            ¿Dónde comprar tu <span class="heading-font title"> antojo</span> ?
+                        </h1>
+                    </div>
+                    <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                        Te ofrecemos varias opciones para que puedas disfrutar de nuestros
+                        productos. Puedes encontrarnos en los siguientes puntos de venta:
+                    </p>
+                </div>
             <!-- Sucursales section -->
-            <section id="sucursales" class="py-16 px-4">
+            <section id="sucursales" class="py-5 px-4">
                 <BranchSection />
             </section>
 
