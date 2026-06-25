@@ -363,6 +363,13 @@
 
           </div>
 
+          <!-- Error message -->
+          <div v-if="errorMsg" class="px-5">
+            <p class="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm font-bold text-center">
+              {{ errorMsg }}
+            </p>
+          </div>
+
           <!-- Botón confirmar -->
           <div class="p-5">
             <button @click="confirmarPedido" :disabled="loading"
