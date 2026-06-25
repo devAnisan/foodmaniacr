@@ -394,6 +394,11 @@
       class="fixed top-24 left-1/2 -translate-x-1/2 z-100 bg-green-500 text-white px-6 py-3 rounded-xl shadow-lg font-bold text-center transition-all duration-300">
       {{ drinkMsg }}
     </div>
+    <div v-if="canjeMsg"
+      :class="canjeMsgType === 'error' ? 'bg-red-500' : 'bg-green-500'"
+      class="fixed top-32 left-1/2 -translate-x-1/2 z-100 text-white px-6 py-3 rounded-xl shadow-lg font-bold text-center transition-all duration-300 max-w-sm">
+      {{ canjeMsg }}
+    </div>
 
     <!-- Main -->
     <main class="pt-24 fontColor min-h-screen bg-gray-50">
@@ -606,7 +611,15 @@ const editProfileModal = vueRef(false)
 const busqueda = vueRef('')
 const categoriaActiva = vueRef(null)
 const drinkMsg = vueRef('')
+const canjeMsg = vueRef('')
+const canjeMsgType = vueRef('success')
 const notifToast = vueRef(null)
+
+const mostrarCanjeMsg = (msg, type = 'success') => {
+  canjeMsg.value = msg
+  canjeMsgType.value = type
+  setTimeout(() => canjeMsg.value = '', 4000)
+}
 let notifTimer = null
 
 const { escucharMensajes } = useNotifications()
@@ -717,9 +730,22 @@ const cargarSalsas = async () => {
   }
 }
 
-const abrirPersonalizador = (item, esCanje = false) => {
+const abrirPersonalizador = async (item, esCanje = false) => {
   if (esCanje) {
+    if (!user.value) {
+      mostrarCanjeMsg('Iniciá sesión para canjear ManiaCoins 🪙', 'error')
+      return
+    }
+    if (puntosUsuario.value === null) {
+      await cargarPuntosUsuario(user.value.uid)
+    }
+    const coinsDisponibles = coinsValidos.value
+    if (coinsDisponibles < (item.puntosCanje || 0)) {
+      mostrarCanjeMsg(`No tenés suficientes ManiaCoins. Tenés ${coinsDisponibles} 🪙, necesitás ${item.puntosCanje} 🪙`, 'error')
+      return
+    }
     cartStore.addItem(item, { esCanje: true })
+    mostrarCanjeMsg('Producto añadido para canje 🪙', 'success')
     return
   }
   const esBebida = categorias.value
