@@ -263,6 +263,12 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
           const canjeada = item.bebida.canjeadoConPuntos
           nombreHtml += `<div style="font-size:12px;color:#555;padding-left:12px;margin-top:2px;">🥤 ${item.bebida.nombre} x${item.cantidad}${canjeada ? ' (🪙 canjeado)' : ` — ₡${precioBebida}`}</div>`
         }
+        if (item.gaseosaSel) {
+          nombreHtml += `<div style="font-size:12px;color:#555;padding-left:12px;margin-top:2px;">🥤 Sabor gaseosa: ${item.gaseosaSel}</div>`
+        }
+        if (item.proteinaSel) {
+          nombreHtml += `<div style="font-size:12px;color:#555;padding-left:12px;margin-top:2px;">🍗 Proteína: ${item.proteinaSel}</div>`
+        }
         if (item.papasConSalsa) {
           nombreHtml += `<div style="font-size:12px;color:#555;padding-left:12px;margin-top:2px;">🍟 Papas con salsa</div>`
         }
