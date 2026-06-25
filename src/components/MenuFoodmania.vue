@@ -574,7 +574,7 @@ const ProductCard = defineComponent({
                 : h('div', { class: 'w-full h-32 bg-gray-100 rounded-lg mb-3 flex items-center justify-center text-3xl' }, '🍽️'),
             h('h3', { class: 'font-bold text-sm mb-1 flex-1 line-clamp-2' }, props.item.nombre),
             props.item.descripcion ? h('p', { class: 'text-gray-400 text-xs mb-1 line-clamp-1' }, props.item.descripcion) : null,
-            props.item.incluye ? h('p', { class: 'text-green-600 text-xs mb-2 font-medium' }, `✅ ${props.item.incluye}`) : null,
+            props.item.incluye ? h('p', { class: 'text-[var(--primary)] text-xs mb-2 font-medium' }, `✅ ${props.item.incluye}`) : null,
             props.esCanje
                 ? h('p', { class: 'font-bold text-yellow-600 mb-3' }, `🪙 ${props.item.puntosCanje}`)
                 : h('p', { class: 'font-bold text-[var(--primary)] mb-3' }, `₡${props.item.precio}`),
