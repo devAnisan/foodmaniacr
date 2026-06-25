@@ -321,7 +321,8 @@
                             🌶️ {{ value.salsasAlitas.join(', ') }}
                         </div>
                     </div>
-                    <div class="text-sm mr-2">₡{{ cartStore.precioFinal(value) * value.cantidad }}</div>
+                    <div v-if="value.esCanje" class="text-sm mr-2 font-bold text-yellow-600">🪙 {{ value.puntosCanje * value.cantidad }}</div>
+                    <div v-else class="text-sm mr-2">₡{{ cartStore.precioFinal(value) * value.cantidad }}</div>
                     <div class="flex items-center gap-1">
                         <button @click="cartStore.removeItem(value._uid)" class="text-gray-400 hover:text-red-500 p-1">
                             <span class="pi pi-minus text-xs"></span>
@@ -336,7 +337,7 @@
                 </div>
                 <div class="flex justify-between p-4 font-bold border-t text-lg">
                     <span>Total</span>
-                    <span>₡{{ cartStore.total }}</span>
+                    <span>₡{{ cartStore.cashTotal }}</span>
                 </div>
                 <div class="p-3">
                     <button @click="showCheckout = true; menuItems = false"

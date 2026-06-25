@@ -98,11 +98,18 @@ export const useCartStore = defineStore(
             );
         });
 
+        const cashTotal = computed(() => {
+            return items.value.reduce((acc, item) => {
+                if (item.esCanje) return acc
+                return acc + precioFinal(item) * item.cantidad
+            }, 0)
+        })
+
         const totalItems = computed(() => {
             return items.value.reduce((acc, item) => acc + item.cantidad, 0);
         });
 
-        return { items, addItem, removeItem, deleteItem, total, totalItems, precioFinal };
+        return { items, addItem, removeItem, deleteItem, total, cashTotal, totalItems, precioFinal };
     },
     {
         persist: {
