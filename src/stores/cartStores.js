@@ -49,6 +49,7 @@ export const useCartStore = defineStore(
             const bebida = extras.bebida || producto.bebida || null
             const papasConSalsa = extras.papasConSalsa ?? producto.papasConSalsa ?? false
             const salsasAlitas = extras.salsasAlitas || producto.salsasAlitas || []
+            const esCanje = extras.esCanje ?? producto.esCanje ?? false
             const esBebida = extras.esBebida ?? producto.esBebida ?? false
             const proteinaSel = extras.proteinaSel ?? producto.proteinaSel ?? null
             const gaseosaSel = extras.gaseosaSel ?? producto.gaseosaSel ?? null
@@ -71,6 +72,7 @@ export const useCartStore = defineStore(
                     bebida,
                     papasConSalsa,
                     salsasAlitas,
+                    esCanje,
                     esBebida,
                     proteinaSel,
                     gaseosaSel,

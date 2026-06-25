@@ -20,15 +20,18 @@ self.addEventListener('fetch', (event) => {
         caches.match('/index.html').then((cached) => cached || fetch(event.request))
       )
     )
-  } else {
-    event.respondWith(
-      caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
-        if (response.ok && /\.(js|css|png|svg|woff2?)$/.test(event.request.url)) {
-          const cloned = response.clone()
-          caches.open(CACHE).then((cache) => cache.put(event.request, cloned))
-        }
-        return response
-      }))
-    )
+    return
   }
+  if (/googleapis\.com|firestore\.googleapis/.test(event.request.url)) {
+    return
+  }
+  event.respondWith(
+    caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
+      if (response.ok && /\.(js|css|png|svg|woff2?)$/.test(event.request.url)) {
+        const cloned = response.clone()
+        caches.open(CACHE).then((cache) => cache.put(event.request, cloned))
+      }
+      return response
+    }))
+  )
 })

@@ -66,8 +66,8 @@
                   <span class="font-bold">{{ item.nombre }}</span>
                   <span class="text-gray-400"> x{{ item.cantidad }}</span>
                 </div>
-                <span v-if="item.esCanje" class="font-bold text-yellow-600">🪙 {{ item.puntosCanje * item.cantidad }}</span>
-                <span v-else>₡{{ item.precio * item.cantidad }}</span>
+                <span v-if="item.esCanje" class="font-bold text-yellow-600 text-right">🪙 {{ item.puntosCanje * item.cantidad }} ManiaCoins</span>
+                <span v-else class="font-bold text-right">₡{{ item.precio * item.cantidad }} colones</span>
               </div>
 
               <!-- Bebida asociada a un producto -->
