@@ -160,8 +160,13 @@
         <div class="p-5">
           <p class="text-lg font-bold text-[var(--primary)]">₡{{ itemPersonalizando?.precio }}</p>
 
-          <!-- Bebida (opcional, se oculta si el producto ya es una bebida) -->
-          <div v-if="!esItemBebida" class="mt-4">
+          <!-- Bebida específica incluida (auto, sin selector) -->
+          <div v-if="itemPersonalizando?.bebidaEspecifica" class="mt-4">
+            <label class="font-bold block mb-2">🥤 Incluye {{ itemPersonalizando.bebidaEspecifica.nombre }}</label>
+          </div>
+
+          <!-- Bebida (opcional, se oculta si el producto ya es una bebida o ya trae bebida específica) -->
+          <div v-else-if="!esItemBebida" class="mt-4">
             <label class="font-bold block mb-2">🥤 Agregar bebida (opcional)</label>
             <div v-if="bebidasCargando" class="flex items-center gap-2 text-sm text-gray-400">
               <span class="pi pi-spinner animate-spin"></span> Cargando bebidas...
@@ -174,6 +179,32 @@
                 class="p-3 rounded-xl font-bold text-sm transition-all duration-200 hover:cursor-pointer">
                 {{ b.nombre }}
                 <span class="block text-xs font-normal mt-0.5">₡{{ b.precio }}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Proteína a elegir -->
+          <div v-if="itemPersonalizando?.opcionesProteina?.length" class="mt-5">
+            <label class="font-bold block mb-2">🍗 Elegí tu proteína</label>
+            <div class="grid grid-cols-2 gap-2">
+              <button v-for="proteina in itemPersonalizando.opcionesProteina" :key="proteina"
+                @click="proteinaSel = proteina"
+                :class="proteinaSel === proteina ? 'bg-[var(--primary)] text-white ring-2 ring-[var(--primary)]' : 'bg-gray-100 hover:bg-gray-200'"
+                class="p-3 rounded-xl font-bold text-sm transition-all duration-200 hover:cursor-pointer">
+                {{ proteina }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Sabor de gaseosa incluida (sin costo) -->
+          <div v-if="itemPersonalizando?.gaseosaIncluida && itemPersonalizando?.gaseosaSabores?.length" class="mt-5">
+            <label class="font-bold block mb-2">🥤 Elegí el sabor de tu gaseosa 600ml</label>
+            <div class="grid grid-cols-2 gap-2">
+              <button v-for="sabor in itemPersonalizando.gaseosaSabores" :key="sabor"
+                @click="gaseosaSel = sabor"
+                :class="gaseosaSel === sabor ? 'bg-[var(--primary)] text-white ring-2 ring-[var(--primary)]' : 'bg-gray-100 hover:bg-gray-200'"
+                class="p-3 rounded-xl font-bold text-sm transition-all duration-200 hover:cursor-pointer">
+                {{ sabor }}
               </button>
             </div>
           </div>
@@ -191,8 +222,8 @@
             </div>
           </div>
 
-          <!-- Alitas Mania: salsas (1-2) -->
-          <div v-if="esAlitasMania" class="mt-5">
+          <!-- Salsas a elegir (Alitas Mania / Nuggets) -->
+          <div v-if="mostrarSelectorSalsas" class="mt-5">
             <label class="font-bold block mb-2">🌶️ Elegí tus salsas ({{ salsasAlitasSel.length }}/2)</label>
             <div v-if="salsasCargando" class="flex items-center gap-2 text-sm text-gray-400">
               <span class="pi pi-spinner animate-spin"></span> Cargando salsas...
@@ -278,6 +309,12 @@
                             value.cantidad }}</span></div>
                         <div v-if="value.bebida" class="text-xs text-gray-500 mt-0.5">
                             🥤 {{ value.bebida.nombre }} +₡{{ value.bebida.precio }}
+                        </div>
+                        <div v-if="value.proteinaSel" class="text-xs text-gray-500 mt-0.5">
+                            🍗 {{ value.proteinaSel }}
+                        </div>
+                        <div v-if="value.gaseosaSel" class="text-xs text-gray-500 mt-0.5">
+                            🥤 Sabor: {{ value.gaseosaSel }}
                         </div>
                         <div v-if="value.papasConSalsa" class="text-xs text-gray-500">🍟 Papas con salsa</div>
                         <div v-if="value.salsasAlitas?.length" class="text-xs text-gray-500">
@@ -536,7 +573,8 @@ const ProductCard = defineComponent({
                 ? h('img', { src: props.item.imageUrl, alt: props.item.nombre, loading: 'lazy', class: 'w-full h-32 object-cover rounded-lg mb-3' })
                 : h('div', { class: 'w-full h-32 bg-gray-100 rounded-lg mb-3 flex items-center justify-center text-3xl' }, '🍽️'),
             h('h3', { class: 'font-bold text-sm mb-1 flex-1 line-clamp-2' }, props.item.nombre),
-            props.item.descripcion ? h('p', { class: 'text-gray-400 text-xs mb-2 line-clamp-1' }, props.item.descripcion) : null,
+            props.item.descripcion ? h('p', { class: 'text-gray-400 text-xs mb-1 line-clamp-1' }, props.item.descripcion) : null,
+            props.item.incluye ? h('p', { class: 'text-green-600 text-xs mb-2 font-medium' }, `✅ ${props.item.incluye}`) : null,
             props.esCanje
                 ? h('p', { class: 'font-bold text-yellow-600 mb-3' }, `🪙 ${props.item.puntosCanje}`)
                 : h('p', { class: 'font-bold text-[var(--primary)] mb-3' }, `₡${props.item.precio}`),
@@ -633,6 +671,8 @@ const itemPersonalizando = vueRef(null)
 const bebidaSel = vueRef(null)
 const papasConSalsaSel = vueRef(false)
 const salsasAlitasSel = vueRef([])
+const proteinaSel = vueRef(null)
+const gaseosaSel = vueRef(null)
 
 const bebidas = vueRef([])
 const bebidasCargando = vueRef(false)
@@ -641,6 +681,10 @@ const salsasCargando = vueRef(false)
 
 const esAlitasMania = computed(() =>
   itemPersonalizando.value?.nombre?.toLowerCase().includes('alitas mania')
+)
+
+const mostrarSelectorSalsas = computed(() =>
+  esAlitasMania.value || itemPersonalizando.value?.salsasDisponibles
 )
 
 const esItemBebida = computed(() =>
@@ -687,9 +731,11 @@ const abrirPersonalizador = (item, esCanje = false) => {
     return
   }
   itemPersonalizando.value = item
-  bebidaSel.value = null
+  bebidaSel.value = item.bebidaEspecifica || null
   papasConSalsaSel.value = false
   salsasAlitasSel.value = []
+  proteinaSel.value = item.opcionesProteina?.length ? item.opcionesProteina[0] : null
+  gaseosaSel.value = item.gaseosaIncluida && item.gaseosaSabores?.length ? item.gaseosaSabores[0] : null
   personalizadorAbierto.value = true
 }
 
@@ -711,6 +757,8 @@ const confirmarPersonalizacion = () => {
   const extras = {
     papasConSalsa: papasConSalsaSel.value,
     salsasAlitas: [...salsasAlitasSel.value],
+    proteinaSel: proteinaSel.value,
+    gaseosaSel: gaseosaSel.value,
   }
   if (bebidaSel.value) {
     extras.bebida = {

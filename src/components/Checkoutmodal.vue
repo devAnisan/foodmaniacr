@@ -92,7 +92,13 @@
               <!-- Papas con salsa -->
               <div v-if="item.papasConSalsa" class="text-xs text-gray-500 mt-1 ml-2">🍟 Papas con salsa</div>
 
-              <!-- Salsas Alitas Mania -->
+              <!-- Proteína seleccionada -->
+              <div v-if="item.proteinaSel" class="text-xs text-gray-500 mt-1 ml-2">🍗 {{ item.proteinaSel }}</div>
+
+              <!-- Sabor de gaseosa -->
+              <div v-if="item.gaseosaSel" class="text-xs text-gray-500 mt-1 ml-2">🥤 Sabor: {{ item.gaseosaSel }}</div>
+
+              <!-- Salsas Alitas Mania / Nuggets -->
               <div v-if="item.salsasAlitas?.length" class="text-xs text-gray-500 mt-1 ml-2">
                 🌶️ {{ item.salsasAlitas.join(', ') }}
               </div>
@@ -596,6 +602,12 @@ const armarLineaItem = (item) => {
     const esCanje = bebidaPuntosMap[item._uid]
     linea += `\n  🥤 ${item.bebida.nombre} x${item.cantidad}${esCanje ? ` (🪙 ${costoBebidaManiaCoins(item.bebida.precio) * item.cantidad})` : ` — ₡${item.bebida.precio * item.cantidad}`}`
   }
+  if (item.proteinaSel) {
+    linea += `\n  🍗 ${item.proteinaSel}`
+  }
+  if (item.gaseosaSel) {
+    linea += `\n  🥤 Sabor: ${item.gaseosaSel}`
+  }
   if (item.papasConSalsa) {
     linea += `\n  🍟 Papas con salsa`
   }
@@ -705,6 +717,8 @@ const confirmarPedido = async () => {
       } : null,
       papasConSalsa: item.papasConSalsa || false,
       salsasAlitas: item.salsasAlitas || [],
+      proteinaSel: item.proteinaSel || null,
+      gaseosaSel: item.gaseosaSel || null,
       agrandarPapas: !!agrandarMap[item._uid],
       agrandarConPuntos: !!agrandarPuntosMap[item._uid],
     }))

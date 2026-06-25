@@ -50,7 +50,13 @@ export const useCartStore = defineStore(
             const papasConSalsa = extras.papasConSalsa ?? producto.papasConSalsa ?? false
             const salsasAlitas = extras.salsasAlitas || producto.salsasAlitas || []
             const esBebida = extras.esBebida ?? producto.esBebida ?? false
-            const variantKey = producto.id + (bebida ? `_beb_${bebida.id}` : '')
+            const proteinaSel = extras.proteinaSel ?? producto.proteinaSel ?? null
+            const gaseosaSel = extras.gaseosaSel ?? producto.gaseosaSel ?? null
+            let variantKey = producto.id
+            if (bebida) variantKey += `_beb_${bebida.id || bebida.nombre}`
+            if (proteinaSel) variantKey += `_prot_${proteinaSel}`
+            if (gaseosaSel) variantKey += `_gas_${gaseosaSel}`
+            if (salsasAlitas.length) variantKey += `_sal_${salsasAlitas.join('_')}`
             const existing = items.value.find(
                 item => item._variantKey === variantKey
             )
@@ -66,6 +72,8 @@ export const useCartStore = defineStore(
                     papasConSalsa,
                     salsasAlitas,
                     esBebida,
+                    proteinaSel,
+                    gaseosaSel,
                 })
             }
         };
