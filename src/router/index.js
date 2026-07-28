@@ -6,6 +6,7 @@ const routes = [
   { path: "/", component: MainComponent, meta: { title: "Foodmania CR | Tu antojo, nuestra especialidad", description: "Pedí hamburguesas, pollo frito, alas, tacos y más. Delivery y retiro en sucursal." } },
   { path: "/menu", component: () => import("../components/MenuFoodmania.vue"), meta: { title: "Menú | Foodmania CR", description: "Explorá nuestro menú: hamburguesas, pollo frito, combos, alitas, tacos y bebidas." } },
   { path: "/adminControl", component: () => import("../components/AdminControl.vue"), meta: { title: "Admin | Foodmania CR", description: "Panel de administración de Foodmania CR." } },
+  { path: "/superAdminControl", component: () => import("../components/SuperAdminControl.vue"), meta: { title: "Super Admin | Foodmania CR", description: "Panel de super administración de Foodmania CR." } },
   { path: "/:pathMatch(.*)*", component: NotFound, meta: { title: "Página no encontrada | Foodmania CR", description: "La página que buscas no existe." } }
 ];
 

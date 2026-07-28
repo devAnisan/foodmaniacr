@@ -1,13 +1,13 @@
 rules_version = '2';
 
-// Craft rules based on data in your Firestore database
-// allow write: if firestore.get(
-//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
 service firebase.storage {
   match /b/{bucket}/o {
     match /{allPaths=**} {
       allow read: if true;
-      allow write: if false;
+      // Escritura solo para el super admin (gestión de imágenes de catálogo)
+      // Requiere que exista /superAdmin/{uid} en Firestore, igual que en firestore.rules
+      allow write: if request.auth != null &&
+        firestore.exists(/databases/(default)/documents/superAdmin/$(request.auth.uid));
     }
   }
 }

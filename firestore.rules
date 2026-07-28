@@ -16,11 +16,18 @@ service cloud.firestore {
       return autenticado() && exists(/databases/$(database)/documents/superUser/$(request.auth.uid));
     }
 
+    function esSuperAdmin() {
+      // Verifica que exista un documento en superAdmin con ID = uid del usuario autenticado
+      // NOTA: requiere que los documentos en superAdmin usen el uid como ID del documento
+      return autenticado() && exists(/databases/$(database)/documents/superAdmin/$(request.auth.uid));
+    }
+
     // ============================================================
     // Colecciones públicas de solo lectura (catálogo, sucursales)
     // ============================================================
     // Usamos wildcard {collection} porque "Sucursales de Foodmania"
     // contiene espacios y no se puede poner como literal en match.
+    // Escritura habilitada solo para el super admin (gestión de catálogo).
 
     match /{collection}/{doc} {
       allow read: if collection in [
@@ -28,7 +35,7 @@ service cloud.firestore {
         'comidachina', 'comidarapida', 'hamburguesas', 'pollofrito',
         'promociones', 'supremos', 'surtidos'
       ];
-      allow write: if false;
+      allow write: if esSuperAdmin();
     }
 
     // ============================================================
@@ -68,6 +75,17 @@ service cloud.firestore {
     match /superUser/{userId} {
       allow read: if autenticado();
       allow write: if esAdmin();
+    }
+
+    // ============================================================
+    // SuperAdmin (Gestión de catálogo)
+    // ============================================================
+    // Lectura: cualquier usuario autenticado
+    // Escritura: solo super admins (requiere que el documento exista previamente)
+
+    match /superAdmin/{userId} {
+      allow read: if autenticado();
+      allow write: if esSuperAdmin();
     }
 
     // ============================================================
