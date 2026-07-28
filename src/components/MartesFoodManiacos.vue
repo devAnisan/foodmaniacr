@@ -6,12 +6,15 @@
           <button @click="cerrar" class="absolute top-3 right-3 text-white/80 hover:text-white text-2xl hover:cursor-pointer pi pi-times"></button>
           <p class="text-6xl mb-2">🔥</p>
           <p class="text-white font-bold text-3xl">¡Martes FoodManiacos!</p>
-          <p class="text-yellow-200 font-bold text-lg mt-1">🪙 ManiaCoins x2</p>
+          <p class="text-yellow-200 font-bold text-lg mt-1 flex items-center justify-center gap-1.5">
+            <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-5 h-5 inline-block" /> ManiaCoins x2
+          </p>
         </div>
         <div class="p-6 text-center">
           <p class="text-gray-700 text-base">
             Todos los <strong>martes</strong>, todas tus compras por la página acumulan
-            <strong class="text-purple-700">el doble de ManiaCoins</strong> 🪙
+            <strong class="text-purple-700">el doble de ManiaCoins</strong>
+            <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-4 h-4 inline-block align-text-bottom" />
           </p>
           <div class="bg-purple-50 border border-purple-200 rounded-xl p-4 mt-4">
             <p class="text-sm text-purple-800">
@@ -30,7 +33,11 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useAssets } from '../stores/cartStores.js'
+import { cargarCoinIcon } from '../composable/useCoinIcon.js'
 
+const assets = useAssets()
+cargarCoinIcon()
 const visible = ref(false)
 
 const esMartes = () => new Date().getDay() === 2

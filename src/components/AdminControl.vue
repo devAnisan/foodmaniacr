@@ -189,7 +189,7 @@
                                 </span>
                             </td>
                             <td class="p-3 font-bold text-[var(--primary)]">₡{{ pedido.total }}</td>
-                            <td class="p-3 text-center">🪙 {{ pedido.puntosGanados || 0 }}</td>
+                            <td class="p-3 text-center flex items-center justify-center gap-1"><img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-4 h-4 inline-block" /> {{ pedido.puntosGanados || 0 }}</td>
                             <td class="p-3 text-center">
                                 <span v-if="pedido.puntosCanjeados" class="text-red-500 font-bold">🔥 {{ pedido.puntosCanjeados }}</span>
                                 <span v-else class="text-gray-300">—</span>
@@ -234,7 +234,7 @@
                     <div class="text-sm text-gray-600 flex flex-col gap-1 mb-3">
                         <p>📞 {{ pedido.telefono }}</p>
                         <p>💰 Total: <strong class="text-[var(--primary)]">₡{{ pedido.total }}</strong></p>
-                        <p>🪙 ManiaCoins: {{ pedido.puntosGanados || 0 }} <span v-if="pedido.puntosCanjeados" class="text-red-500">🔥 -{{ pedido.puntosCanjeados }}</span></p>
+                        <p class="flex items-center gap-1"><img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-4 h-4 inline-block" /> ManiaCoins: {{ pedido.puntosGanados || 0 }} <span v-if="pedido.puntosCanjeados" class="text-red-500">🔥 -{{ pedido.puntosCanjeados }}</span></p>
                         <p>{{ pedido.tipoRetiro === 'sucursal' ? `🏪 ${pedido.sucursal}` : `🛵 ${pedido.direccion}` }}
                         </p>
                         <p class="text-xs text-gray-400">{{ formatearFecha(pedido.creadoEn) }}</p>
@@ -299,7 +299,7 @@
                             <span class="text-[var(--primary)]">₡{{ pedidoDetalle.total }}</span>
                         </div>
                         <div class="flex justify-between text-sm mt-1 text-amber-600">
-                            <span>🪙 ManiaCoins ganados</span>
+                            <span class="flex items-center gap-1"><img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3.5 h-3.5 inline-block" /> ManiaCoins ganados</span>
                             <span>{{ pedidoDetalle.puntosGanados || 0 }}</span>
                         </div>
                         <div v-if="pedidoDetalle.puntosCanjeados" class="flex justify-between text-sm text-red-600">
@@ -361,10 +361,13 @@ import { collection, doc, getDoc, getDocs, addDoc, Timestamp, updateDoc, query, 
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { useRouter } from 'vue-router'
-import { useCartStore } from '../stores/cartStores.js'
+import { useCartStore, useAssets } from '../stores/cartStores.js'
+import { cargarCoinIcon } from '../composable/useCoinIcon.js'
 import { db, auth } from '../firebase.js'
 
 const router = useRouter()
+const assets = useAssets()
+cargarCoinIcon()
 
 // ── Estado ─────────────────────────────────────────────────────────────────
 const verificando = vueRef(true)

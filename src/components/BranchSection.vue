@@ -26,9 +26,9 @@
           {{ value.Nombre }}
         </h2>
         <div class="w-full space-y-1.5 text-sm text-gray-600">
-          <p>📍 {{ value.Direccion }}</p>
-          <p>🕛 {{ value.horario }}</p>
-          <p>📞 {{ value.nCelular }}</p>
+          <p><i class="fa fa-map-marker w-4 inline-block text-[var(--primary)]"></i> {{ value.Direccion }}</p>
+          <p><i class="fa fa-clock-o w-4 inline-block text-[var(--primary)]"></i> {{ value.horario }}</p>
+          <p><i class="fa fa-phone w-4 inline-block text-[var(--primary)]"></i> {{ value.nCelular }}</p>
         </div>
         <div class="flex space-x-3 mt-4 w-full">
           <a

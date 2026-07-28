@@ -1,11 +1,11 @@
 <template>
     <!-- Modal de inicio de sesión -->
     <div v-if="menuLogIn" class="fixed inset-0 z-60 bg-black/50 h-full w-full flex items-center justify-center">
-        <div class="p-4 rounded-2xl shadow-2xl z-80 w-80 bg-white fontColor">
-            <section class="flex justify-between border-b text-center pb-3">
-                <span class="text-2xl font-bold">{{ showCompleteProfile ? 'Completá tu perfil' : showVerifyCode ? 'Verificá tu correo' : 'Iniciar Sesión' }}</span>
+        <div class="rounded-3xl shadow-2xl z-80 w-80 bg-white fontColor overflow-hidden">
+            <section class="flex justify-between items-center bg-gradient-to-r from-[var(--primary)] to-[var(--primary-dark)] px-4 py-3">
+                <span class="text-lg font-bold text-white">{{ showCompleteProfile ? 'Completá tu perfil' : showVerifyCode ? 'Verificá tu correo' : 'Iniciar Sesión' }}</span>
                 <button @click="menuLogIn = false; forgotPassword = false; justLogin = true; resetState()"
-                    class="text-red-500 hover:text-red-700 p-2 rounded hover:cursor-pointer">
+                    class="text-white/80 hover:text-white p-1 rounded hover:cursor-pointer">
                     <span class="pi pi-times"></span>
                 </button>
             </section>
@@ -53,32 +53,44 @@
 
             <!-- Login / Register -->
             <section v-else class="flex flex-col p-4 text-center gap-3">
-                <img :src="imageUrl" to="/" alt="logo_foodmania" class="w-20 mx-auto mb-2" />
-                <input v-model="email" type="email" placeholder="Correo electrónico"
-                    class="p-2 border w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                <img :src="imageUrl" to="/" alt="logo_foodmania" class="w-20 mx-auto -mt-10 mb-2 rounded-full border-4 border-white shadow-lg bg-white" />
+                <div class="relative">
+                    <span class="pi pi-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></span>
+                    <input v-model="email" type="email" placeholder="Correo electrónico"
+                        class="pl-9 p-2 border w-full rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                </div>
                 <section v-if="justLogin && !forgotPassword">
-                    <input v-model="password1" type="password" placeholder="Contraseña"
-                        class="p-2 w-full border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                    <div class="relative">
+                        <span class="pi pi-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></span>
+                        <input v-model="password1" type="password" placeholder="Contraseña"
+                            class="pl-9 p-2 w-full border rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                    </div>
                 </section>
                 <section class="flex flex-col gap-2" v-else-if="!justLogin && !forgotPassword">
-                    <input v-model="password1" type="password" placeholder="Crear contraseña"
-                        class="p-2 border rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
-                    <input v-model="password2" type="password" placeholder="Confirmar contraseña"
-                        class="p-2 border rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                    <div class="relative">
+                        <span class="pi pi-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></span>
+                        <input v-model="password1" type="password" placeholder="Crear contraseña"
+                            class="pl-9 p-2 border rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                    </div>
+                    <div class="relative">
+                        <span class="pi pi-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></span>
+                        <input v-model="password2" type="password" placeholder="Confirmar contraseña"
+                            class="pl-9 p-2 border rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                    </div>
                     <p class="text-xs text-red-500">Mínimo 8 caracteres, mayúscula, minúscula y número.</p>
                 </section>
                 <p v-if="successMsg" class="text-green-500 text-sm">{{ successMsg }}</p>
                 <p v-if="errorMsg" class="text-red-500 text-sm">{{ errorMsg }}</p>
                 <button v-if="justLogin && !forgotPassword" @click="login(email, password1)"
-                    class="bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
+                    class="bg-[var(--accent)] text-white px-4 py-2 rounded-xl font-bold hover:bg-[var(--accent-dark)] transition-colors hover:cursor-pointer">
                     Iniciar sesión
                 </button>
                 <button v-else-if="!justLogin && !forgotPassword" @click="register(email, password1, password2)"
-                    class="bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
+                    class="bg-[var(--accent)] text-white px-4 py-2 rounded-xl font-bold hover:bg-[var(--accent-dark)] transition-colors hover:cursor-pointer">
                     Crear cuenta
                 </button>
                 <button v-if="forgotPassword" @click="resetPassword(email)"
-                    class="bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
+                    class="bg-[var(--accent)] text-white px-4 py-2 rounded-xl font-bold hover:bg-[var(--accent-dark)] transition-colors hover:cursor-pointer">
                     Enviar correo de recuperación
                 </button>
             </section>
@@ -110,7 +122,7 @@
                 }}</span>
             <div v-if="puntosUsuario !== null" class="bg-gradient-to-r from-purple-50 to-yellow-50 border border-purple-200 rounded-lg px-4 py-2 w-full">
               <div class="flex items-center justify-center gap-2">
-                <span class="text-lg">🪙</span>
+                <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-5 h-5 object-contain" />
                 <span class="font-bold text-yellow-700">{{ coinsValidos }} ManiaCoins</span>
               </div>
               <p v-if="tiempoRestante" class="text-[10px] text-gray-400 text-center mt-0.5">
@@ -122,8 +134,8 @@
               <p v-else-if="puntosUsuario >= 500" class="text-[10px] text-red-400 text-center mt-0.5">
                 ⚠️ Coins vencidos o sin compras recientes
               </p>
-              <p v-else class="text-[10px] text-gray-400 text-center mt-0.5">
-                Faltan {{ 500 - puntosUsuario }} 🪙 para Rookie
+              <p v-else class="text-[10px] text-gray-400 text-center mt-0.5 flex items-center justify-center gap-1">
+                Faltan {{ 500 - puntosUsuario }} <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3 h-3 inline-block" /> para Rookie
               </p>
             </div>
             <div v-if="cumpleanosFormateado" class="bg-gradient-to-r from-pink-50 to-red-50 border border-pink-200 rounded-lg px-4 py-2 w-full">
@@ -258,7 +270,7 @@
         <section v-if="menuOpen">
             <ul class="flex flex-col p-2 absolute top-20 right-4 bg-white rounded-xl shadow-lg w-44 space-y-1 border">
                 <li v-if="user && puntosUsuario !== null" class="p-2 text-sm font-bold text-yellow-700 border-b flex items-center gap-1">
-                    <span>🪙</span>
+                    <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-4 h-4 object-contain" />
                     <span>{{ coinsValidos }} ManiaCoins</span>
                     <span v-if="nivelUsuario" class="text-[10px] text-purple-500 ml-auto">👑 {{ nivelUsuario.nombre }}</span>
                 </li>
@@ -321,7 +333,7 @@
                             🌶️ {{ value.salsasAlitas.join(', ') }}
                         </div>
                     </div>
-                    <div v-if="value.esCanje" class="text-sm mr-2 font-bold text-yellow-600">🪙 {{ value.puntosCanje * value.cantidad }}</div>
+                    <div v-if="value.esCanje" class="text-sm mr-2 font-bold text-yellow-600 flex items-center gap-1"><img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3.5 h-3.5 inline-block" /> {{ value.puntosCanje * value.cantidad }}</div>
                     <div v-else class="text-sm mr-2">₡{{ cartStore.precioFinal(value) * value.cantidad }}</div>
                     <div class="flex items-center gap-1">
                         <button @click="cartStore.removeItem(value._uid)" class="text-gray-400 hover:text-red-500 p-1">
@@ -365,7 +377,7 @@
             <section class="flex items-center space-x-4">
                 <div v-if="user && puntosUsuario !== null"
                     class="flex items-center gap-1 text-sm font-bold text-yellow-700 bg-gradient-to-r from-purple-50 to-yellow-50 border border-purple-200 px-3 py-1.5 rounded-full">
-                    <span>🪙</span>
+                    <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-4 h-4 object-contain" />
                     <span>{{ coinsValidos }}</span>
                     <span v-if="nivelUsuario" class="text-[10px] text-purple-500 ml-0.5">👑 {{ nivelUsuario.nombre }}</span>
                     <span v-else-if="puntosUsuario > 0" class="text-[10px] text-red-400 ml-0.5">Rookie caído</span>
@@ -378,7 +390,7 @@
                     class="border px-4 py-2 rounded-full hover:cursor-pointer font-bold hover:bg-gray-50 transition-colors flex items-center gap-2">
                     <span class="pi pi-shopping-cart"></span>
                     <span v-if="cartStore.totalItems > 0"
-                        class="bg-[var(--primary)] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        class="bg-[var(--accent)] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                         {{ cartStore.totalItems }}
                     </span>
                 </button>
@@ -448,7 +460,7 @@
                               : (cat.esCanje ? 'bg-yellow-50 text-yellow-700 border-yellow-300 hover:bg-yellow-100' : 'bg-white text-gray-600 hover:bg-gray-100')"
                             class="px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap border transition-all duration-200 flex-shrink-0 flex items-center gap-1">
                             <span v-if="cat.cargando" class="pi pi-spinner animate-spin text-xs"></span>
-                            {{ cat.emoji }} {{ cat.nombre }}
+                            <img v-if="cat.esCanje" :src="assets.coinIconUrl" alt="ManiaCoins" class="w-4 h-4 inline-block" /><span v-else>{{ cat.emoji }}</span> {{ cat.nombre }}
                         </button>
                     </div>
                 </div>
@@ -477,8 +489,8 @@
 
                 <!-- Una sola categoría activa -->
                 <div v-if="categoriaActiva">
-                    <h2 class="text-3xl font-bold mb-6 text-center">
-                        {{ categoriaActiva.emoji }} {{ categoriaActiva.nombre }}
+                    <h2 class="text-3xl font-bold mb-6 text-center flex items-center justify-center gap-2">
+                        <img v-if="categoriaActiva.esCanje" :src="assets.coinIconUrl" alt="ManiaCoins" class="w-7 h-7 inline-block" /><span v-else>{{ categoriaActiva.emoji }}</span> {{ categoriaActiva.nombre }}
                     </h2>
 
                     <!-- Skeleton de categoría cargando -->
@@ -504,10 +516,10 @@
                     <div v-for="cat in categorias" :key="cat.nombre" v-show="!cat.esCanje || cat.productos.length > 0" class="mb-10">
                         <div class="flex items-center justify-between mb-4">
                             <div class="hidden md:block">
-                                <h2 class="heading-font text-2xl font-bold">{{ cat.emoji }} {{ cat.nombre }}</h2>
+                                <h2 class="heading-font text-2xl font-bold flex items-center gap-2"><img v-if="cat.esCanje" :src="assets.coinIconUrl" alt="ManiaCoins" class="w-6 h-6 inline-block" /><span v-else>{{ cat.emoji }}</span> {{ cat.nombre }}</h2>
                             </div>
                             <div class="block md:hidden">
-                                <h2 class="heading-font text-xl font-bold">{{ cat.emoji }} {{ cat.nombre }}</h2>
+                                <h2 class="heading-font text-xl font-bold flex items-center gap-2"><img v-if="cat.esCanje" :src="assets.coinIconUrl" alt="ManiaCoins" class="w-5 h-5 inline-block" /><span v-else>{{ cat.emoji }}</span> {{ cat.nombre }}</h2>
                             </div>
                             <button @click="seleccionarCategoria(cat)"
                                 class="text-[var(--primary)] text-sm font-bold hover:underline hover:cursor-pointer">
@@ -554,12 +566,13 @@ import { ref as storageRef, getDownloadURL } from 'firebase/storage'
 import { storage } from '../firebase.js'
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore'
 import { db, auth } from '../firebase.js'
-import { useCartStore, useLocationStore, useSucursales } from '../stores/cartStores.js'
+import { useCartStore, useLocationStore, useSucursales, useAssets } from '../stores/cartStores.js'
 import { useAuth } from '../composable/useAuth.js'
+import { cargarCoinIcon } from '../composable/useCoinIcon.js'
 import Footer from './Footer.vue'
 import CheckoutModal from './Checkoutmodal.vue'
 import { esPromocionActiva, diaPromocion } from '../composable/promociones.js'
-import { obtenerNivelReal, obtenerCoinsValidos, obtenerSiguienteNivel, obtenerTiempoRestanteExpiracion, esCumpleanos, formatearCumpleanos } from '../utils/maniacoins.js'
+import { obtenerNivelReal, obtenerCoinsValidos, obtenerSiguienteNivel, obtenerTiempoRestanteExpiracion, esCumpleanos, formatearCumpleanos, COLONES_POR_COIN } from '../utils/maniacoins.js'
 import EditProfileModal from './EditProfileModal.vue'
 import InstallPWAPrompt from './InstallPWAPrompt.vue'
 import NotificationBanner from './NotificationBanner.vue'
@@ -570,20 +583,36 @@ const ProductCard = defineComponent({
     emits: ['personalizar'],
     setup(props, { emit }) {
 
+        const assets = useAssets()
         const activo = computed(() =>
             props.esPromocion ? esPromocionActiva(props.item.nombre) : true
         )
+        const coinsGanados = computed(() => Math.floor((props.item.precio || 0) / COLONES_POR_COIN))
 
-        return () => h('div', { class: 'bg-white rounded-xl shadow-md p-3 flex flex-col hover:shadow-lg transition-shadow duration-200' + (props.esCanje ? ' border-2 border-yellow-400' : '') }, [
+        return () => h('div', { class: 'relative bg-white rounded-xl shadow-md p-3 flex flex-col hover:shadow-lg transition-shadow duration-200' + (props.esCanje ? ' border-2 border-yellow-400' : '') }, [
+            props.esPromocion && activo.value
+                ? h('span', { class: 'absolute -top-2 -left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow z-10' }, '🔥 Promo de hoy')
+                : null,
             props.item.imageUrl
                 ? h('img', { src: props.item.imageUrl, alt: props.item.nombre, loading: 'lazy', class: 'w-full h-32 object-cover rounded-lg mb-3' })
                 : h('div', { class: 'w-full h-32 bg-gray-100 rounded-lg mb-3 flex items-center justify-center text-3xl' }, '🍽️'),
             h('h3', { class: 'font-bold text-sm mb-1 flex-1 line-clamp-2' }, props.item.nombre),
             props.item.descripcion ? h('p', { class: 'text-gray-400 text-xs mb-1 line-clamp-1' }, props.item.descripcion) : null,
             props.item.incluye ? h('p', { class: 'text-[var(--primary)] text-xs mb-2 font-medium' }, `✅ ${props.item.incluye}`) : null,
-            props.esCanje
-                ? h('p', { class: 'font-bold text-yellow-600 mb-3' }, `🪙 ${props.item.puntosCanje}`)
-                : h('p', { class: 'font-bold text-[var(--primary)] mb-3' }, `₡${props.item.precio}`),
+            h('div', { class: 'flex items-center justify-between mb-3' }, [
+                props.esCanje
+                    ? h('p', { class: 'font-bold text-yellow-600 flex items-center gap-1' }, [
+                        h('img', { src: assets.coinIconUrl, alt: 'ManiaCoins', class: 'w-4 h-4 inline-block' }),
+                        props.item.puntosCanje
+                    ])
+                    : h('p', { class: 'font-bold text-[var(--primary)]' }, `₡${props.item.precio}`),
+                !props.esCanje && coinsGanados.value > 0
+                    ? h('span', { class: 'text-[10px] font-bold text-yellow-700 bg-yellow-50 px-1.5 py-0.5 rounded-full whitespace-nowrap flex items-center gap-0.5' }, [
+                        h('img', { src: assets.coinIconUrl, alt: 'ManiaCoins', class: 'w-3 h-3 inline-block' }),
+                        `+${coinsGanados.value}`
+                    ])
+                    : null
+            ]),
             h('button', {
                 disabled: !activo.value,
                 class: activo.value
@@ -600,6 +629,8 @@ const ProductCard = defineComponent({
 const cartStore = useCartStore()
 const locationStore = useLocationStore()
 const sucursalesStore = useSucursales()
+const assets = useAssets()
+cargarCoinIcon()
 
 // ── Estado ─────────────────────────────────────────────────────────────────
 const loader = vueRef(true)

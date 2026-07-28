@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full relative aspect-video overflow-hidden">
+  <div class="w-full relative aspect-video overflow-hidden bg-gray-100">
     <Transition name="fade">
       <img
         :key="currentIndex"
@@ -9,30 +9,43 @@
         class="w-full h-full object-cover absolute inset-0"
       />
     </Transition>
+
+    <!-- Degradado inferior para legibilidad del tagline -->
+    <div class="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none"></div>
+
+    <!-- Tagline de marca -->
+    <div class="absolute left-0 right-0 bottom-10 px-6 text-center pointer-events-none">
+      <h2 class="heading-font extrabold text-white text-2xl md:text-4xl drop-shadow-lg">
+        ¡El sabor que se te antoja!
+      </h2>
+      <p class="text-white/90 text-sm md:text-base mt-1 drop-shadow">
+        Pedí en línea y recibilo donde estés
+      </p>
+    </div>
+
     <button
-      class="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white text-black p-2 rounded-full shadow-lg"
+      class="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white text-[var(--primary)] w-9 h-9 flex items-center justify-center rounded-full shadow-lg transition-colors hover:cursor-pointer"
       @click="emitBackCarousel()"
     >
-      ←
+      <span class="pi pi-chevron-left text-sm"></span>
     </button>
     <button
-      class="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white text-black p-2 rounded-full shadow-lg"
+      class="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white text-[var(--primary)] w-9 h-9 flex items-center justify-center rounded-full shadow-lg transition-colors hover:cursor-pointer"
       @click="emitNextCarousel()"
     >
-      →
+      <span class="pi pi-chevron-right text-sm"></span>
     </button>
 
     <div
-      class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 shadow-lg bg-white pr-2 pl-2 rounded-full"
+      class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-1.5"
     >
       <span
         v-for="(_, index) in images"
         :key="index"
-        class="cursor-pointer"
+        class="h-1.5 rounded-full cursor-pointer transition-all duration-300"
+        :class="index === currentIndex ? 'w-6 bg-[var(--accent)]' : 'w-1.5 bg-white/60 hover:bg-white/90'"
         @click="currentIndex = index"
-      >
-        {{ index === currentIndex ? "●" : "○" }}
-      </span>
+      ></span>
     </div>
   </div>
 </template>

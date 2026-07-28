@@ -10,6 +10,8 @@
 :root {
   --primary: #642d81;
   --primary-dark: #422d4d;
+  --accent: #ff7a1a;
+  --accent-dark: #e35f00;
 }
 
 html {

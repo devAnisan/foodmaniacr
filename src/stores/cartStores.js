@@ -16,6 +16,21 @@ export const useSucursales = defineStore("sucursales", () => {
     }
 })
 
+export const useAssets = defineStore("assets", () => {
+    const coinIconUrl = vueRef("")
+    return { coinIconUrl }
+}, {
+    persist: {
+        enabled: true,
+        strategies: [
+            {
+                key: "assets",
+                storage: localStorage,
+            }
+        ]
+    }
+})
+
 export const useLocationStore = defineStore("location", () => {
     const distancia = vueRef()
     const sucursalCercana = vueRef()

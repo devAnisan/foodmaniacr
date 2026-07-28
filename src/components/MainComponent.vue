@@ -1,8 +1,11 @@
 <template>
-    <section v-if="loader" class="flex fontColor items-center justify-center h-screen">
-        <span class="material-symbols-outlined animate-spin">
-            progress_activity
-        </span>
+    <section v-if="loader" class="flex flex-col fontColor items-center justify-center h-screen gap-4 bg-white">
+        <img src="/logoFoodmania4.PNG" alt="Foodmania" class="w-24 h-24 object-contain animate-pulse" />
+        <div class="flex gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-[var(--primary)] animate-bounce" style="animation-delay:0ms"></span>
+            <span class="w-2 h-2 rounded-full bg-[var(--primary)] animate-bounce" style="animation-delay:150ms"></span>
+            <span class="w-2 h-2 rounded-full bg-[var(--primary)] animate-bounce" style="animation-delay:300ms"></span>
+        </div>
     </section>
     <!-- Pantallas pequenas -->
     <header v-else class="fixed top-0 left-0 right-0 z-50 bg-white fontColor">
@@ -47,11 +50,11 @@
         </nav>
         <!-- Modal de inicio de sesión -->
         <div v-if="menuLogIn" class="fixed inset-0 z-60 bg-black/50 h-full w-full flex items-center justify-center">
-            <div class="p-4 rounded-2xl shadow-2xl z-80 w-80 bg-white fontColor">
-                <section class="flex justify-between border-b text-center pb-3">
-                    <span class="text-2xl font-bold">{{ showCompleteProfile ? 'Completá tu perfil' : showVerifyCode ? 'Verificá tu correo' : 'Iniciar Sesión' }}</span>
+            <div class="rounded-3xl shadow-2xl z-80 w-80 bg-white fontColor overflow-hidden">
+                <section class="flex justify-between items-center bg-gradient-to-r from-[var(--primary)] to-[var(--primary-dark)] px-4 py-3">
+                    <span class="text-lg font-bold text-white">{{ showCompleteProfile ? 'Completá tu perfil' : showVerifyCode ? 'Verificá tu correo' : 'Iniciar Sesión' }}</span>
                     <button @click="menuLogIn = false; forgotPassword = false; justLogin = true; resetState()"
-                        class="text-red-500 hover:text-red-700 p-2 rounded hover:cursor-pointer">
+                        class="text-white/80 hover:text-white p-1 rounded hover:cursor-pointer">
                         <span class="pi pi-times"></span>
                     </button>
                 </section>
@@ -99,32 +102,44 @@
 
                 <!-- Login / Register -->
                 <section v-else class="flex flex-col p-4 text-center gap-3">
-                    <img :src="imageUrl" alt="logo_foodmania" class="w-20 mx-auto mb-2" />
-                    <input v-model="email" type="email" placeholder="Correo electrónico"
-                        class="p-2 border w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                    <img :src="imageUrl" alt="logo_foodmania" class="w-20 mx-auto -mt-10 mb-2 rounded-full border-4 border-white shadow-lg bg-white" />
+                    <div class="relative">
+                        <span class="pi pi-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></span>
+                        <input v-model="email" type="email" placeholder="Correo electrónico"
+                            class="pl-9 p-2 border w-full rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                    </div>
                     <section v-if="justLogin && !forgotPassword">
-                        <input v-model="password1" type="password" placeholder="Contraseña"
-                            class="p-2 w-full border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                        <div class="relative">
+                            <span class="pi pi-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></span>
+                            <input v-model="password1" type="password" placeholder="Contraseña"
+                                class="pl-9 p-2 w-full border rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                        </div>
                     </section>
                     <section class="flex flex-col gap-2" v-else-if="!justLogin && !forgotPassword">
-                        <input v-model="password1" type="password" placeholder="Crear contraseña"
-                            class="p-2 border rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
-                        <input v-model="password2" type="password" placeholder="Confirmar contraseña"
-                            class="p-2 border rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                        <div class="relative">
+                            <span class="pi pi-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></span>
+                            <input v-model="password1" type="password" placeholder="Crear contraseña"
+                                class="pl-9 p-2 border rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                        </div>
+                        <div class="relative">
+                            <span class="pi pi-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></span>
+                            <input v-model="password2" type="password" placeholder="Confirmar contraseña"
+                                class="pl-9 p-2 border rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                        </div>
                         <p class="text-xs text-red-500">Mínimo 8 caracteres, mayúscula, minúscula y número.</p>
                     </section>
                     <p v-if="successMsg" class="text-green-500 text-sm">{{ successMsg }}</p>
                     <p v-if="errorMsg" class="text-red-500 text-sm">{{ errorMsg }}</p>
                     <button v-if="justLogin && !forgotPassword" @click="login(email, password1)"
-                        class="bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
+                        class="bg-[var(--accent)] text-white px-4 py-2 rounded-xl font-bold hover:bg-[var(--accent-dark)] transition-colors hover:cursor-pointer">
                         Iniciar sesión
                     </button>
                     <button v-else-if="!justLogin && !forgotPassword" @click="register(email, password1, password2)"
-                        class="bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
+                        class="bg-[var(--accent)] text-white px-4 py-2 rounded-xl font-bold hover:bg-[var(--accent-dark)] transition-colors hover:cursor-pointer">
                         Crear cuenta
                     </button>
                     <button v-if="forgotPassword" @click="resetPassword(email)"
-                        class="bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
+                        class="bg-[var(--accent)] text-white px-4 py-2 rounded-xl font-bold hover:bg-[var(--accent-dark)] transition-colors hover:cursor-pointer">
                         Enviar correo de recuperación
                     </button>
                 </section>

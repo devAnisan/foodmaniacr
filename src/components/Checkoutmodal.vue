@@ -66,7 +66,7 @@
                   <span class="font-bold">{{ item.nombre }}</span>
                   <span class="text-gray-400"> x{{ item.cantidad }}</span>
                 </div>
-                <span v-if="item.esCanje" class="font-bold text-yellow-600 text-right">🪙 {{ item.puntosCanje * item.cantidad }} ManiaCoins</span>
+                <span v-if="item.esCanje" class="font-bold text-yellow-600 text-right flex items-center gap-1"><img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3.5 h-3.5 inline-block" /> {{ item.puntosCanje * item.cantidad }} ManiaCoins</span>
                 <span v-else class="font-bold text-right">₡{{ item.precio * item.cantidad }} colones</span>
               </div>
 
@@ -78,13 +78,13 @@
                     :class="bebidaPuntosMap[item._uid] ? 'bg-green-100 text-green-700 border-green-300' : 'bg-gray-100 text-gray-500 border-gray-200'"
                     class="text-[10px] px-2 py-0.5 rounded-full border font-bold ml-2 hover:cursor-pointer transition-colors">
                     <template v-if="bebidaPuntosMap[item._uid]">⭐ Canjeado</template>
-                    <template v-else>🪙 {{ costoBebidaManiaCoins(item.bebida.precio) }} coins</template>
+                    <template v-else><img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3 h-3 inline-block" /> {{ costoBebidaManiaCoins(item.bebida.precio) }} coins</template>
                   </button>
                 </div>
                 <span :class="bebidaPuntosMap[item._uid] ? 'text-green-600 line-through' : ''">
                   +₡{{ item.bebida.precio * item.cantidad }}
                   <span v-if="bebidaPuntosMap[item._uid]" class="text-green-600 font-bold ml-1 no-underline">
-                    ({{ costoBebidaManiaCoins(item.bebida.precio) }} 🪙)
+                    ({{ costoBebidaManiaCoins(item.bebida.precio) }} <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3 h-3 inline-block" />)
                   </span>
                 </span>
               </div>
@@ -118,7 +118,7 @@
                   <button v-if="userLogueado" @click="toggleAgrandarCoins(item, true)"
                     :class="agrandarPuntosMap[item._uid] ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-600'"
                     class="text-[10px] px-2 py-0.5 rounded-full font-bold hover:cursor-pointer transition-colors">
-                    🪙 {{ COIN_COSTOS.AGRANDAR }} coins
+                    <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3 h-3 inline-block" /> {{ COIN_COSTOS.AGRANDAR }} coins
                   </button>
                 </div>
               </div>
@@ -146,8 +146,8 @@
               class="mt-2 bg-gradient-to-r from-purple-50 to-yellow-50 border border-purple-200 rounded-xl p-3">
               <div class="flex items-center justify-between">
                 <div>
-                  <p class="text-xs font-bold text-purple-700">
-                    🪙 {{ coinsValidosComp }} ManiaCoins
+                  <p class="text-xs font-bold text-purple-700 flex items-center gap-1">
+                    <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3.5 h-3.5 inline-block" /> {{ coinsValidosComp }} ManiaCoins
                     <span v-if="coinsValidosComp < puntosActuales" class="text-[10px] text-red-400 font-normal">({{ puntosActuales - coinsValidosComp }} vencidos)</span>
                   </p>
                   <p v-if="nivelActual" class="text-[10px] font-bold text-yellow-700 mt-0.5">
@@ -163,7 +163,7 @@
                 <div v-if="siguienteNivel" class="text-right">
                   <p class="text-[10px] text-gray-400">Próximo nivel:</p>
                   <p class="text-xs font-bold text-purple-600">{{ siguienteNivel.nombre }}</p>
-                  <p class="text-[10px] text-gray-400">Faltan {{ siguienteNivel.coinsFaltantes }} 🪙</p>
+                  <p class="text-[10px] text-gray-400 flex items-center justify-end gap-1">Faltan {{ siguienteNivel.coinsFaltantes }} <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3 h-3 inline-block" /></p>
                 </div>
               </div>
             </div>
@@ -171,18 +171,18 @@
             <!-- Resumen de canje -->
             <div v-if="userLogueado && totalCoinsAGastar > 0 && puntosActuales !== null"
               class="mt-2 bg-yellow-50 border border-yellow-200 rounded-xl p-3">
-              <p class="text-xs font-bold text-yellow-700">
-                🪙 Canjeando: {{ totalCoinsAGastar }} ManiaCoins
+              <p class="text-xs font-bold text-yellow-700 flex items-center gap-1">
+                <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3.5 h-3.5 inline-block" /> Canjeando: {{ totalCoinsAGastar }} ManiaCoins
               </p>
-              <p v-if="coinsValidosComp < totalCoinsAGastar" class="text-xs text-red-600 font-bold">
-                ⚠️ Tenés {{ coinsValidosComp }} 🪙 disponibles, necesitás {{ totalCoinsAGastar }} 🪙.
+              <p v-if="coinsValidosComp < totalCoinsAGastar" class="text-xs text-red-600 font-bold flex items-center flex-wrap gap-1">
+                ⚠️ Tenés {{ coinsValidosComp }} <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3 h-3 inline-block" /> disponibles, necesitás {{ totalCoinsAGastar }} <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3 h-3 inline-block" />.
               </p>
-              <p v-else class="text-xs text-green-700">ManiaCoins disponibles: {{ coinsValidosComp }} 🪙 ✅</p>
+              <p v-else class="text-xs text-green-700 flex items-center gap-1">ManiaCoins disponibles: {{ coinsValidosComp }} <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3 h-3 inline-block" /> ✅</p>
             </div>
 
             <!-- ManiaCoins a ganar (solo usuarios logueados) -->
             <div v-if="userLogueado" class="mt-3 bg-gradient-to-r from-purple-50 to-yellow-50 border border-purple-200 rounded-xl p-3 flex items-center gap-3">
-              <span class="text-2xl">🪙</span>
+              <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-8 h-8 inline-block" />
               <div>
                 <p class="text-sm font-bold text-[var(--primary)]">
                   Ganarás {{ coinsAGanarDisplay }} ManiaCoin{{ coinsAGanarDisplay !== 1 ? 's' : '' }} con esta compra
@@ -190,20 +190,20 @@
                 <p v-if="esMartes" class="text-xs bg-gradient-to-r from-purple-700 to-yellow-500 text-white font-bold px-2 py-0.5 rounded-full inline-block mt-1">
                   🔥 Martes FoodManiacos — ManiaCoins x2
                 </p>
-                <p class="text-xs text-gray-400">
-                  Calculado sobre ₡{{ baseCashTotal }} en productos (₡100 = 1 🪙)
+                <p class="text-xs text-gray-400 flex items-center gap-1">
+                  Calculado sobre ₡{{ baseCashTotal }} en productos (₡100 = 1 <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3 h-3 inline-block" />)
                 </p>
-                <p v-if="primeraCompra" class="text-xs text-green-600 font-bold mt-0.5">
-                  🆕 ¡Primera compra! ManiaCoins x2 — Ganarás {{ coinsAGanarComp * 2 }} 🪙
+                <p v-if="primeraCompra" class="text-xs text-green-600 font-bold mt-0.5 flex items-center flex-wrap gap-1">
+                  🆕 ¡Primera compra! ManiaCoins x2 — Ganarás {{ coinsAGanarComp * 2 }} <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3 h-3 inline-block" />
                 </p>
-                <p v-if="esMartes && primeraCompra" class="text-xs text-purple-700 font-bold mt-0.5">
-                  🔥 Combinado con Martes FoodManiacos: Ganarás {{ coinsAGanarComp * 4 }} 🪙 en total
+                <p v-if="esMartes && primeraCompra" class="text-xs text-purple-700 font-bold mt-0.5 flex items-center flex-wrap gap-1">
+                  🔥 Combinado con Martes FoodManiacos: Ganarás {{ coinsAGanarComp * 4 }} <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3 h-3 inline-block" /> en total
                 </p>
                 <p v-if="puntosActuales !== null && totalCoinsAGastar > 0" class="text-xs text-yellow-700 font-bold mt-0.5">
                   ⚡ Los {{ coinsAGanarDisplay }} ManiaCoins de esta compra se suman después del canje
                 </p>
-                <p v-if="puntosActuales !== null" class="text-xs text-[var(--primary)] font-bold mt-0.5">
-                  Saldo final estimado: {{ coinsValidosComp - totalCoinsAGastar + coinsAGanarDisplay }} 🪙
+                <p v-if="puntosActuales !== null" class="text-xs text-[var(--primary)] font-bold mt-0.5 flex items-center gap-1">
+                  Saldo final estimado: {{ coinsValidosComp - totalCoinsAGastar + coinsAGanarDisplay }} <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3 h-3 inline-block" />
                 </p>
               </div>
             </div>
@@ -211,7 +211,7 @@
             <!-- ManiaCoins a ganar (usuarios NO logueados) -->
             <div v-else class="mt-3 bg-gradient-to-r from-purple-50 to-yellow-50 border border-purple-200 rounded-xl p-3">
               <div class="flex items-center gap-3">
-                <span class="text-2xl">🪙</span>
+                <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-8 h-8 inline-block" />
                 <div>
                   <p class="text-sm font-bold text-[var(--primary)]">
                     Ganarías {{ coinsAGanarDisplay }} ManiaCoin{{ coinsAGanarDisplay !== 1 ? 's' : '' }} con esta compra
@@ -387,7 +387,8 @@
 
 <script setup>
 import { ref as vueRef, computed, watch, reactive } from 'vue'
-import { useCartStore, useLocationStore, useSucursales } from '../stores/cartStores.js'
+import { useCartStore, useLocationStore, useSucursales, useAssets } from '../stores/cartStores.js'
+import { cargarCoinIcon } from '../composable/useCoinIcon.js'
 import { db, auth } from '../firebase.js'
 import { doc, getDoc, updateDoc, increment } from 'firebase/firestore'
 import { getFunctions, httpsCallable } from 'firebase/functions'
@@ -405,6 +406,8 @@ const emit = defineEmits(['update:modelValue'])
 const cartStore = useCartStore()
 const locationStore = useLocationStore()
 const sucursalesStore = useSucursales()
+const assets = useAssets()
+cargarCoinIcon()
 
 const hoy = new Date().toISOString().split('T')[0]
 const userLogueado = vueRef(!!auth.currentUser)
