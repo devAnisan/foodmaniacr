@@ -357,7 +357,7 @@
 
 <script setup>
 import { ref as vueRef, computed, onMounted, onUnmounted } from 'vue'
-import { collection, doc, getDoc, getDocs, addDoc, Timestamp, updateDoc, query, where, increment, onSnapshot } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, addDoc, Timestamp, updateDoc, query, where, orderBy, limit, increment, onSnapshot } from 'firebase/firestore'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { useRouter } from 'vue-router'
@@ -416,11 +416,16 @@ const verificarAdmin = async (user) => {
     }
 }
 
-// ── Listener en tiempo real para pedidos ───────────────────────────────────
-let unsuscribePedidos = null
+// ── Listener en tiempo real para pedidos (acotado por sucursal del admin) ──
+const PEDIDOS_LIMITE = 300
+
+let unsubPedidosSucursal = null
+let unsubPedidosDomicilio = null
+const pedidosPorId = new Map()
 
 const knownOrderIds = new Set()
-let isInitialLoad = true
+const isInitialLoadSucursal = { value: true }
+const isInitialLoadDomicilio = { value: true }
 
 function playNotificationSound() {
     try {
@@ -447,35 +452,71 @@ function playNotificationSound() {
     }
 }
 
-const setupPedidosListener = () => {
-    if (unsuscribePedidos) unsuscribePedidos()
+const buildPedidosQuery = (tipoRetiro, campoSucursal) =>
+    query(
+        collection(db, 'pedidos'),
+        where('tipoRetiro', '==', tipoRetiro),
+        where(campoSucursal, '==', adminSucursal.value),
+        orderBy('creadoEn', 'desc'),
+        limit(PEDIDOS_LIMITE)
+    )
 
-    isInitialLoad = true
-    cargandoPedidos.value = true
-    unsuscribePedidos = onSnapshot(collection(db, 'pedidos'), (snapshot) => {
-        if (!isInitialLoad) {
-            snapshot.docChanges().forEach(change => {
-                if (change.type === 'added' && !knownOrderIds.has(change.doc.id)) {
-                    const data = change.doc.data()
-                    const pertenece = data.tipoRetiro === 'domicilio'
-                        ? data.sucursalCercana === adminSucursal.value
-                        : data.sucursal === adminSucursal.value
-                    if (pertenece && data.estado === 'pendiente') {
-                        playNotificationSound()
-                    }
-                }
-            })
+const refrescarPedidos = () => {
+    pedidos.value = Array.from(pedidosPorId.values())
+        .sort((a, b) => (b.creadoEn?.seconds ?? 0) - (a.creadoEn?.seconds ?? 0))
+    cargandoPedidos.value = false
+}
+
+const manejarSnapshotPedidos = (snapshot, esInicial) => {
+    if (!esInicial.value) {
+        snapshot.docChanges().forEach(change => {
+            if (change.type === 'added' && !knownOrderIds.has(change.doc.id) && change.doc.data().estado === 'pendiente') {
+                playNotificationSound()
+            }
+        })
+    } else {
+        esInicial.value = false
+    }
+
+    snapshot.docChanges().forEach(change => {
+        if (change.type === 'removed') {
+            pedidosPorId.delete(change.doc.id)
+            knownOrderIds.delete(change.doc.id)
         } else {
-            isInitialLoad = false
+            pedidosPorId.set(change.doc.id, { id: change.doc.id, ...change.doc.data() })
+            knownOrderIds.add(change.doc.id)
         }
-
-        snapshot.docs.forEach(d => knownOrderIds.add(d.id))
-        pedidos.value = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
-        cargandoPedidos.value = false
-    }, (error) => {
-        console.error('Error en listener de pedidos:', error)
-        cargandoPedidos.value = false
     })
+
+    refrescarPedidos()
+}
+
+const setupPedidosListener = () => {
+    if (unsubPedidosSucursal) unsubPedidosSucursal()
+    if (unsubPedidosDomicilio) unsubPedidosDomicilio()
+
+    pedidosPorId.clear()
+    knownOrderIds.clear()
+    isInitialLoadSucursal.value = true
+    isInitialLoadDomicilio.value = true
+    cargandoPedidos.value = true
+
+    const onError = (label) => (error) => {
+        console.error(`Error en listener de pedidos (${label}):`, error)
+        cargandoPedidos.value = false
+    }
+
+    unsubPedidosSucursal = onSnapshot(
+        buildPedidosQuery('sucursal', 'sucursal'),
+        (snapshot) => manejarSnapshotPedidos(snapshot, isInitialLoadSucursal),
+        onError('sucursal')
+    )
+
+    unsubPedidosDomicilio = onSnapshot(
+        buildPedidosQuery('domicilio', 'sucursalCercana'),
+        (snapshot) => manejarSnapshotPedidos(snapshot, isInitialLoadDomicilio),
+        onError('domicilio')
+    )
 }
 
 // ── ✅ Filtrar pedidos por sucursal del admin Y estado ─────────────────────
@@ -650,8 +691,10 @@ const cerrarSesion = async () => {
 }
 
 // ── Auth check al montar ───────────────────────────────────────────────────
+let unsubAuth = null
+
 onMounted(() => {
-    onAuthStateChanged(auth, async (user) => {
+    unsubAuth = onAuthStateChanged(auth, async (user) => {
         if (user) {
             await verificarAdmin(user)
         } else {
@@ -662,6 +705,8 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-    if (unsuscribePedidos) unsuscribePedidos()
+    if (unsubAuth) unsubAuth()
+    if (unsubPedidosSucursal) unsubPedidosSucursal()
+    if (unsubPedidosDomicilio) unsubPedidosDomicilio()
 })
 </script>

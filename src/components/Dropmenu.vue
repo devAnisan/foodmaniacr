@@ -26,7 +26,7 @@
 </template>
 
 <script setup>
-import { ref as vueRef, onMounted } from "vue"
+import { ref as vueRef, onMounted, onUnmounted } from "vue"
 import { useRouter } from "vue-router"
 import { auth, db } from "../firebase.js"
 import { onAuthStateChanged, signOut } from "firebase/auth"
@@ -75,8 +75,10 @@ const verificarAdmin = async (currentUser) => {
   }
 }
 
+let unsubAuth = null
+
 onMounted(() => {
-  onAuthStateChanged(auth, (currentUser) => {
+  unsubAuth = onAuthStateChanged(auth, (currentUser) => {
     user.value = currentUser
     if (currentUser) {
       verificarAdmin(currentUser)
@@ -84,5 +86,9 @@ onMounted(() => {
       esAdmin.value = false
     }
   })
+})
+
+onUnmounted(() => {
+  if (unsubAuth) unsubAuth()
 })
 </script>

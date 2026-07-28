@@ -190,7 +190,7 @@ export function useAuth() {
   }
 
   const initAuthListener = (onUserChange) => {
-    onAuthStateChanged(auth, (currentUser) => {
+    return onAuthStateChanged(auth, (currentUser) => {
       user.value = currentUser
       if (onUserChange) onUserChange(currentUser)
     })

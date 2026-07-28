@@ -549,7 +549,7 @@
 </template>
 
 <script setup>
-import { ref as vueRef, computed, onMounted, watch, defineComponent, h } from 'vue'
+import { ref as vueRef, computed, onMounted, onUnmounted, watch, defineComponent, h } from 'vue'
 import { ref as storageRef, getDownloadURL } from 'firebase/storage'
 import { storage } from '../firebase.js'
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore'
@@ -835,8 +835,12 @@ const nivelUsuario = computed(() => obtenerNivelReal(puntosUsuario.value, ultima
 const siguienteNivelUsuario = computed(() => obtenerSiguienteNivel(puntosUsuario.value, ultimaGananciaCoins.value))
 const tiempoRestante = computed(() => obtenerTiempoRestanteExpiracion(ultimaGananciaCoins.value))
 
-initAuthListener((currentUser) => {
+const unsubAuth = initAuthListener((currentUser) => {
   if (currentUser) cargarPuntosUsuario(currentUser.uid)
+})
+
+onUnmounted(() => {
+  if (unsubAuth) unsubAuth()
 })
 
 // ── Categorías con emoji y lazy loading ────────────────────────────────────
@@ -858,15 +862,20 @@ const cargarCategoria = async (cat) => {
     cat.cargando = true
     try {
         const snap = await getDocs(collection(db, cat.coleccion))
-        for (const doc of snap.docs) {
+        const productos = await Promise.all(snap.docs.map(async (doc) => {
             const data = doc.data()
             let itemImageUrl = null
             if (data.imagen) {
-                const imgRef = storageRef(storage, data.imagen)
-                itemImageUrl = await getDownloadURL(imgRef)
+                try {
+                    const imgRef = storageRef(storage, data.imagen)
+                    itemImageUrl = await getDownloadURL(imgRef)
+                } catch (error) {
+                    console.error(`Error cargando imagen de ${data.nombre ?? doc.id}:`, error)
+                }
             }
-            cat.productos.push({ id: doc.id, ...data, precio: Number(data.precio), imageUrl: itemImageUrl })
-        }
+            return { id: doc.id, ...data, precio: Number(data.precio), imageUrl: itemImageUrl }
+        }))
+        cat.productos.push(...productos)
         cat.cargada = true
         actualizarCanje()
     } catch (error) {
@@ -918,11 +927,13 @@ onMounted(async () => {
         const imgRef = storageRef(storage, 'FoodMania/logoFoodmania4.PNG')
         imageUrl.value = await getDownloadURL(imgRef)
 
-        // Cargar sucursales para el store
-        const docSnap = await getDocs(collection(db, 'Sucursales de Foodmania'))
-        const sucursales = []
-        docSnap.forEach(doc => sucursales.push({ ...doc.data() }))
-        sucursalesStore.sucursalesFoodMania = sucursales
+        // Cargar sucursales para el store (si no están ya cargadas)
+        if (sucursalesStore.sucursalesFoodMania.length === 0) {
+            const docSnap = await getDocs(collection(db, 'Sucursales de Foodmania'))
+            const sucursales = []
+            docSnap.forEach(doc => sucursales.push({ ...doc.data() }))
+            sucursalesStore.sucursalesFoodMania = sucursales
+        }
 
         // Carga la primera categoría inmediatamente
         await cargarCategoria(categorias.value[0])

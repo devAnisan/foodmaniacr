@@ -265,7 +265,7 @@
     <NotificationBanner />
 </template>
 <script setup>
-import { ref as vueRef, computed, watch, onMounted } from "vue";
+import { ref as vueRef, computed, watch, onMounted, onUnmounted } from "vue";
 import { ref as storageRef, getDownloadURL } from "firebase/storage";
 import { storage } from "../firebase.js";
 import { useRouter } from "vue-router";
@@ -336,8 +336,14 @@ const getLocations = () => {
 }
 
 
+let unsubAuth = null
+
+onUnmounted(() => {
+    if (unsubAuth) unsubAuth()
+})
+
 onMounted(async () => {
-    initAuthListener((currentUser) => {
+    unsubAuth = initAuthListener((currentUser) => {
         verificarAdmin(currentUser)
     })
 
