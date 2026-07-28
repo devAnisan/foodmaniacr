@@ -37,11 +37,13 @@ const router = useRouter()
 const user = vueRef(null)
 const esAdmin = vueRef(false)
 
+const emit = defineEmits(["open-login"])
+
 const openLogin = () => {
   if (user.value) {
     cerrarSesion()
   } else {
-    router.push("/menu")
+    emit("open-login")
   }
 }
 

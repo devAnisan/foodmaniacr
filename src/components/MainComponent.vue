@@ -16,7 +16,7 @@
                 </span>
             </section>
         </nav>
-        <Dropmenu class="z-50" v-show="menuOpen" />
+        <Dropmenu class="z-50" v-show="menuOpen" @open-login="openLogin" />
         <!-- Pantallas medianas -->
         <nav class="hidden md:flex items-center justify-between p-4 shadow-sm">
             <section class="flex items-center space-x-2 hover:cursor-pointer">

@@ -914,19 +914,23 @@ const resultadosBusqueda = computed(() => {
 
 // ── onMounted: carga logo + primera categoría ─────────────────────────────
 onMounted(async () => {
-    const imgRef = storageRef(storage, 'FoodMania/logoFoodmania4.PNG')
-    imageUrl.value = await getDownloadURL(imgRef)
+    try {
+        const imgRef = storageRef(storage, 'FoodMania/logoFoodmania4.PNG')
+        imageUrl.value = await getDownloadURL(imgRef)
 
-    // Cargar sucursales para el store
-    const docSnap = await getDocs(collection(db, 'Sucursales de Foodmania'))
-    const sucursales = []
-    docSnap.forEach(doc => sucursales.push({ ...doc.data() }))
-    sucursalesStore.sucursalesFoodMania = sucursales
+        // Cargar sucursales para el store
+        const docSnap = await getDocs(collection(db, 'Sucursales de Foodmania'))
+        const sucursales = []
+        docSnap.forEach(doc => sucursales.push({ ...doc.data() }))
+        sucursalesStore.sucursalesFoodMania = sucursales
 
-    // Carga la primera categoría inmediatamente
-    await cargarCategoria(categorias.value[0])
-
-    loader.value = false
+        // Carga la primera categoría inmediatamente
+        await cargarCategoria(categorias.value[0])
+    } catch (error) {
+        console.error('Error cargando datos iniciales del menú:', error)
+    } finally {
+        loader.value = false
+    }
 
     // Carga el resto en segundo plano sin bloquear la UI
     for (const cat of categorias.value.slice(1)) {
