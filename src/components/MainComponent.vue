@@ -51,7 +51,7 @@
         <!-- Modal de inicio de sesión -->
         <div v-if="menuLogIn" class="fixed inset-0 z-60 bg-black/50 h-full w-full flex items-center justify-center">
             <div class="rounded-3xl shadow-2xl z-80 w-80 bg-white fontColor overflow-hidden">
-                <section class="flex justify-between items-center bg-gradient-to-r from-[var(--primary)] to-[var(--primary-dark)] px-4 py-3">
+                <section class="flex justify-between items-center bg-gradient-to-r from-[var(--primary)] to-[var(--primary-dark)] px-5 py-4">
                     <span class="text-lg font-bold text-white">{{ showCompleteProfile ? 'Completá tu perfil' : showVerifyCode ? 'Verificá tu correo' : 'Iniciar Sesión' }}</span>
                     <button @click="menuLogIn = false; forgotPassword = false; justLogin = true; resetState()"
                         class="text-white/80 hover:text-white p-1 rounded hover:cursor-pointer">
@@ -60,24 +60,24 @@
                 </section>
 
                 <!-- Código de verificación -->
-                <section v-if="showVerifyCode" class="flex flex-col p-4 text-center gap-3">
+                <section v-if="showVerifyCode" class="flex flex-col p-6 text-center gap-4">
                     <p class="text-sm text-green-600 font-bold">{{ successMsg }}</p>
                     <p class="text-sm text-gray-500">Ingresá el código de 6 dígitos que te enviamos</p>
-                    <input v-model="codigoInput" type="text" maxlength="6" placeholder="000000"
-                        class="p-2 border w-full rounded-lg text-center text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                    <input v-model="codigoInput" type="text" maxlength="6" placeholder="000000" :disabled="isLoading"
+                        class="p-2 border w-full rounded-lg text-center text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-[var(--primary)] disabled:opacity-60" />
                     <p v-if="errorMsg" class="text-red-500 text-sm">{{ errorMsg }}</p>
-                    <button @click="verificarCodigo"
-                        class="bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
-                        Verificar código
+                    <button @click="verificarCodigo" :disabled="isLoading"
+                        class="bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+                        {{ isLoading ? 'Cargando...' : 'Verificar código' }}
                     </button>
-                    <button @click="register(email, password1, password2)"
-                        class="text-sm text-[var(--primary)] hover:cursor-pointer">
+                    <button @click="register(email, password1, password2)" :disabled="isLoading"
+                        class="text-sm text-[var(--primary)] hover:cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
                         Reenviar código
                     </button>
                 </section>
 
                 <!-- Completar perfil -->
-                <section v-else-if="showCompleteProfile" class="flex flex-col p-4 text-center gap-3">
+                <section v-else-if="showCompleteProfile" class="flex flex-col p-6 text-center gap-4">
                     <p class="text-sm text-green-600 font-bold">{{ successMsg }}</p>
                     <p class="text-sm text-gray-500">Contanos de vos para terminar</p>
                     <input v-model="datosNuevos.nombre" type="text" placeholder="Nombre completo"
@@ -94,18 +94,18 @@
                         📍 Usar mi ubicación actual
                     </button>
                     <p v-if="errorMsg" class="text-red-500 text-sm">{{ errorMsg }}</p>
-                    <button @click="completarPerfil"
-                        class="bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
-                        Finalizar
+                    <button @click="completarPerfil" :disabled="isLoading"
+                        class="bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+                        {{ isLoading ? 'Cargando...' : 'Finalizar' }}
                     </button>
                 </section>
 
                 <!-- Login / Register -->
-                <section v-else class="flex flex-col p-4 text-center gap-3">
+                <section v-else class="flex flex-col p-6 text-center gap-4">
                     <img :src="imageUrl" alt="logo_foodmania" class="w-20 mx-auto -mt-10 mb-2 rounded-full border-4 border-white shadow-lg bg-white" />
                     <div class="relative">
                         <span class="pi pi-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></span>
-                        <input v-model="email" type="email" placeholder="Correo electrónico"
+                        <input v-model="email" @input="emailEnUso = false" type="email" placeholder="Correo electrónico"
                             class="pl-9 p-2 border w-full rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
                     </div>
                     <section v-if="justLogin && !forgotPassword">
@@ -129,28 +129,32 @@
                         <p class="text-xs text-red-500">Mínimo 8 caracteres, mayúscula, minúscula y número.</p>
                     </section>
                     <p v-if="successMsg" class="text-green-500 text-sm">{{ successMsg }}</p>
-                    <p v-if="errorMsg" class="text-red-500 text-sm">{{ errorMsg }}</p>
-                    <button v-if="justLogin && !forgotPassword" @click="login(email, password1)"
-                        class="bg-[var(--accent)] text-white px-4 py-2 rounded-xl font-bold hover:bg-[var(--accent-dark)] transition-colors hover:cursor-pointer">
-                        Iniciar sesión
+                    <p v-if="errorMsg" class="text-red-500 text-sm">
+                        {{ errorMsg }}
+                        <a v-if="emailEnUso" href="#" @click="justLogin = true; forgotPassword = false; emailEnUso = false; errorMsg = ''"
+                            class="text-[var(--primary)] font-bold underline">Iniciá sesión</a>
+                    </p>
+                    <button v-if="justLogin && !forgotPassword" @click="login(email, password1)" :disabled="isLoading"
+                        class="bg-[var(--accent)] text-white px-4 py-2 rounded-xl font-bold hover:bg-[var(--accent-dark)] transition-colors hover:cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+                        {{ isLoading ? 'Cargando...' : 'Iniciar sesión' }}
                     </button>
-                    <button v-else-if="!justLogin && !forgotPassword" @click="register(email, password1, password2)"
-                        class="bg-[var(--accent)] text-white px-4 py-2 rounded-xl font-bold hover:bg-[var(--accent-dark)] transition-colors hover:cursor-pointer">
-                        Crear cuenta
+                    <button v-else-if="!justLogin && !forgotPassword" @click="register(email, password1, password2)" :disabled="isLoading"
+                        class="bg-[var(--accent)] text-white px-4 py-2 rounded-xl font-bold hover:bg-[var(--accent-dark)] transition-colors hover:cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+                        {{ isLoading ? 'Cargando...' : 'Crear cuenta' }}
                     </button>
-                    <button v-if="forgotPassword" @click="resetPassword(email)"
-                        class="bg-[var(--accent)] text-white px-4 py-2 rounded-xl font-bold hover:bg-[var(--accent-dark)] transition-colors hover:cursor-pointer">
-                        Enviar correo de recuperación
+                    <button v-if="forgotPassword" @click="resetPassword(email)" :disabled="isLoading"
+                        class="bg-[var(--accent)] text-white px-4 py-2 rounded-xl font-bold hover:bg-[var(--accent-dark)] transition-colors hover:cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+                        {{ isLoading ? 'Cargando...' : 'Enviar correo de recuperación' }}
                     </button>
                 </section>
-                <section v-if="justLogin && !showVerifyCode && !showCompleteProfile" class="text-center text-sm border-t pt-3">
+                <section v-if="justLogin && !showVerifyCode && !showCompleteProfile" class="text-center text-sm border-t px-5 pt-4 pb-5">
                     <p class="text-gray-600">¿No tenés cuenta? <a href="#"
                             @click="justLogin = false; forgotPassword = false"
                             class="text-[var(--primary)] font-bold">Regístrate</a></p>
                     <button class="text-[var(--primary)] text-sm mt-2 hover:cursor-pointer"
                         @click="forgotPassword = true">¿Olvidaste tu contraseña?</button>
                 </section>
-                <section v-if="!justLogin && !showVerifyCode && !showCompleteProfile" class="text-center text-sm border-t pt-3">
+                <section v-if="!justLogin && !showVerifyCode && !showCompleteProfile" class="text-center text-sm border-t px-5 pt-4 pb-5">
                     <p class="text-gray-600">¿Ya tenés cuenta? <a href="#" @click="justLogin = true"
                             class="text-[var(--primary)] font-bold">Iniciá sesión</a></p>
                 </section>
@@ -305,7 +309,7 @@ const sucursalesStore = useSucursales()
 
 const {
     user, esAdmin, showUserModal, menuLogIn, justLogin, forgotPassword,
-    email, password1, password2, successMsg, errorMsg,
+    email, password1, password2, successMsg, errorMsg, isLoading, emailEnUso,
     showVerifyCode, showCompleteProfile, codigoInput, datosNuevos,
     openLogin, cerrarSesion, resetPassword, register, login,
     verificarCodigo, completarPerfil, obtenerUbicacionPerfil, resetState,

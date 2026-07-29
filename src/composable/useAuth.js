@@ -24,6 +24,8 @@ export function useAuth() {
   const password2 = vueRef('')
   const successMsg = vueRef('')
   const errorMsg = vueRef('')
+  const isLoading = vueRef(false)
+  const emailEnUso = vueRef(false)
   const menuLogIn = vueRef(false)
   const showUserModal = vueRef(false)
   const showVerifyCode = vueRef(false)
@@ -47,6 +49,7 @@ export function useAuth() {
     datosNuevos.value = { nombre: '', telefono: '', direccion: '', cumpleanos: '', lat: '', lng: '' }
     errorMsg.value = ''
     successMsg.value = ''
+    emailEnUso.value = false
   }
 
   const cerrarSesion = async () => {
@@ -56,11 +59,23 @@ export function useAuth() {
   }
 
   const resetPassword = async (email) => {
+    if (!email) {
+      errorMsg.value = 'Ingresá tu correo electrónico.'
+      return
+    }
+    isLoading.value = true
+    errorMsg.value = ''
+    successMsg.value = ''
     try {
       await sendPasswordResetEmail(auth, email)
       successMsg.value = 'Correo de recuperación enviado 📧'
-      errorMsg.value = ''
-    } catch { errorMsg.value = 'Error al enviar el correo.'; successMsg.value = '' }
+    } catch (error) {
+      errorMsg.value = error.code === 'auth/invalid-email'
+        ? 'El correo electrónico no es válido.'
+        : 'No pudimos enviar el correo. Verificá el correo e intentá de nuevo.'
+    } finally {
+      isLoading.value = false
+    }
   }
 
   const register = async (email, password1, password2) => {
@@ -68,6 +83,11 @@ export function useAuth() {
       errorMsg.value = "Las contraseñas no coinciden."
       return
     }
+
+    isLoading.value = true
+    errorMsg.value = ''
+    successMsg.value = ''
+    emailEnUso.value = false
 
     let uid
     try {
@@ -89,7 +109,17 @@ export function useAuth() {
       await signOut(auth)
     } catch (error) {
       console.error("Error en Auth:", error.code)
-      errorMsg.value = "Error al crear la cuenta. Verificá que los datos sean correctos."
+      if (error.code === 'auth/email-already-in-use') {
+        errorMsg.value = 'Ya existe una cuenta con este correo electrónico.'
+        emailEnUso.value = true
+      } else if (error.code === 'auth/invalid-email') {
+        errorMsg.value = 'El correo electrónico no es válido.'
+      } else if (error.code === 'auth/weak-password') {
+        errorMsg.value = 'La contraseña es muy débil.'
+      } else {
+        errorMsg.value = "Error al crear la cuenta. Verificá que los datos sean correctos."
+      }
+      isLoading.value = false
       return
     }
 
@@ -102,6 +132,8 @@ export function useAuth() {
       errorMsg.value = ''
     } catch (error) {
       errorMsg.value = 'Error al enviar el código. Intentá de nuevo.'
+    } finally {
+      isLoading.value = false
     }
   }
 
@@ -110,14 +142,17 @@ export function useAuth() {
       errorMsg.value = 'Ingresá el código de 6 dígitos.'
       return
     }
+    isLoading.value = true
+    errorMsg.value = ''
     try {
-      errorMsg.value = ''
       await verifyCodeFn({ email: pendingEmail.value, code: codigoInput.value })
       successMsg.value = '✅ Correo verificado correctamente'
       showVerifyCode.value = false
       showCompleteProfile.value = true
     } catch (error) {
       errorMsg.value = error.message || 'Código incorrecto o expirado.'
+    } finally {
+      isLoading.value = false
     }
   }
 
@@ -126,6 +161,8 @@ export function useAuth() {
     if (!datosNuevos.value.telefono) return errorMsg.value = 'Ingresá tu teléfono.'
     if (!datosNuevos.value.cumpleanos) return errorMsg.value = 'Ingresá tu fecha de cumpleaños.'
 
+    isLoading.value = true
+    errorMsg.value = ''
     try {
       const userCredential = await signInWithEmailAndPassword(auth, pendingEmail.value, password1.value)
       await setDoc(doc(db, 'clientes', userCredential.user.uid), {
@@ -143,6 +180,8 @@ export function useAuth() {
       errorMsg.value = 'Error al iniciar sesión. Ingresá manualmente.'
       showCompleteProfile.value = false
       justLogin.value = true
+    } finally {
+      isLoading.value = false
     }
   }
 
@@ -162,14 +201,34 @@ export function useAuth() {
   }
 
   const login = async (email, password) => {
+    if (!email || !password) {
+      errorMsg.value = 'Ingresá tu correo y contraseña.'
+      return
+    }
+    isLoading.value = true
+    errorMsg.value = ''
+    successMsg.value = ''
     try {
       await signInWithEmailAndPassword(auth, email, password)
       successMsg.value = 'Inicio de sesión exitoso ✅'
-      errorMsg.value = ''
       setTimeout(() => {
         menuLogIn.value = false
       }, 1000)
-    } catch { errorMsg.value = 'Credenciales incorrectas.'; successMsg.value = '' }
+    } catch (error) {
+      if (['auth/user-not-found', 'auth/wrong-password', 'auth/invalid-credential'].includes(error.code)) {
+        errorMsg.value = 'Correo o contraseña incorrectos.'
+      } else if (error.code === 'auth/invalid-email') {
+        errorMsg.value = 'El correo electrónico no es válido.'
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMsg.value = 'Demasiados intentos fallidos. Probá de nuevo más tarde.'
+      } else if (error.code === 'auth/user-disabled') {
+        errorMsg.value = 'Esta cuenta fue deshabilitada.'
+      } else {
+        errorMsg.value = 'Error al iniciar sesión. Intentá de nuevo.'
+      }
+    } finally {
+      isLoading.value = false
+    }
   }
 
   const verificarAdmin = async (currentUser) => {
@@ -198,7 +257,7 @@ export function useAuth() {
 
   return {
     user, esAdmin, justLogin, forgotPassword, email, password1, password2,
-    successMsg, errorMsg, menuLogIn, showUserModal,
+    successMsg, errorMsg, isLoading, emailEnUso, menuLogIn, showUserModal,
     showVerifyCode, showCompleteProfile, pendingEmail, codigoInput, datosNuevos,
     openLogin, cerrarSesion, resetPassword, resetState,
     register, login, verificarCodigo, completarPerfil, obtenerUbicacionPerfil,
