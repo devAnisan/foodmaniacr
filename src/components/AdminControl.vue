@@ -204,13 +204,19 @@
                                 </span>
                             </td>
                             <td class="p-3">
-                                <select :value="pedido.estado" @change="cambiarEstado(pedido, $event.target.value)"
-                                    class="border rounded-lg p-1 text-xs hover:cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--primary)]">
-                                    <option value="pendiente">Pendiente</option>
-                                    <option value="en transcurso">En transcurso</option>
-                                    <option value="finalizado">Finalizado</option>
-                                    <option value="cancelado">Cancelado</option>
-                                </select>
+                                <div class="flex items-center gap-2">
+                                    <select :value="pedido.estado" @change="cambiarEstado(pedido, $event.target.value)"
+                                        class="border rounded-lg p-1 text-xs hover:cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--primary)]">
+                                        <option value="pendiente">Pendiente</option>
+                                        <option value="en transcurso">En transcurso</option>
+                                        <option value="finalizado">Finalizado</option>
+                                        <option value="cancelado">Cancelado</option>
+                                    </select>
+                                    <button @click="imprimirPedido(pedido)" title="Imprimir factura"
+                                        class="text-gray-500 hover:text-[var(--primary)] transition-colors hover:cursor-pointer">
+                                        <span class="pi pi-print text-lg"></span>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
@@ -251,6 +257,10 @@
                             <option value="finalizado">Finalizado</option>
                             <option value="cancelado">Cancelado</option>
                         </select>
+                        <button @click="imprimirPedido(pedido)" title="Imprimir factura"
+                            class="border border-gray-300 text-gray-600 px-3 rounded-lg hover:bg-gray-50 transition-colors hover:cursor-pointer">
+                            <span class="pi pi-print"></span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -261,8 +271,14 @@
             <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
                 <div class="flex justify-between items-center p-5 border-b">
                     <h2 class="text-xl font-bold">Detalle del pedido</h2>
-                    <button @click="pedidoDetalle = null"
-                        class="pi pi-times text-red-500 hover:cursor-pointer p-2"></button>
+                    <div class="flex items-center gap-1">
+                        <button @click="imprimirPedido(pedidoDetalle)" title="Imprimir factura"
+                            class="text-gray-500 hover:text-[var(--primary)] hover:cursor-pointer p-2">
+                            <span class="pi pi-print text-lg"></span>
+                        </button>
+                        <button @click="pedidoDetalle = null"
+                            class="pi pi-times text-red-500 hover:cursor-pointer p-2"></button>
+                    </div>
                 </div>
                 <div class="p-5 flex flex-col gap-4">
 
@@ -652,6 +668,143 @@ const formatearFecha = (timestamp) => {
         day: '2-digit', month: '2-digit', year: 'numeric',
         hour: '2-digit', minute: '2-digit'
     })
+}
+
+// ── Imprimir pedido (factura) ──────────────────────────────────────────────
+const escapeHtml = (valor) => {
+    if (valor === null || valor === undefined) return ''
+    return String(valor)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+}
+
+const construirFilasItemsFactura = (items) => {
+    return (items || []).map(item => {
+        const extras = []
+        if (item.bebida) extras.push(`🥤 ${escapeHtml(item.bebida.nombre)}`)
+        if (item.proteinaSel) extras.push(`🍗 ${escapeHtml(item.proteinaSel)}`)
+        if (item.gaseosaSel) extras.push(`🥤 Sabor: ${escapeHtml(item.gaseosaSel)}`)
+        if (item.papasConSalsa) extras.push('🍟 Papas con salsa')
+        if (item.salsasAlitas?.length) extras.push(`🌶️ Salsas: ${escapeHtml(item.salsasAlitas.join(', '))}`)
+        if (item.agrandarPapas) extras.push('⬆️ Papas agrandadas')
+
+        const precio = item.esCanje
+            ? `🪙${(item.puntosCanje || 0) * item.cantidad}`
+            : `₡${item.precio * item.cantidad}`
+
+        return `
+            <tr>
+                <td class="item-col">
+                    <div class="item-nombre">${item.cantidad}x ${escapeHtml(item.nombre)}</div>
+                    ${extras.map(e => `<div class="item-extra">- ${e}</div>`).join('')}
+                </td>
+                <td class="item-precio">${precio}</td>
+            </tr>
+        `
+    }).join('')
+}
+
+const imprimirPedido = (pedido) => {
+    if (!pedido) return
+
+    const ventana = window.open('', '_blank', 'width=340,height=700')
+    if (!ventana) {
+        errorMsg.value = 'Habilitá las ventanas emergentes para poder imprimir.'
+        return
+    }
+
+    const retiroHtml = pedido.tipoRetiro === 'sucursal'
+        ? `<div class="fila"><span>Retiro</span><span>Sucursal</span></div>
+           <div class="fila-simple">${escapeHtml(pedido.sucursal)}</div>
+           <div class="fila-simple">${escapeHtml(pedido.fechaRetiro)} ${escapeHtml(pedido.horaRetiro)}</div>`
+        : `<div class="fila"><span>Retiro</span><span>Domicilio</span></div>
+           <div class="fila-simple">${escapeHtml(pedido.direccion)}</div>`
+
+    const pagoHtml = pedido.metodoPago === 'efectivo'
+        ? `<div class="fila"><span>Pago</span><span>Efectivo</span></div>
+           <div class="fila"><span>Recibido</span><span>₡${escapeHtml(pedido.montoEfectivo)}</span></div>
+           <div class="fila"><span>Vuelto</span><span>₡${escapeHtml(pedido.vuelto)}</span></div>`
+        : `<div class="fila"><span>Pago</span><span>SINPE Móvil</span></div>`
+
+    const html = `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Pedido ${escapeHtml((pedido.id || '').slice(-6).toUpperCase())}</title>
+<style>
+    @page { size: 80mm auto; margin: 0; }
+    * { box-sizing: border-box; }
+    body { font-family: 'Courier New', Courier, monospace; color: #000; margin: 0; padding: 4mm 0; background: #fff; }
+    .ticket { width: 72mm; margin: 0 auto; font-size: 12px; line-height: 1.4; }
+    .center { text-align: center; }
+    .logo { width: 44px; height: 44px; object-fit: contain; margin-bottom: 4px; }
+    .brand { font-size: 16px; font-weight: bold; letter-spacing: 1px; margin: 0; }
+    .subtitle { font-size: 11px; margin: 2px 0 0; }
+    .sep { border-top: 1px dashed #000; margin: 6px 0; }
+    .fila { display: flex; justify-content: space-between; gap: 8px; }
+    .fila-simple { margin-left: 2px; }
+    table.items { width: 100%; border-collapse: collapse; }
+    table.items td { padding: 2px 0; vertical-align: top; }
+    .item-precio { text-align: right; white-space: nowrap; font-weight: bold; }
+    .item-extra { font-size: 10px; margin-left: 6px; }
+    .total-row { font-weight: bold; font-size: 14px; }
+    .footer { margin-top: 8px; font-size: 11px; }
+    @media print {
+        body { padding: 0; }
+    }
+</style>
+</head>
+<body>
+    <div class="ticket">
+        <div class="center">
+            <img class="logo" src="/logoFoodmania4.PNG" alt="Foodmania" />
+            <p class="brand">FOODMANIA</p>
+            <p class="subtitle">COMPROBANTE DE PEDIDO</p>
+        </div>
+        <div class="sep"></div>
+        <div class="fila"><span>Pedido</span><span>#${escapeHtml((pedido.id || '').slice(-6).toUpperCase())}</span></div>
+        <div class="fila"><span>Fecha</span><span>${escapeHtml(formatearFecha(pedido.creadoEn))}</span></div>
+        <div class="fila"><span>Estado</span><span>${escapeHtml(pedido.estado)}</span></div>
+        <div class="sep"></div>
+        <div class="fila-simple"><strong>Cliente:</strong> ${escapeHtml(pedido.nombre)}</div>
+        <div class="fila-simple"><strong>Tel:</strong> ${escapeHtml(pedido.telefono)}</div>
+        <div class="sep"></div>
+        <table class="items">
+            <tbody>${construirFilasItemsFactura(pedido.items)}</tbody>
+        </table>
+        <div class="sep"></div>
+        <div class="fila"><span>Subtotal</span><span>₡${escapeHtml(pedido.subtotal)}</span></div>
+        ${pedido.costoEnvio > 0 ? `<div class="fila"><span>Envío</span><span>₡${escapeHtml(pedido.costoEnvio)}</span></div>` : ''}
+        <div class="sep"></div>
+        <div class="fila total-row"><span>TOTAL</span><span>₡${escapeHtml(pedido.total)}</span></div>
+        <div class="sep"></div>
+        ${pedido.puntosCanjeados ? `<div class="fila"><span>ManiaCoins canjeados</span><span>-${escapeHtml(pedido.puntosCanjeados)}</span></div>` : ''}
+        <div class="fila"><span>ManiaCoins ganados</span><span>+${escapeHtml(pedido.puntosGanados || 0)}</span></div>
+        <div class="sep"></div>
+        ${retiroHtml}
+        <div class="sep"></div>
+        ${pagoHtml}
+        <div class="sep"></div>
+        <div class="center footer">
+            <p>¡Gracias por su compra!</p>
+            <p>Foodmania</p>
+        </div>
+    </div>
+    <script>
+        window.onload = function () {
+            window.print();
+            window.onafterprint = function () { window.close(); };
+        };
+    <\/script>
+</body>
+</html>`
+
+    ventana.document.open()
+    ventana.document.write(html)
+    ventana.document.close()
 }
 
 // ── Enviar notificación push ──────────────────────────────────────────────
