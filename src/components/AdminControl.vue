@@ -31,6 +31,13 @@
                 </div>
             </div>
             <div class="flex items-center gap-2">
+                <button v-if="hayPedidosPendientes" @click="sonidoSilenciado = !sonidoSilenciado"
+                    class="text-sm border px-4 py-2 rounded-full hover:bg-gray-100 transition-colors hover:cursor-pointer flex items-center gap-1"
+                    :class="sonidoSilenciado ? 'bg-gray-200 text-gray-500' : 'bg-amber-50 text-amber-700 border-amber-300 animate-pulse'"
+                    :title="sonidoSilenciado ? 'Activar sonido' : 'Silenciar sonido'">
+                    <span>{{ sonidoSilenciado ? '🔇' : '🔊' }}</span>
+                    {{ sonidoSilenciado ? 'Silenciado' : 'Sonando' }}
+                </button>
                 <button @click="showNotifModal = !showNotifModal"
                     class="text-sm border px-4 py-2 rounded-full hover:bg-gray-100 transition-colors hover:cursor-pointer flex items-center gap-1"
                     :class="showNotifModal ? 'bg-[var(--primary)] text-white border-[var(--primary)]' : ''">
@@ -282,6 +289,12 @@
                 </div>
                 <div class="p-5 flex flex-col gap-4">
 
+                    <!-- Promo primeros 100 -->
+                    <div v-if="pedidoDetalle.promoPapasGratis"
+                        class="bg-green-50 border border-green-200 text-green-700 rounded-xl p-3 text-center text-sm font-bold">
+                        🎁 PROMO: Papas pequeñas GRATIS (pedido #{{ pedidoDetalle.promoPapasGratisNumero }}/100)
+                    </div>
+
                     <!-- Cliente -->
                     <div>
                         <p class="text-xs text-gray-400 uppercase font-bold mb-2">Cliente</p>
@@ -295,8 +308,16 @@
                         <p class="text-xs text-gray-400 uppercase font-bold mb-2">Productos</p>
                         <div v-for="item in pedidoDetalle.items" :key="item.id"
                             class="flex justify-between text-sm py-1 border-b">
-                            <span>{{ item.nombre }} x{{ item.cantidad }}</span>
-                            <span class="font-bold">₡{{ item.precio * item.cantidad }}</span>
+                            <div>
+                                <span>{{ item.nombre }} x{{ item.cantidad }}</span>
+                                <div v-for="(extra, idx) in obtenerExtrasItem(item)" :key="idx" class="text-xs text-gray-400">
+                                    {{ extra }}
+                                </div>
+                            </div>
+                            <span class="font-bold whitespace-nowrap">
+                                <template v-if="item.esCanje">🪙 {{ (item.puntosCanje || 0) * item.cantidad }}</template>
+                                <template v-else>₡{{ item.precio * item.cantidad }}</template>
+                            </span>
                         </div>
                     </div>
 
@@ -372,7 +393,7 @@
 </template>
 
 <script setup>
-import { ref as vueRef, computed, onMounted, onUnmounted } from 'vue'
+import { ref as vueRef, computed, watch, onMounted, onUnmounted } from 'vue'
 import { collection, doc, getDoc, getDocs, addDoc, Timestamp, updateDoc, query, where, orderBy, limit, increment, onSnapshot } from 'firebase/firestore'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { getFunctions, httpsCallable } from 'firebase/functions'
@@ -556,6 +577,44 @@ const pedidosFiltrados = computed(() =>
 const contarPorEstado = (estado) =>
     pedidosDeSucursal.value.filter(p => p.estado === estado).length
 
+// ── Sonido continuo mientras haya pedidos pendientes ───────────────────────
+const sonidoSilenciado = vueRef(false)
+const hayPedidosPendientes = computed(() =>
+    pedidosDeSucursal.value.some(p => p.estado === 'pendiente')
+)
+
+let intervaloSonido = null
+
+watch(hayPedidosPendientes, (hay) => {
+    if (hay && !sonidoSilenciado.value) {
+        if (!intervaloSonido) {
+            playNotificationSound()
+            intervaloSonido = setInterval(playNotificationSound, 5000)
+        }
+    } else if (intervaloSonido) {
+        clearInterval(intervaloSonido)
+        intervaloSonido = null
+    }
+})
+
+watch(sonidoSilenciado, (silenciado) => {
+    if (silenciado && intervaloSonido) {
+        clearInterval(intervaloSonido)
+        intervaloSonido = null
+    } else if (!silenciado && hayPedidosPendientes.value && !intervaloSonido) {
+        intervaloSonido = setInterval(playNotificationSound, 5000)
+    }
+})
+
+const totalHoy = computed(() => {
+    const inicioHoy = new Date()
+    inicioHoy.setHours(0, 0, 0, 0)
+    const inicioHoySeconds = inicioHoy.getTime() / 1000
+    return pedidosDeSucursal.value
+        .filter(p => (p.creadoEn?.seconds ?? 0) >= inicioHoySeconds)
+        .reduce((acc, p) => acc + (Number(p.total) || 0), 0)
+})
+
 // ── Stats rápidos ──────────────────────────────────────────────────────────
 const stats = computed(() => [
     {
@@ -577,6 +636,11 @@ const stats = computed(() => [
         label: 'Finalizados',
         valor: contarPorEstado('finalizado'),
         color: '#10b981'
+    },
+    {
+        label: 'Total hoy',
+        valor: `₡${totalHoy.value.toLocaleString('es-CR')}`,
+        color: '#16a34a'
     },
 ])
 
@@ -681,15 +745,25 @@ const escapeHtml = (valor) => {
         .replace(/'/g, '&#39;')
 }
 
+// Extras de un ítem de pedido, usado tanto en el ticket impreso como en el modal de detalle.
+const obtenerExtrasItem = (item) => {
+    const extras = []
+    if (item.bebida) extras.push(`🥤 ${item.bebida.nombre}`)
+    if (item.bebidaEspecifica) extras.push(`🥤 Incluye ${item.bebidaEspecifica.nombre} (cortesía)`)
+    if (item.proteinaSel) extras.push(`🍗 ${item.proteinaSel}`)
+    if (item.gaseosaSel) extras.push(`🥤 Sabor: ${item.gaseosaSel}`)
+    if (item.papasConSalsa) extras.push('🍟 Papas con salsa')
+    if (item.salsaSel) extras.push(`🌶️ ${item.salsaSel}`)
+    if (item.salsasAlitas?.length) extras.push(`🌶️ Salsas: ${item.salsasAlitas.join(', ')}`)
+    if (item.agrandarPapas) extras.push('⬆️ Papas agrandadas')
+    if (item.papasFritasGratisSel) extras.push('🍟 Papas fritas (cortesía)')
+    if (item.tallaSel) extras.push(`👕 Talla: ${item.tallaSel}`)
+    return extras
+}
+
 const construirFilasItemsFactura = (items) => {
     return (items || []).map(item => {
-        const extras = []
-        if (item.bebida) extras.push(`🥤 ${escapeHtml(item.bebida.nombre)}`)
-        if (item.proteinaSel) extras.push(`🍗 ${escapeHtml(item.proteinaSel)}`)
-        if (item.gaseosaSel) extras.push(`🥤 Sabor: ${escapeHtml(item.gaseosaSel)}`)
-        if (item.papasConSalsa) extras.push('🍟 Papas con salsa')
-        if (item.salsasAlitas?.length) extras.push(`🌶️ Salsas: ${escapeHtml(item.salsasAlitas.join(', '))}`)
-        if (item.agrandarPapas) extras.push('⬆️ Papas agrandadas')
+        const extras = obtenerExtrasItem(item).map(e => escapeHtml(e))
 
         const precio = item.esCanje
             ? `🪙${(item.puntosCanje || 0) * item.cantidad}`
@@ -783,6 +857,7 @@ const imprimirPedido = (pedido) => {
         <div class="sep"></div>
         ${pedido.puntosCanjeados ? `<div class="fila"><span>ManiaCoins canjeados</span><span>-${escapeHtml(pedido.puntosCanjeados)}</span></div>` : ''}
         <div class="fila"><span>ManiaCoins ganados</span><span>+${escapeHtml(pedido.puntosGanados || 0)}</span></div>
+        ${pedido.promoPapasGratis ? `<div class="sep"></div><div class="center" style="font-weight:bold;">🎁 PROMO: Papas pequeñas GRATIS</div>` : ''}
         <div class="sep"></div>
         ${retiroHtml}
         <div class="sep"></div>
@@ -864,5 +939,6 @@ onUnmounted(() => {
     if (unsubAuth) unsubAuth()
     if (unsubPedidosSucursal) unsubPedidosSucursal()
     if (unsubPedidosDomicilio) unsubPedidosDomicilio()
+    if (intervaloSonido) clearInterval(intervaloSonido)
 })
 </script>

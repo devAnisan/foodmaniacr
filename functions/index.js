@@ -3,7 +3,10 @@ const nodemailer = require('nodemailer')
 const { onCall, HttpsError } = require('firebase-functions/v2/https')
 const { defineJsonSecret } = require('firebase-functions/params')
 const { logger } = require('firebase-functions')
-const { calculateOrderTotals } = require('./calculos')
+const { calculateOrderTotals, esDiaDoble, nombreDiaDoble } = require('./calculos')
+
+const PROMO_LIMITE = 100
+const PROMO_INICIO = new Date('2026-08-01T06:00:00.000Z')
 
 const emailConfig = defineJsonSecret('FUNCTIONS_CONFIG_EXPORT')
 
@@ -185,14 +188,14 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
 
   let puntosGanados = totals.coinsGanados
   let esPrimeraCompra = false
-  let esMartesFoodManiacos = false
   let esCumpleanos = false
 
-  const hoy = new Date().getDay()
-  if (hoy === 2) {
-    esMartesFoodManiacos = true
+  const fechaPedido = new Date()
+  const esDiaDobleActivo = esDiaDoble(fechaPedido)
+  const nombreDiaDobleActivo = nombreDiaDoble(fechaPedido)
+  if (esDiaDobleActivo) {
     puntosGanados *= 2
-    logger.log('🔥 Martes FoodManiacos — ManiaCoins x2')
+    logger.log(`🔥 ${nombreDiaDobleActivo} — ManiaCoins x2`)
   }
 
   if (uid) {
@@ -206,9 +209,8 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
     }
     const cumpleanos = clientSnap.exists ? clientSnap.data().cumpleanos : null
     if (cumpleanos) {
-      const hoy = new Date()
       const [, mes, dia] = cumpleanos.split('-')
-      if (hoy.getMonth() + 1 === parseInt(mes) && hoy.getDate() === parseInt(dia)) {
+      if (fechaPedido.getMonth() + 1 === parseInt(mes) && fechaPedido.getDate() === parseInt(dia)) {
         esCumpleanos = true
         puntosGanados += 100
         logger.log('🎂 Cumpleaños — 100 ManiaCoins extra para', email)
@@ -217,6 +219,26 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
     await clientRef.set({
       ultimaCompra: admin.firestore.Timestamp.now()
     }, { merge: true })
+  }
+
+  // Promo de lanzamiento: primeros 100 pedidos desde el 1 de agosto reciben papas pequeñas gratis.
+  // Transacción atómica: la lectura-antes-de-escritura + reintento automático de Firestore
+  // evita que dos pedidos concurrentes ambos se lleven el mismo cupo.
+  let promoAplicada = false
+  let promoNumero = null
+  if (fechaPedido.getTime() >= PROMO_INICIO.getTime()) {
+    const contadorRef = db.collection('contadores').doc('promoLanzamiento')
+    const resultado = await db.runTransaction(async (tx) => {
+      const snap = await tx.get(contadorRef)
+      const actual = snap.exists ? (snap.data().pedidosConPromo || 0) : 0
+      if (actual >= PROMO_LIMITE) return { aplica: false, numero: null }
+      const nuevoValor = actual + 1
+      tx.set(contadorRef, { pedidosConPromo: nuevoValor }, { merge: true })
+      return { aplica: true, numero: nuevoValor }
+    })
+    promoAplicada = resultado.aplica
+    promoNumero = resultado.numero
+    if (promoAplicada) logger.log(`🎁 Promo papas gratis — pedido #${promoNumero}/${PROMO_LIMITE}`)
   }
 
   const order = {
@@ -229,6 +251,8 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
     puntosGanados,
     cashTotalSinEnvio: totals.cashTotalSinEnvio,
     usuario: email || 'Anónimo',
+    promoPapasGratis: promoAplicada,
+    promoPapasGratisNumero: promoNumero,
     creadoEn: admin.firestore.Timestamp.now()
   }
 
@@ -263,6 +287,9 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
           const canjeada = item.bebida.canjeadoConPuntos
           nombreHtml += `<div style="font-size:12px;color:#555;padding-left:12px;margin-top:2px;">🥤 ${item.bebida.nombre} x${item.cantidad}${canjeada ? ' (🪙 canjeado)' : ` — ₡${precioBebida}`}</div>`
         }
+        if (item.bebidaEspecifica) {
+          nombreHtml += `<div style="font-size:12px;color:#555;padding-left:12px;margin-top:2px;">🥤 Incluye ${item.bebidaEspecifica.nombre} (cortesía)</div>`
+        }
         if (item.gaseosaSel) {
           nombreHtml += `<div style="font-size:12px;color:#555;padding-left:12px;margin-top:2px;">🥤 Sabor gaseosa: ${item.gaseosaSel}</div>`
         }
@@ -272,11 +299,20 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
         if (item.papasConSalsa) {
           nombreHtml += `<div style="font-size:12px;color:#555;padding-left:12px;margin-top:2px;">🍟 Papas con salsa</div>`
         }
+        if (item.salsaSel) {
+          nombreHtml += `<div style="font-size:12px;color:#555;padding-left:12px;margin-top:2px;">🌶️ ${item.salsaSel}</div>`
+        }
         if (item.salsasAlitas?.length) {
           nombreHtml += `<div style="font-size:12px;color:#555;padding-left:12px;margin-top:2px;">🌶️ ${item.salsasAlitas.join(', ')}</div>`
         }
         if (item.agrandarPapas) {
           nombreHtml += `<div style="font-size:12px;color:#555;padding-left:12px;margin-top:2px;">⬆️ Papas agrandadas</div>`
+        }
+        if (item.papasFritasGratisSel) {
+          nombreHtml += `<div style="font-size:12px;color:#555;padding-left:12px;margin-top:2px;">🍟 Papas fritas (cortesía)</div>`
+        }
+        if (item.tallaSel) {
+          nombreHtml += `<div style="font-size:12px;color:#555;padding-left:12px;margin-top:2px;">👕 Talla: ${item.tallaSel}</div>`
         }
         const precioItem = item.esCanje ? `🪙 ${item.puntosCanje * item.cantidad}` : `₡${Number(item.precio) * Number(item.cantidad)}`
         return `<tr><td style="padding:6px 0;border-bottom:1px solid #eee;">${nombreHtml}</td><td style="padding:6px 0;border-bottom:1px solid #eee;text-align:right;">${precioItem}</td></tr>`
@@ -321,8 +357,9 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
               <p style="margin:0 0 4px;"><strong>💳 Pago:</strong> ${pedidoData.metodoPago || '—'}</p>
               <p style="margin:0 0 4px;"><strong>🏪 Retiro:</strong> ${pedidoData.tipoRetiro === 'sucursal' ? pedidoData.sucursal : 'Domicilio'}</p>
               ${esPrimeraCompra ? '<p style="margin:0 0 4px;color:#642d81;font-weight:bold;">🎉 ¡Primera compra! ManiaCoins x2</p>' : ''}
-              ${esMartesFoodManiacos ? '<p style="margin:0 0 4px;background:linear-gradient(135deg,#642d81,#eab308);color:white;padding:8px 12px;border-radius:8px;font-weight:bold;text-align:center;">🔥 Martes FoodManiacos — ManiaCoins x2</p>' : ''}
+              ${esDiaDobleActivo ? `<p style="margin:0 0 4px;background:linear-gradient(135deg,#642d81,#eab308);color:white;padding:8px 12px;border-radius:8px;font-weight:bold;text-align:center;">🔥 ${nombreDiaDobleActivo} — ManiaCoins x2</p>` : ''}
               ${esCumpleanos ? '<p style="margin:0 0 4px;background:linear-gradient(135deg,#e91e63,#ff6f00);color:white;padding:8px 12px;border-radius:8px;font-weight:bold;text-align:center;">🎂 ¡Feliz cumpleaños! Recibiste 100 ManiaCoins de regalo</p>' : ''}
+              ${promoAplicada ? `<p style="margin:0 0 4px;background:linear-gradient(135deg,#16a34a,#22c55e);color:white;padding:8px 12px;border-radius:8px;font-weight:bold;text-align:center;">🎁 ¡Ganaste papas pequeñas GRATIS! (pedido #${promoNumero}/${PROMO_LIMITE})</p>` : ''}
               <p style="margin:0 0 4px;"><strong>🪙 ManiaCoins ganados:</strong> ${puntosGanados || 0}</p>
               ${order.puntosCanjeados ? `<p style="margin:0;"><strong>🔥 ManiaCoins canjeados:</strong> ${order.puntosCanjeados}</p>` : ''}
             </div>

@@ -15,23 +15,34 @@ interface Insucursal {
 }
 export const calcularTarifaEnvio = (distanciaKm: number): number => {
   if (distanciaKm <= 0) return 0
-  if (distanciaKm <= 1) return 1000
-  if (distanciaKm <= 3) return 1600
-  if (distanciaKm <= 5) return 2000
-  if (distanciaKm <= 8) return 2500
-  if (distanciaKm <= 12) return 3500
-  return 3500 + Math.ceil(distanciaKm - 12) * 300
+  if (distanciaKm <= 1.5) return 1000
+  if (distanciaKm <= 2) return 1300
+  if (distanciaKm <= 2.5) return 1500
+  if (distanciaKm <= 3) return 1800
+  if (distanciaKm <= 4) return 2000
+  if (distanciaKm <= 5) return 2200
+  if (distanciaKm <= 6) return 2300
+  if (distanciaKm <= 7) return 2500
+  if (distanciaKm <= 8) return 2700
+  if (distanciaKm <= 9) return 3000
+  if (distanciaKm <= 10) return 3500
+  return Math.round(distanciaKm * 350)
 }
 
 export const descripcionTarifaEnvio = (distanciaKm: number): string => {
   if (distanciaKm <= 0) return ''
-  if (distanciaKm <= 1) return '0–1 km'
-  if (distanciaKm <= 3) return '1–3 km'
-  if (distanciaKm <= 5) return '3–5 km'
-  if (distanciaKm <= 8) return '5–8 km'
-  if (distanciaKm <= 12) return '8–12 km'
-  const extra = Math.ceil(distanciaKm - 12)
-  return `12 km+ (${extra} km adicionales)`
+  if (distanciaKm <= 1.5) return '0–1.5 km'
+  if (distanciaKm <= 2) return '1.5–2 km'
+  if (distanciaKm <= 2.5) return '2–2.5 km'
+  if (distanciaKm <= 3) return '2.5–3 km'
+  if (distanciaKm <= 4) return '3–4 km'
+  if (distanciaKm <= 5) return '4–5 km'
+  if (distanciaKm <= 6) return '5–6 km'
+  if (distanciaKm <= 7) return '6–7 km'
+  if (distanciaKm <= 8) return '7–8 km'
+  if (distanciaKm <= 9) return '8–9 km'
+  if (distanciaKm <= 10) return '9–10 km'
+  return `${distanciaKm} km — tarifa larga distancia`
 }
 
 // Haversine formula to calculate distance between two points

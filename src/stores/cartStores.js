@@ -62,17 +62,24 @@ export const useCartStore = defineStore(
 
         const addItem = (producto, extras = {}) => {
             const bebida = extras.bebida || producto.bebida || null
+            const bebidaEspecifica = extras.bebidaEspecifica ?? producto.bebidaEspecifica ?? null
             const papasConSalsa = extras.papasConSalsa ?? producto.papasConSalsa ?? false
             const salsasAlitas = extras.salsasAlitas || producto.salsasAlitas || []
             const esCanje = extras.esCanje ?? producto.esCanje ?? false
             const esBebida = extras.esBebida ?? producto.esBebida ?? false
             const proteinaSel = extras.proteinaSel ?? producto.proteinaSel ?? null
             const gaseosaSel = extras.gaseosaSel ?? producto.gaseosaSel ?? null
+            const salsaSel = extras.salsaSel ?? producto.salsaSel ?? null
+            const papasFritasGratisSel = extras.papasFritasGratisSel ?? producto.papasFritasGratisSel ?? false
+            const tallaSel = extras.tallaSel ?? producto.tallaSel ?? null
             let variantKey = producto.id
             if (bebida) variantKey += `_beb_${bebida.id || bebida.nombre}`
             if (proteinaSel) variantKey += `_prot_${proteinaSel}`
             if (gaseosaSel) variantKey += `_gas_${gaseosaSel}`
             if (salsasAlitas.length) variantKey += `_sal_${salsasAlitas.join('_')}`
+            if (salsaSel) variantKey += `_slsa_${salsaSel}`
+            if (papasFritasGratisSel) variantKey += `_papasgratis`
+            if (tallaSel) variantKey += `_talla_${tallaSel}`
             const existing = items.value.find(
                 item => item._variantKey === variantKey
             )
@@ -85,12 +92,16 @@ export const useCartStore = defineStore(
                     _uid: genUid(),
                     _variantKey: variantKey,
                     bebida,
+                    bebidaEspecifica,
                     papasConSalsa,
                     salsasAlitas,
                     esCanje,
                     esBebida,
                     proteinaSel,
                     gaseosaSel,
+                    salsaSel,
+                    papasFritasGratisSel,
+                    tallaSel,
                 })
             }
         };

@@ -174,15 +174,31 @@
             class="pi pi-times text-red-500 hover:text-red-700 hover:cursor-pointer p-2 rounded"></button>
         </div>
         <div class="p-5">
-          <p class="text-lg font-bold text-[var(--primary)]">₡{{ itemPersonalizando?.precio }}</p>
+          <p v-if="personalizandoEsCanje" class="text-lg font-bold text-yellow-600 flex items-center gap-1">
+            <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-5 h-5 inline-block" /> {{ itemPersonalizando?.puntosCanje }}
+          </p>
+          <p v-else class="text-lg font-bold text-[var(--primary)]">₡{{ itemPersonalizando?.precio }}</p>
+
+          <!-- Talla a elegir (merchandising) -->
+          <div v-if="itemPersonalizando?.talla?.length" class="mt-4">
+            <label class="font-bold block mb-2">👕 Elegí tu talla</label>
+            <div class="grid grid-cols-4 gap-2">
+              <button v-for="t in itemPersonalizando.talla" :key="t"
+                @click="tallaSel = t"
+                :class="tallaSel === t ? 'bg-[var(--primary)] text-white ring-2 ring-[var(--primary)]' : 'bg-gray-100 hover:bg-gray-200'"
+                class="p-3 rounded-xl font-bold text-sm transition-all duration-200 hover:cursor-pointer">
+                {{ t }}
+              </button>
+            </div>
+          </div>
 
           <!-- Bebida específica incluida (auto, sin selector) -->
           <div v-if="itemPersonalizando?.bebidaEspecifica" class="mt-4">
             <label class="font-bold block mb-2">🥤 Incluye {{ itemPersonalizando.bebidaEspecifica.nombre }}</label>
           </div>
 
-          <!-- Bebida (opcional, se oculta si el producto ya es una bebida o ya trae bebida específica) -->
-          <div v-else-if="!esItemBebida" class="mt-4">
+          <!-- Bebida (opcional, se oculta si el producto ya es una bebida, ya trae bebida específica, o ya incluye gaseosa) -->
+          <div v-else-if="!esItemBebida && !itemPersonalizando?.gaseosaIncluida" class="mt-4">
             <label class="font-bold block mb-2">🥤 Agregar bebida (opcional)</label>
             <div v-if="bebidasCargando" class="flex items-center gap-2 text-sm text-gray-400">
               <span class="pi pi-spinner animate-spin"></span> Cargando bebidas...
@@ -238,6 +254,27 @@
             </div>
           </div>
 
+          <!-- Con/sin salsa en papas (campo "salsa", distinto de papasConSalsa de arriba) -->
+          <div v-if="itemPersonalizando?.salsa?.length" class="mt-5">
+            <label class="font-bold block mb-2">🍟 Elegí tu salsa</label>
+            <div class="grid grid-cols-2 gap-2">
+              <button v-for="opt in itemPersonalizando.salsa" :key="opt"
+                @click="salsaSel = opt"
+                :class="salsaSel === opt ? 'bg-[var(--primary)] text-white ring-2 ring-[var(--primary)]' : 'bg-gray-100 hover:bg-gray-200'"
+                class="p-3 rounded-xl font-bold text-sm transition-all duration-200 hover:cursor-pointer">
+                {{ opt }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Añadir papas fritas gratis (solo productos "cantón" marcados con permiteAnadirPapas) -->
+          <div v-if="itemPersonalizando?.permiteAnadirPapas === true" class="mt-5">
+            <label class="flex items-center gap-2 font-bold hover:cursor-pointer">
+              <input type="checkbox" v-model="papasFritasGratisSel" class="w-5 h-5 accent-[var(--primary)]" />
+              🍟 Añadir papas fritas (gratis)
+            </label>
+          </div>
+
           <!-- Salsas a elegir (Alitas Mania / Nuggets) -->
           <div v-if="mostrarSelectorSalsas" class="mt-5">
             <label class="font-bold block mb-2">🌶️ Elegí tus salsas ({{ salsasAlitasSel.length }}/2)</label>
@@ -260,7 +297,8 @@
               Cancelar
             </button>
             <button @click="confirmarPersonalizacion"
-              class="flex-1 bg-[var(--primary)] text-white py-3 rounded-xl font-bold hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
+              :disabled="itemPersonalizando?.talla?.length && !tallaSel"
+              :class="itemPersonalizando?.talla?.length && !tallaSel ? 'flex-1 bg-gray-300 text-gray-500 py-3 rounded-xl font-bold cursor-not-allowed' : 'flex-1 bg-[var(--primary)] text-white py-3 rounded-xl font-bold hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer'">
               Agregar 🎉
             </button>
           </div>
@@ -326,6 +364,9 @@
                         <div v-if="value.bebida" class="text-xs text-gray-500 mt-0.5">
                             🥤 {{ value.bebida.nombre }} +₡{{ value.bebida.precio }}
                         </div>
+                        <div v-if="value.bebidaEspecifica" class="text-xs text-gray-500 mt-0.5">
+                            🥤 Incluye {{ value.bebidaEspecifica.nombre }} (cortesía)
+                        </div>
                         <div v-if="value.proteinaSel" class="text-xs text-gray-500 mt-0.5">
                             🍗 {{ value.proteinaSel }}
                         </div>
@@ -333,9 +374,12 @@
                             🥤 Sabor: {{ value.gaseosaSel }}
                         </div>
                         <div v-if="value.papasConSalsa" class="text-xs text-gray-500">🍟 Papas con salsa</div>
+                        <div v-if="value.salsaSel" class="text-xs text-gray-500">🌶️ {{ value.salsaSel }}</div>
                         <div v-if="value.salsasAlitas?.length" class="text-xs text-gray-500">
                             🌶️ {{ value.salsasAlitas.join(', ') }}
                         </div>
+                        <div v-if="value.papasFritasGratisSel" class="text-xs text-gray-500">🍟 Papas fritas (cortesía)</div>
+                        <div v-if="value.tallaSel" class="text-xs text-gray-500">👕 Talla: {{ value.tallaSel }}</div>
                     </div>
                     <div v-if="value.esCanje" class="text-sm mr-2 font-bold text-yellow-600 flex items-center gap-1"><img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3.5 h-3.5 inline-block" /> {{ value.puntosCanje * value.cantidad }}</div>
                     <div v-else class="text-sm mr-2">₡{{ cartStore.precioFinal(value) * value.cantidad }}</div>
@@ -441,7 +485,7 @@
             <div class="sticky top-18 z-40 bg-gray-50 px-4 py-3 shadow-sm">
                 <div class="max-w-6xl mx-auto flex flex-col md:flex-row gap-3 items-center">
                     <!-- Search -->
-                    <div class="relative w-full md:w-80">
+                    <div class="relative w-full md:w-80 md:flex-shrink-0">
                         <span class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></span>
                         <input v-model="busqueda" type="text" placeholder="Buscar producto..."
                             class="w-full pl-9 pr-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-[var(--primary)] bg-white" />
@@ -452,19 +496,29 @@
                     </div>
 
                     <!-- Pestañas de categorías -->
-                    <div class="flex gap-2 overflow-x-auto pb-1 w-full scrollbar-hide">
-                        <button @click="categoriaActiva = null; busqueda = ''"
-                            :class="categoriaActiva === null && !busqueda ? 'bg-[var(--primary)] text-white' : 'bg-white text-gray-600 hover:bg-gray-100'"
-                            class="px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap border transition-all duration-200 flex-shrink-0">
-                            🍽️ Todo
+                    <div class="relative w-full flex items-center gap-1">
+                        <button @click="scrollCategorias(-150)"
+                            class="hidden md:flex flex-shrink-0 items-center justify-center w-7 h-7 rounded-full bg-white border shadow-sm hover:bg-gray-100 hover:cursor-pointer">
+                            <span class="pi pi-chevron-left text-xs"></span>
                         </button>
-                        <button v-for="cat in categorias" :key="cat.nombre" @click="seleccionarCategoria(cat)"
-                            :class="categoriaActiva?.nombre === cat.nombre
-                              ? (cat.esCanje ? 'bg-yellow-500 text-white' : 'bg-[var(--primary)] text-white')
-                              : (cat.esCanje ? 'bg-yellow-50 text-yellow-700 border-yellow-300 hover:bg-yellow-100' : 'bg-white text-gray-600 hover:bg-gray-100')"
-                            class="px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap border transition-all duration-200 flex-shrink-0 flex items-center gap-1">
-                            <span v-if="cat.cargando" class="pi pi-spinner animate-spin text-xs"></span>
-                            <img v-if="cat.esCanje" :src="assets.coinIconUrl" alt="ManiaCoins" class="w-4 h-4 inline-block" /><span v-else>{{ cat.emoji }}</span> {{ cat.nombre }}
+                        <div ref="tabsScrollRef" class="flex gap-2 overflow-x-auto pb-1 w-full scrollbar-hide">
+                            <button @click="categoriaActiva = null; busqueda = ''"
+                                :class="categoriaActiva === null && !busqueda ? 'bg-[var(--primary)] text-white' : 'bg-white text-gray-600 hover:bg-gray-100'"
+                                class="px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap border transition-all duration-200 flex-shrink-0">
+                                🍽️ Todo
+                            </button>
+                            <button v-for="cat in categorias" :key="cat.nombre" @click="seleccionarCategoria(cat)"
+                                :class="categoriaActiva?.nombre === cat.nombre
+                                  ? (cat.esCanje ? 'bg-yellow-500 text-white' : 'bg-[var(--primary)] text-white')
+                                  : (cat.esCanje ? 'bg-yellow-50 text-yellow-700 border-yellow-300 hover:bg-yellow-100' : 'bg-white text-gray-600 hover:bg-gray-100')"
+                                class="px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap border transition-all duration-200 flex-shrink-0 flex items-center gap-1">
+                                <span v-if="cat.cargando" class="pi pi-spinner animate-spin text-xs"></span>
+                                <img v-if="cat.esCanje" :src="assets.coinIconUrl" alt="ManiaCoins" class="w-4 h-4 inline-block" /><span v-else>{{ cat.emoji }}</span> {{ cat.nombre }}
+                            </button>
+                        </div>
+                        <button @click="scrollCategorias(150)"
+                            class="hidden md:flex flex-shrink-0 items-center justify-center w-7 h-7 rounded-full bg-white border shadow-sm hover:bg-gray-100 hover:cursor-pointer">
+                            <span class="pi pi-chevron-right text-xs"></span>
                         </button>
                     </div>
                 </div>
@@ -592,6 +646,7 @@ const ProductCard = defineComponent({
             props.esPromocion ? esPromocionActiva(props.item.nombre) : true
         )
         const coinsGanados = computed(() => Math.floor((props.item.precio || 0) / COLONES_POR_COIN))
+        const expandido = vueRef(false)
 
         return () => h('div', { class: 'relative bg-white rounded-xl shadow-md p-3 flex flex-col hover:shadow-lg transition-shadow duration-200' + (props.esCanje ? ' border-2 border-yellow-400' : '') }, [
             props.esPromocion && activo.value
@@ -601,7 +656,18 @@ const ProductCard = defineComponent({
                 ? h('img', { src: props.item.imageUrl, alt: props.item.nombre, loading: 'lazy', class: 'w-full h-32 object-cover rounded-lg mb-3' })
                 : h('div', { class: 'w-full h-32 bg-gray-100 rounded-lg mb-3 flex items-center justify-center text-3xl' }, '🍽️'),
             h('h3', { class: 'font-bold text-sm mb-1 flex-1 line-clamp-2' }, props.item.nombre),
-            props.item.descripcion ? h('p', { class: 'text-gray-400 text-xs mb-1 line-clamp-1' }, props.item.descripcion) : null,
+            props.item.descripcion
+                ? h('p', {
+                    class: 'text-gray-400 text-xs mb-0.5 hover:cursor-pointer' + (expandido.value ? '' : ' line-clamp-1'),
+                    onClick: () => { expandido.value = !expandido.value }
+                }, props.item.descripcion)
+                : null,
+            props.item.descripcion
+                ? h('button', {
+                    class: 'text-[var(--primary)] text-[10px] font-bold mb-2 self-start hover:underline hover:cursor-pointer flex items-center gap-0.5',
+                    onClick: () => { expandido.value = !expandido.value }
+                }, [expandido.value ? 'Ver menos' : 'Ver más', h('span', { class: 'pi ' + (expandido.value ? 'pi-chevron-up' : 'pi-chevron-down') + ' text-[8px]' })])
+                : null,
             props.item.incluye ? h('p', { class: 'text-[var(--primary)] text-xs mb-2 font-medium' }, `✅ ${props.item.incluye}`) : null,
             h('div', { class: 'flex items-center justify-between mb-3' }, [
                 props.esCanje
@@ -722,6 +788,10 @@ const papasConSalsaSel = vueRef(false)
 const salsasAlitasSel = vueRef([])
 const proteinaSel = vueRef(null)
 const gaseosaSel = vueRef(null)
+const salsaSel = vueRef(null)
+const papasFritasGratisSel = vueRef(false)
+const tallaSel = vueRef(null)
+const personalizandoEsCanje = vueRef(false)
 
 const bebidas = vueRef([])
 const bebidasCargando = vueRef(false)
@@ -779,6 +849,20 @@ const abrirPersonalizador = async (item, esCanje = false) => {
       mostrarCanjeMsg(`No tenés suficientes ManiaCoins. Tenés ${coinsDisponibles} 🪙, necesitás ${item.puntosCanje} 🪙`, 'error')
       return
     }
+    if (item.talla?.length) {
+      itemPersonalizando.value = item
+      personalizandoEsCanje.value = true
+      tallaSel.value = item.talla[0]
+      bebidaSel.value = null
+      papasConSalsaSel.value = false
+      salsasAlitasSel.value = []
+      proteinaSel.value = null
+      gaseosaSel.value = null
+      salsaSel.value = null
+      papasFritasGratisSel.value = false
+      personalizadorAbierto.value = true
+      return
+    }
     cartStore.addItem(item, { esCanje: true })
     mostrarCanjeMsg('Producto añadido para canje 🪙', 'success')
     return
@@ -792,18 +876,23 @@ const abrirPersonalizador = async (item, esCanje = false) => {
     setTimeout(() => drinkMsg.value = '', 2000)
     return
   }
+  personalizandoEsCanje.value = false
   itemPersonalizando.value = item
   bebidaSel.value = item.bebidaEspecifica || null
   papasConSalsaSel.value = false
   salsasAlitasSel.value = []
   proteinaSel.value = item.opcionesProteina?.length ? item.opcionesProteina[0] : null
   gaseosaSel.value = item.gaseosaIncluida && item.gaseosaSabores?.length ? item.gaseosaSabores[0] : null
+  salsaSel.value = item.salsa?.length ? item.salsa[0] : null
+  papasFritasGratisSel.value = false
   personalizadorAbierto.value = true
 }
 
 const cerrarPersonalizador = () => {
   personalizadorAbierto.value = false
   itemPersonalizando.value = null
+  personalizandoEsCanje.value = false
+  tallaSel.value = null
 }
 
 const toggleSalsa = (salsa) => {
@@ -816,11 +905,19 @@ const toggleSalsa = (salsa) => {
 }
 
 const confirmarPersonalizacion = () => {
+  if (personalizandoEsCanje.value) {
+    cartStore.addItem(itemPersonalizando.value, { esCanje: true, tallaSel: tallaSel.value })
+    mostrarCanjeMsg('Producto añadido para canje 🪙', 'success')
+    cerrarPersonalizador()
+    return
+  }
   const extras = {
     papasConSalsa: papasConSalsaSel.value,
     salsasAlitas: [...salsasAlitasSel.value],
     proteinaSel: proteinaSel.value,
     gaseosaSel: gaseosaSel.value,
+    salsaSel: salsaSel.value,
+    papasFritasGratisSel: papasFritasGratisSel.value,
   }
   if (bebidaSel.value) {
     extras.bebida = {
@@ -879,6 +976,11 @@ onUnmounted(() => {
 })
 
 // ── Categorías con emoji y lazy loading ────────────────────────────────────
+const tabsScrollRef = vueRef(null)
+const scrollCategorias = (delta) => {
+    tabsScrollRef.value?.scrollBy({ left: delta, behavior: 'smooth' })
+}
+
 const categorias = vueRef([
     { nombre: 'Comida China', coleccion: 'comidachina', emoji: '🥡', productos: [], cargando: false, cargada: false },
     { nombre: 'Comida Rápida', coleccion: 'comidarapida', emoji: '🍟', productos: [], cargando: false, cargada: false },
@@ -888,6 +990,7 @@ const categorias = vueRef([
     { nombre: 'Supremos', coleccion: 'supremos', emoji: '👑', productos: [], cargando: false, cargada: false },
     { nombre: 'Surtidos', coleccion: 'surtidos', emoji: '🎁', productos: [], cargando: false, cargada: false },
     { nombre: 'Bebidas', coleccion: 'bebidas', emoji: '🥤', productos: [], cargando: false, cargada: false },
+    { nombre: 'Merchandising', coleccion: 'merchandising', esCanje: true, emoji: '👕', productos: [], cargando: false, cargada: false },
     { nombre: 'Canjear', coleccion: null, esCanje: true, emoji: '🪙', productos: [], cargando: false, cargada: false },
 ])
 
@@ -908,7 +1011,7 @@ const cargarCategoria = async (cat) => {
                     console.error(`Error cargando imagen de ${data.nombre ?? doc.id}:`, error)
                 }
             }
-            return { id: doc.id, ...data, precio: Number(data.precio), imageUrl: itemImageUrl }
+            return { id: doc.id, ...data, precio: Number(data.precio) || 0, imageUrl: itemImageUrl }
         }))
         cat.productos.push(...productos)
         cat.cargada = true
@@ -921,7 +1024,7 @@ const cargarCategoria = async (cat) => {
 }
 
 const actualizarCanje = () => {
-    const canjeCat = categorias.value.find(c => c.esCanje)
+    const canjeCat = categorias.value.find(c => c.esCanje && !c.coleccion)
     if (!canjeCat) return
     canjeCat.productos = categorias.value
         .filter(c => c.coleccion && c.cargada)
@@ -934,7 +1037,7 @@ const actualizarCanje = () => {
 const seleccionarCategoria = async (cat) => {
     categoriaActiva.value = cat
     busqueda.value = ''
-    if (cat.esCanje) {
+    if (cat.esCanje && !cat.coleccion) {
         for (const c of categorias.value) {
             if (c.coleccion) await cargarCategoria(c)
         }

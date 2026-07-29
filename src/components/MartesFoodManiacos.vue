@@ -5,14 +5,14 @@
         <div class="bg-gradient-to-br from-purple-700 to-yellow-500 p-6 text-center relative">
           <button @click="cerrar" class="absolute top-3 right-3 text-white/80 hover:text-white text-2xl hover:cursor-pointer pi pi-times"></button>
           <p class="text-6xl mb-2">🔥</p>
-          <p class="text-white font-bold text-3xl">¡Martes FoodManiacos!</p>
+          <p class="text-white font-bold text-3xl">¡{{ nombreDia }}!</p>
           <p class="text-yellow-200 font-bold text-lg mt-1 flex items-center justify-center gap-1.5">
             <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-5 h-5 inline-block" /> ManiaCoins x2
           </p>
         </div>
         <div class="p-6 text-center">
           <p class="text-gray-700 text-base">
-            Todos los <strong>martes</strong>, todas tus compras por la página acumulan
+            Los <strong>martes y domingos</strong>, todas tus compras por la página acumulan
             <strong class="text-purple-700">el doble de ManiaCoins</strong>
             <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-4 h-4 inline-block align-text-bottom" />
           </p>
@@ -35,17 +35,23 @@
 import { ref, onMounted } from 'vue'
 import { useAssets } from '../stores/cartStores.js'
 import { cargarCoinIcon } from '../composable/useCoinIcon.js'
+import { esDiaDoble, nombreDiaDoble } from '../utils/maniacoins.js'
 
 const assets = useAssets()
 cargarCoinIcon()
 const visible = ref(false)
+const nombreDia = ref('')
 
-const esMartes = () => new Date().getDay() === 2
+const claveVisto = () => {
+  const dia = new Date().getDay()
+  return `martesFoodManiacos_visto_${dia === 0 ? 'domingo' : 'martes'}`
+}
 
 const mostrarModal = () => {
-  if (esMartes()) {
-    const visto = localStorage.getItem('martesFoodManiacos_visto')
+  if (esDiaDoble()) {
+    const visto = localStorage.getItem(claveVisto())
     if (!visto) {
+      nombreDia.value = nombreDiaDoble()
       visible.value = true
     }
   }
@@ -53,7 +59,7 @@ const mostrarModal = () => {
 
 const cerrar = () => {
   visible.value = false
-  localStorage.setItem('martesFoodManiacos_visto', 'true')
+  localStorage.setItem(claveVisto(), 'true')
 }
 
 onMounted(() => {

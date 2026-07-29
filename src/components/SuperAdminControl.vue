@@ -77,9 +77,15 @@
                         <textarea v-model="producto.descripcion" placeholder="Descripción" rows="2"
                             class="p-2 border rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"></textarea>
                         <div class="flex gap-2">
-                            <input v-model="producto.precio" type="number" placeholder="Precio (₡)"
+                            <input v-if="coleccionActiva !== 'merchandising'" v-model="producto.precio" type="number" placeholder="Precio (₡)"
                                 class="w-32 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                            <input v-if="coleccionActiva === 'merchandising'" v-model="producto.puntosCanje" type="number" placeholder="Puntos ManiaCoins"
+                                class="w-40 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
                             <input v-model="producto.incluye" type="text" placeholder="Incluye (opcional)"
+                                class="flex-1 p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                        </div>
+                        <div v-if="coleccionActiva === 'merchandising'" class="flex gap-2">
+                            <input v-model="producto.talla" type="text" placeholder="Tallas disponibles, separadas por coma (ej: S, M, L, XL)"
                                 class="flex-1 p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
                         </div>
                         <div class="flex gap-2 justify-end mt-1">
@@ -126,6 +132,7 @@ const COLECCIONES = [
     { key: 'supremos', label: '👑 Supremos' },
     { key: 'surtidos', label: '🎁 Surtidos' },
     { key: 'bebidas', label: '🥤 Bebidas' },
+    { key: 'merchandising', label: '👕 Merchandising' },
 ]
 
 const coleccionActiva = vueRef(COLECCIONES[0].key)
@@ -165,6 +172,8 @@ const cargarProductos = async () => {
                 incluye: data.incluye || '',
                 imagen: data.imagen || '',
                 imagenUrl,
+                puntosCanje: data.puntosCanje ?? '',
+                talla: (data.talla || []).join(', '),
                 _archivo: null,
                 _nuevo: false,
                 _guardando: false,
@@ -193,6 +202,8 @@ const agregarNuevo = () => {
         incluye: '',
         imagen: '',
         imagenUrl: '',
+        puntosCanje: '',
+        talla: '',
         _archivo: null,
         _nuevo: true,
         _guardando: false,
@@ -225,9 +236,16 @@ const guardarProducto = async (producto) => {
         const payload = {
             nombre: producto.nombre.trim(),
             descripcion: producto.descripcion.trim(),
-            precio: Number(producto.precio) || 0,
             incluye: producto.incluye.trim(),
             imagen: imagenPath,
+        }
+        if (coleccionActiva.value === 'merchandising') {
+            payload.puntosCanje = Number(producto.puntosCanje) || 0
+            payload.talla = producto.talla
+                ? producto.talla.split(',').map(t => t.trim()).filter(Boolean)
+                : []
+        } else {
+            payload.precio = Number(producto.precio) || 0
         }
         if (producto._nuevo) {
             const nuevoDoc = await addDoc(collection(db, coleccionActiva.value), payload)

@@ -89,6 +89,9 @@
                 </span>
               </div>
 
+              <!-- Bebida específica incluida (cortesía, no se cobra) -->
+              <div v-if="item.bebidaEspecifica" class="text-xs text-gray-500 mt-1 ml-2">🥤 Incluye {{ item.bebidaEspecifica.nombre }} (cortesía)</div>
+
               <!-- Papas con salsa -->
               <div v-if="item.papasConSalsa" class="text-xs text-gray-500 mt-1 ml-2">🍟 Papas con salsa</div>
 
@@ -98,10 +101,19 @@
               <!-- Sabor de gaseosa -->
               <div v-if="item.gaseosaSel" class="text-xs text-gray-500 mt-1 ml-2">🥤 Sabor: {{ item.gaseosaSel }}</div>
 
+              <!-- Con/sin salsa (papas) -->
+              <div v-if="item.salsaSel" class="text-xs text-gray-500 mt-1 ml-2">🌶️ {{ item.salsaSel }}</div>
+
               <!-- Salsas Alitas Mania / Nuggets -->
               <div v-if="item.salsasAlitas?.length" class="text-xs text-gray-500 mt-1 ml-2">
                 🌶️ {{ item.salsasAlitas.join(', ') }}
               </div>
+
+              <!-- Papas fritas gratis (cantones) -->
+              <div v-if="item.papasFritasGratisSel" class="text-xs text-gray-500 mt-1 ml-2">🍟 Papas fritas (cortesía)</div>
+
+              <!-- Talla (merchandising) -->
+              <div v-if="item.tallaSel" class="text-xs text-gray-500 mt-1 ml-2">👕 Talla: {{ item.tallaSel }}</div>
 
               <!-- Agrandar papas (pollofrito con papas == true) -->
               <div v-if="item.papas === true" class="mt-2 ml-2 flex flex-wrap items-center gap-2">
@@ -187,8 +199,8 @@
                 <p class="text-sm font-bold text-[var(--primary)]">
                   Ganarás {{ coinsAGanarDisplay }} ManiaCoin{{ coinsAGanarDisplay !== 1 ? 's' : '' }} con esta compra
                 </p>
-                <p v-if="esMartes" class="text-xs bg-gradient-to-r from-purple-700 to-yellow-500 text-white font-bold px-2 py-0.5 rounded-full inline-block mt-1">
-                  🔥 Martes FoodManiacos — ManiaCoins x2
+                <p v-if="esDiaDobleHoy" class="text-xs bg-gradient-to-r from-purple-700 to-yellow-500 text-white font-bold px-2 py-0.5 rounded-full inline-block mt-1">
+                  🔥 {{ nombreDiaDobleHoy }} — ManiaCoins x2
                 </p>
                 <p class="text-xs text-gray-400 flex items-center gap-1">
                   Calculado sobre ₡{{ baseCashTotal }} en productos (₡100 = 1 <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3 h-3 inline-block" />)
@@ -196,8 +208,8 @@
                 <p v-if="primeraCompra" class="text-xs text-green-600 font-bold mt-0.5 flex items-center flex-wrap gap-1">
                   🆕 ¡Primera compra! ManiaCoins x2 — Ganarás {{ coinsAGanarComp * 2 }} <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3 h-3 inline-block" />
                 </p>
-                <p v-if="esMartes && primeraCompra" class="text-xs text-purple-700 font-bold mt-0.5 flex items-center flex-wrap gap-1">
-                  🔥 Combinado con Martes FoodManiacos: Ganarás {{ coinsAGanarComp * 4 }} <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3 h-3 inline-block" /> en total
+                <p v-if="esDiaDobleHoy && primeraCompra" class="text-xs text-purple-700 font-bold mt-0.5 flex items-center flex-wrap gap-1">
+                  🔥 Combinado con {{ nombreDiaDobleHoy }}: Ganarás {{ coinsAGanarComp * 4 }} <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3 h-3 inline-block" /> en total
                 </p>
                 <p v-if="puntosActuales !== null && totalCoinsAGastar > 0" class="text-xs text-yellow-700 font-bold mt-0.5">
                   ⚡ Los {{ coinsAGanarDisplay }} ManiaCoins de esta compra se suman después del canje
@@ -216,8 +228,8 @@
                   <p class="text-sm font-bold text-[var(--primary)]">
                     Ganarías {{ coinsAGanarDisplay }} ManiaCoin{{ coinsAGanarDisplay !== 1 ? 's' : '' }} con esta compra
                   </p>
-                  <p v-if="esMartes" class="text-xs bg-gradient-to-r from-purple-700 to-yellow-500 text-white font-bold px-2 py-0.5 rounded-full inline-block mt-1">
-                    🔥 Martes FoodManiacos — ManiaCoins x2
+                  <p v-if="esDiaDobleHoy" class="text-xs bg-gradient-to-r from-purple-700 to-yellow-500 text-white font-bold px-2 py-0.5 rounded-full inline-block mt-1">
+                    🔥 {{ nombreDiaDobleHoy }} — ManiaCoins x2
                   </p>
                 </div>
               </div>
@@ -360,7 +372,17 @@
               <p class="text-gray-500 mt-2">Enviá el comprobante por WhatsApp al finalizar 📲</p>
             </div>
 
+            <p v-if="withDrawType === 'sucursal'" class="text-xs text-gray-500 mt-6 text-center">
+              ℹ️ En retiro en tienda, el pago es únicamente en efectivo o SINPE Móvil.
+            </p>
+          </div>
 
+          <!-- Aviso de tiempo de espera -->
+          <div class="px-5 pb-5">
+            <p class="bg-blue-50 border border-blue-200 text-blue-700 rounded-xl p-3 text-sm text-center font-bold">
+              ⏱️ Esperá un mínimo de 25 minutos antes de
+              {{ withDrawType === 'sucursal' ? 'pasar a retirar tu pedido' : 'que llegue a domicilio' }}.
+            </p>
           </div>
 
           <!-- Error message -->
@@ -393,7 +415,7 @@ import { db, auth } from '../firebase.js'
 import { doc, getDoc, updateDoc, increment } from 'firebase/firestore'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { getLocation, calcularTarifaEnvio, descripcionTarifaEnvio } from '../composable/saberDistancia.js'
-import { costoBebidaManiaCoins, coinsAGanar, obtenerCoinsValidos, obtenerNivelReal, obtenerSiguienteNivel, COIN_COSTOS } from '../utils/maniacoins.js'
+import { costoBebidaManiaCoins, coinsAGanar, obtenerCoinsValidos, obtenerNivelReal, obtenerSiguienteNivel, COIN_COSTOS, esDiaDoble, nombreDiaDoble } from '../utils/maniacoins.js'
 
 const createOrder = httpsCallable(getFunctions(), 'createOrder')
 const calculateOrderTotals = httpsCallable(getFunctions(), 'calculateOrderTotals')
@@ -517,8 +539,9 @@ const costoEnvio = computed(() => {
 
 const totalConEnvio = computed(() => cashTotalSinEnvio.value + costoEnvio.value)
 
-const esMartes = computed(() => new Date().getDay() === 2)
-const multiplicadorCoins = computed(() => esMartes.value ? 2 : 1)
+const esDiaDobleHoy = computed(() => esDiaDoble())
+const nombreDiaDobleHoy = computed(() => nombreDiaDoble())
+const multiplicadorCoins = computed(() => esDiaDobleHoy.value ? 2 : 1)
 const coinsAGanarComp = computed(() => coinsAGanar(cashTotalSinEnvio.value))
 const coinsAGanarDisplay = computed(() => coinsAGanarComp.value * multiplicadorCoins.value)
 const coinsAGanarFinal = computed(() => coinsAGanarComp.value * multiplicadorCoins.value * (primeraCompra.value ? 2 : 1))
@@ -612,6 +635,9 @@ const armarLineaItem = (item) => {
     const esCanje = bebidaPuntosMap[item._uid]
     linea += `\n  🥤 ${item.bebida.nombre} x${item.cantidad}${esCanje ? ` (🪙 ${costoBebidaManiaCoins(item.bebida.precio) * item.cantidad})` : ` — ₡${item.bebida.precio * item.cantidad}`}`
   }
+  if (item.bebidaEspecifica) {
+    linea += `\n  🥤 Incluye ${item.bebidaEspecifica.nombre} (cortesía)`
+  }
   if (item.proteinaSel) {
     linea += `\n  🍗 ${item.proteinaSel}`
   }
@@ -621,12 +647,21 @@ const armarLineaItem = (item) => {
   if (item.papasConSalsa) {
     linea += `\n  🍟 Papas con salsa`
   }
+  if (item.salsaSel) {
+    linea += `\n  🌶️ ${item.salsaSel}`
+  }
   if (item.salsasAlitas?.length) {
     linea += `\n  🌶️ Salsas: ${item.salsasAlitas.join(', ')}`
   }
   if (agrandarMap[item._uid]) {
     const esCanje = agrandarPuntosMap[item._uid]
     linea += `\n  ⬆️ Papas agrandadas${esCanje ? ` (🪙 ${COIN_COSTOS.AGRANDAR * item.cantidad})` : ` (+₡${AGRANDAR_COSTO * item.cantidad})`}`
+  }
+  if (item.papasFritasGratisSel) {
+    linea += `\n  🍟 Papas fritas (cortesía)`
+  }
+  if (item.tallaSel) {
+    linea += `\n  👕 Talla: ${item.tallaSel}`
   }
   return linea
 }
@@ -646,7 +681,7 @@ const armarMensajeWhatsApp = () => {
     `📞 Teléfono: ${datosCliente.value.telefono}\n\n` +
     `📋 *Pedido:*\n${items}\n` +
     `💰 Total: ₡${totalConEnvio.value}${puntosCadena}\n` +
-    `${esMartes.value ? '🔥 Martes FoodManiacos x2 — ' : ''}🪙 ManiaCoins ganados: ${coinsAGanarDisplay.value}\n` +
+    `${esDiaDobleHoy.value ? `🔥 ${nombreDiaDobleHoy.value} x2 — ` : ''}🪙 ManiaCoins ganados: ${coinsAGanarDisplay.value}\n` +
     `💳 Pago: ${pagoCadena}\n\n`
 
   if (withDrawType.value === 'sucursal') {
@@ -702,7 +737,8 @@ const confirmarPedido = async () => {
     if (agrandarMap[item._uid] && agrandarPuntosMap[item._uid]) return false
     return true
   })
-  if (totalCoinsAGastar.value > 0 && !hayItemsCash) {
+  const carritoEsSoloCanje = cartStore.items.every(item => item.esCanje)
+  if (totalCoinsAGastar.value > 0 && !hayItemsCash && !carritoEsSoloCanje) {
     return errorMsg.value = 'Para canjear ManiaCoins, tenés que comprar también (no canje solo).'
   }
 
@@ -725,10 +761,14 @@ const confirmarPedido = async () => {
         precio: item.bebida.precio,
         canjeadoConPuntos: !!bebidaPuntosMap[item._uid]
       } : null,
+      bebidaEspecifica: item.bebidaEspecifica ? { nombre: item.bebidaEspecifica.nombre } : null,
       papasConSalsa: item.papasConSalsa || false,
       salsasAlitas: item.salsasAlitas || [],
       proteinaSel: item.proteinaSel || null,
       gaseosaSel: item.gaseosaSel || null,
+      salsaSel: item.salsaSel || null,
+      papasFritasGratisSel: item.papasFritasGratisSel || false,
+      tallaSel: item.tallaSel || null,
       agrandarPapas: !!agrandarMap[item._uid],
       agrandarConPuntos: !!agrandarPuntosMap[item._uid],
     }))

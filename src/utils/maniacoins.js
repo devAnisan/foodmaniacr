@@ -117,3 +117,17 @@ export const formatearCumpleanos = (cumpleanos) => {
   const [ano, mes, dia] = cumpleanos.split('-')
   return `${dia}/${mes}/${ano}`
 }
+
+export const esDiaDoble = (fecha = new Date()) => {
+  const crDate = new Date(fecha.getTime() - 6 * 60 * 60 * 1000)
+  const dia = crDate.getUTCDay()
+  return dia === 0 || dia === 2
+}
+
+export const nombreDiaDoble = (fecha = new Date()) => {
+  const crDate = new Date(fecha.getTime() - 6 * 60 * 60 * 1000)
+  const dia = crDate.getUTCDay()
+  if (dia === 0) return 'Domingo FoodManiacos'
+  if (dia === 2) return 'Martes FoodManiacos'
+  return null
+}
