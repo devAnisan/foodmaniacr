@@ -885,6 +885,7 @@ const abrirPersonalizador = async (item, esCanje = false) => {
   gaseosaSel.value = item.gaseosaIncluida && item.gaseosaSabores?.length ? item.gaseosaSabores[0] : null
   salsaSel.value = item.salsa?.length ? item.salsa[0] : null
   papasFritasGratisSel.value = false
+  tallaSel.value = item.talla?.length ? item.talla[0] : null
   personalizadorAbierto.value = true
 }
 
@@ -918,6 +919,7 @@ const confirmarPersonalizacion = () => {
     gaseosaSel: gaseosaSel.value,
     salsaSel: salsaSel.value,
     papasFritasGratisSel: papasFritasGratisSel.value,
+    tallaSel: tallaSel.value,
   }
   if (bebidaSel.value) {
     extras.bebida = {
@@ -990,7 +992,7 @@ const categorias = vueRef([
     { nombre: 'Supremos', coleccion: 'supremos', emoji: '👑', productos: [], cargando: false, cargada: false },
     { nombre: 'Surtidos', coleccion: 'surtidos', emoji: '🎁', productos: [], cargando: false, cargada: false },
     { nombre: 'Bebidas', coleccion: 'bebidas', emoji: '🥤', productos: [], cargando: false, cargada: false },
-    { nombre: 'Merchandising', coleccion: 'merchandising', esCanje: true, emoji: '👕', productos: [], cargando: false, cargada: false },
+    { nombre: 'Merchandising', coleccion: 'merchandising', emoji: '👕', productos: [], cargando: false, cargada: false },
     { nombre: 'Canjear', coleccion: null, esCanje: true, emoji: '🪙', productos: [], cargando: false, cargada: false },
 ])
 
@@ -1028,8 +1030,10 @@ const actualizarCanje = () => {
     if (!canjeCat) return
     canjeCat.productos = categorias.value
         .filter(c => c.coleccion && c.cargada)
-        .flatMap(c => c.productos)
-        .filter(p => p.ValidoParaCambio === true && p.puntosCanje > 0)
+        .flatMap(c => c.productos.map(p => ({ ...p, _coleccionOrigen: c.coleccion })))
+        // Los productos del menú necesitan el flag ValidoParaCambio para aparecer en Canjear.
+        // El merchandising (camisas, gorras) entra directo con solo tener puntosCanje.
+        .filter(p => p.puntosCanje > 0 && (p.ValidoParaCambio === true || p._coleccionOrigen === 'merchandising'))
     canjeCat.cargada = true
 }
 

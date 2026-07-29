@@ -77,10 +77,10 @@
                         <textarea v-model="producto.descripcion" placeholder="Descripción" rows="2"
                             class="p-2 border rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"></textarea>
                         <div class="flex gap-2">
-                            <input v-if="coleccionActiva !== 'merchandising'" v-model="producto.precio" type="number" placeholder="Precio (₡)"
+                            <input v-model="producto.precio" type="number" placeholder="Precio (₡)"
                                 class="w-32 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
-                            <input v-if="coleccionActiva === 'merchandising'" v-model="producto.puntosCanje" type="number" placeholder="Puntos ManiaCoins"
-                                class="w-40 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                            <input v-if="coleccionActiva === 'merchandising'" v-model="producto.puntosCanje" type="number" placeholder="Puntos ManiaCoins (opcional)"
+                                class="w-48 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
                             <input v-model="producto.incluye" type="text" placeholder="Incluye (opcional)"
                                 class="flex-1 p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
                         </div>
@@ -238,14 +238,13 @@ const guardarProducto = async (producto) => {
             descripcion: producto.descripcion.trim(),
             incluye: producto.incluye.trim(),
             imagen: imagenPath,
+            precio: Number(producto.precio) || 0,
         }
         if (coleccionActiva.value === 'merchandising') {
             payload.puntosCanje = Number(producto.puntosCanje) || 0
             payload.talla = producto.talla
                 ? producto.talla.split(',').map(t => t.trim()).filter(Boolean)
                 : []
-        } else {
-            payload.precio = Number(producto.precio) || 0
         }
         if (producto._nuevo) {
             const nuevoDoc = await addDoc(collection(db, coleccionActiva.value), payload)
