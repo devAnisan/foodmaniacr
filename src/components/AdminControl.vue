@@ -295,6 +295,14 @@
                         🎁 PROMO: Papas pequeñas GRATIS (pedido #{{ pedidoDetalle.promoPapasGratisNumero }}/100)
                     </div>
 
+                    <!-- Merchandising: 3 a 5 días, retirar en sucursal -->
+                    <div v-if="pedidoDetalle.esMerchandising"
+                        class="bg-amber-50 border-2 border-amber-400 text-amber-800 rounded-xl p-3 text-center">
+                        <p class="font-bold text-base">⏳ TRES A CINCO DÍAS EN ENTREGAR</p>
+                        <p class="font-bold text-sm mt-1">RETIRAR EN LA SUCURSAL MÁS CERCANA</p>
+                        <p class="text-sm mt-1">📍 {{ pedidoDetalle.sucursal }}</p>
+                    </div>
+
                     <!-- Cliente -->
                     <div>
                         <p class="text-xs text-gray-400 uppercase font-bold mb-2">Cliente</p>
@@ -683,15 +691,26 @@ const cambiarEstado = async (pedido, nuevoEstado) => {
 
 const otorgarPuntos = async (pedido) => {
     try {
+        if (!pedido.usuario || pedido.usuario === 'Anónimo') return
+        const q = query(collection(db, 'clientes'), where('email', '==', pedido.usuario))
+        const snap = await getDocs(q)
+        if (snap.empty) return
+
+        const clienteRef = doc(db, 'clientes', snap.docs[0].id)
         const pts = pedido.puntosGanados || 0
-        if (pts > 0 && pedido.usuario && pedido.usuario !== 'Anónimo') {
-            const q = query(collection(db, 'clientes'), where('email', '==', pedido.usuario))
-            const snap = await getDocs(q)
-            if (!snap.empty) {
-                const clienteRef = doc(db, 'clientes', snap.docs[0].id)
-                await updateDoc(clienteRef, { puntos: increment(pts) })
-                await updateDoc(clienteRef, { ultimaGananciaCoins: Timestamp.now() })
-            }
+        const cambios = {}
+        if (pts > 0) {
+            cambios.puntos = increment(pts)
+            cambios.ultimaGananciaCoins = Timestamp.now()
+        }
+        // El flag de "primera compra" recién se consume acá, cuando el pedido se completa de
+        // verdad — no al crearlo (functions/index.js), para que un pedido de prueba o cancelado
+        // no le queme el bono de primera compra a un cliente real.
+        if (pedido.esPrimeraCompra) {
+            cambios.primeraCompra = false
+        }
+        if (Object.keys(cambios).length > 0) {
+            await updateDoc(clienteRef, cambios)
         }
     } catch (error) {
         console.error('Error otorgando puntos (reglas de seguridad?):', error)
@@ -838,6 +857,14 @@ const imprimirPedido = (pedido) => {
             <p class="brand">FOODMANIA</p>
             <p class="subtitle">COMPROBANTE DE PEDIDO</p>
         </div>
+        ${pedido.esMerchandising ? `
+        <div class="sep"></div>
+        <div class="center" style="border:3px solid #000;padding:6px;font-weight:bold;">
+            <p style="font-size:14px;margin:0;">⏳ TRES A CINCO DÍAS</p>
+            <p style="font-size:14px;margin:0;">EN ENTREGAR</p>
+            <p style="font-size:12px;margin:4px 0 0;">RETIRAR EN LA SUCURSAL MÁS CERCANA</p>
+            <p style="font-size:12px;margin:2px 0 0;">📍 ${escapeHtml(pedido.sucursal)}</p>
+        </div>` : ''}
         <div class="sep"></div>
         <div class="fila"><span>Pedido</span><span>#${escapeHtml((pedido.id || '').slice(-6).toUpperCase())}</span></div>
         <div class="fila"><span>Fecha</span><span>${escapeHtml(formatearFecha(pedido.creadoEn))}</span></div>

@@ -6,7 +6,10 @@ const { logger } = require('firebase-functions')
 const { calculateOrderTotals, esDiaDoble, nombreDiaDoble } = require('./calculos')
 
 const PROMO_LIMITE = 100
-const PROMO_INICIO = new Date('2026-08-01T06:00:00.000Z')
+// 3 de agosto de 2026, 00:00 hora Costa Rica (UTC-6, sin horario de verano) = 06:00 UTC.
+// Se usa tanto para bloquear pedidos antes del lanzamiento oficial como para el arranque de la promo.
+const LANZAMIENTO_OFICIAL = new Date('2026-08-03T06:00:00.000Z')
+const PROMO_INICIO = LANZAMIENTO_OFICIAL
 
 const emailConfig = defineJsonSecret('FUNCTIONS_CONFIG_EXPORT')
 
@@ -153,6 +156,10 @@ exports.calculateOrderTotals = onCall(async (request) => {
 })
 
 exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
+  if (Date.now() < LANZAMIENTO_OFICIAL.getTime()) {
+    throw new HttpsError('failed-precondition', 'Las compras se habilitan a partir del 3 de agosto de 2026.')
+  }
+
   const data = request.data
   const pedidoData = data.pedido
   const auth = request.auth
@@ -204,7 +211,9 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
     if (clientSnap.exists && clientSnap.data().primeraCompra === true) {
       esPrimeraCompra = true
       puntosGanados *= 2
-      await clientRef.update({ primeraCompra: false })
+      // No apagamos primeraCompra acá todavía: un pedido creado puede cancelarse o
+      // quedarse en "pendiente" para siempre (pruebas, etc). Se consume recién cuando
+      // el admin/cajero lo marca "finalizado" — ver otorgarPuntos() en AdminControl.vue.
       logger.log('🎉 Primera compra — ManiaCoins x2 para', email)
     }
     const cumpleanos = clientSnap.exists ? clientSnap.data().cumpleanos : null
@@ -221,7 +230,7 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
     }, { merge: true })
   }
 
-  // Promo de lanzamiento: primeros 100 pedidos desde el 1 de agosto reciben papas pequeñas gratis.
+  // Promo de lanzamiento: primeros 100 pedidos desde el 3 de agosto reciben papas pequeñas gratis.
   // Transacción atómica: la lectura-antes-de-escritura + reintento automático de Firestore
   // evita que dos pedidos concurrentes ambos se lleven el mismo cupo.
   let promoAplicada = false
@@ -241,6 +250,9 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
     if (promoAplicada) logger.log(`🎁 Promo papas gratis — pedido #${promoNumero}/${PROMO_LIMITE}`)
   }
 
+  // Calculado en el servidor (no se confía en lo que mande el cliente) a partir del origen real de cada ítem.
+  const esPedidoMerchandising = (pedidoData.items || []).some(item => item._coleccionOrigen === 'merchandising')
+
   const order = {
     ...pedidoData,
     subtotal: totals.baseCashTotal,
@@ -253,6 +265,8 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
     usuario: email || 'Anónimo',
     promoPapasGratis: promoAplicada,
     promoPapasGratisNumero: promoNumero,
+    esMerchandising: esPedidoMerchandising,
+    esPrimeraCompra,
     creadoEn: admin.firestore.Timestamp.now()
   }
 
@@ -339,6 +353,12 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
               <p style="margin:8px 0 0;opacity:0.9;">¡Tu pedido fue confirmado!</p>
             </div>
             <div style="padding:24px;background:#f9f9f9;">
+              ${esPedidoMerchandising ? `
+              <div style="margin:0 0 20px;padding:16px;background:#fef3c7;border:3px solid #f59e0b;border-radius:12px;text-align:center;">
+                <p style="margin:0;font-size:20px;font-weight:bold;color:#92400e;">⏳ TRES A CINCO DÍAS EN ENTREGAR</p>
+                <p style="margin:8px 0 0;font-size:16px;font-weight:bold;color:#92400e;">RETIRAR EN LA SUCURSAL MÁS CERCANA</p>
+                <p style="margin:8px 0 0;font-size:16px;color:#92400e;">📍 ${pedidoData.sucursal || '—'}</p>
+              </div>` : ''}
               <p style="margin:0 0 16px;"><strong>👤 Cliente:</strong> ${pedidoData.nombre || '—'}</p>
               <p style="margin:0 0 16px;"><strong>📞 Teléfono:</strong> ${pedidoData.telefono || '—'}</p>
               <table style="width:100%;border-collapse:collapse;">
@@ -434,4 +454,46 @@ exports.sendNotification = onCall(async (request) => {
   }
 
   return { successCount: response.successCount, failureCount: response.failureCount }
+})
+
+// Vista de clientes para Super Admin: email, si el correo está verificado (vive en Firebase Auth,
+// no en Firestore) y fecha de creación. Solo expone estos 3 campos, nada de teléfono/dirección/puntos.
+exports.listarClientes = onCall(async (request) => {
+  const uid = request.auth?.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'Iniciá sesión.')
+
+  const superAdminSnap = await db.collection('superAdmin').doc(uid).get()
+  if (!superAdminSnap.exists) {
+    throw new HttpsError('permission-denied', 'No tenés permisos de super admin.')
+  }
+
+  const clientesSnap = await db.collection('clientes').get()
+  if (clientesSnap.empty) return { clientes: [] }
+
+  const clientesData = clientesSnap.docs.map(d => ({
+    uid: d.id,
+    email: d.data().email || null,
+    creadoEn: d.data().creadoEn || null,
+  }))
+
+  // admin.auth().getUsers() acepta hasta 100 identificadores por llamada.
+  const emailVerificadoPorUid = {}
+  for (let i = 0; i < clientesData.length; i += 100) {
+    const lote = clientesData.slice(i, i + 100)
+    try {
+      const resultado = await admin.auth().getUsers(lote.map(c => ({ uid: c.uid })))
+      resultado.users.forEach(u => { emailVerificadoPorUid[u.uid] = u.emailVerified })
+    } catch (e) {
+      logger.warn('Error obteniendo usuarios de Auth:', e.message)
+    }
+  }
+
+  const clientes = clientesData.map(c => ({
+    uid: c.uid,
+    email: c.email,
+    emailVerificado: emailVerificadoPorUid[c.uid] ?? false,
+    creadoEn: c.creadoEn?.toMillis ? c.creadoEn.toMillis() : null,
+  }))
+
+  return { clientes }
 })

@@ -83,6 +83,21 @@
         </div>
 
         <div class="max-w-4xl mx-auto px-4 py-6">
+            <!-- Vista: productos o clientes -->
+            <div class="flex gap-2 mb-6">
+                <button @click="vistaActiva = 'productos'"
+                    :class="vistaActiva === 'productos' ? 'bg-[var(--primary)] text-white' : 'bg-white text-gray-600 hover:bg-gray-100'"
+                    class="px-4 py-2 rounded-full text-sm font-bold border transition-all duration-200 hover:cursor-pointer">
+                    📦 Productos
+                </button>
+                <button @click="seleccionarVistaClientes"
+                    :class="vistaActiva === 'clientes' ? 'bg-[var(--primary)] text-white' : 'bg-white text-gray-600 hover:bg-gray-100'"
+                    class="px-4 py-2 rounded-full text-sm font-bold border transition-all duration-200 hover:cursor-pointer">
+                    👥 Clientes
+                </button>
+            </div>
+
+            <div v-if="vistaActiva === 'productos'">
             <!-- Selector de colección -->
             <div class="flex gap-2 overflow-x-auto pb-2 mb-6">
                 <button v-for="c in COLECCIONES" :key="c.key" @click="seleccionarColeccion(c.key)"
@@ -205,17 +220,55 @@
                     No hay productos en esta categoría.
                 </p>
             </div>
+            </div>
+
+            <!-- Vista de clientes -->
+            <div v-else-if="vistaActiva === 'clientes'">
+                <div v-if="cargandoClientes" class="text-center text-gray-400 py-10">
+                    <span class="pi pi-spinner animate-spin text-3xl"></span>
+                </div>
+                <div v-else class="bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-3 border-b">
+                        <input v-model="busquedaCliente" type="text" placeholder="Buscar por correo..."
+                            class="w-full p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                    </div>
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-500 text-left">
+                                <th class="p-3">Email</th>
+                                <th class="p-3">Correo verificado</th>
+                                <th class="p-3">Creado el</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="cliente in clientesFiltrados" :key="cliente.uid" class="border-t hover:bg-gray-50">
+                                <td class="p-3">{{ cliente.email || '—' }}</td>
+                                <td class="p-3">
+                                    <span :class="cliente.emailVerificado ? 'text-green-600' : 'text-red-500'" class="font-bold">
+                                        {{ cliente.emailVerificado ? '✅ Verificado' : '❌ No verificado' }}
+                                    </span>
+                                </td>
+                                <td class="p-3 text-gray-500">{{ formatearFechaCliente(cliente.creadoEn) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p v-if="clientesFiltrados.length === 0" class="text-center text-gray-400 py-10">
+                        No hay clientes que coincidan con la búsqueda.
+                    </p>
+                </div>
+            </div>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref as vueRef, onMounted, onUnmounted } from 'vue'
+import { ref as vueRef, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth, db, storage } from '../firebase.js'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { doc, getDoc, collection, getDocs, updateDoc, addDoc, deleteDoc, deleteField } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { getFunctions, httpsCallable } from 'firebase/functions'
 
 const router = useRouter()
 const verificando = vueRef(true)
@@ -240,6 +293,46 @@ const cargando = vueRef(false)
 const mensaje = vueRef('')
 const mensajeTipo = vueRef('success')
 const showGlosarioModal = vueRef(false)
+
+// ── Vista de clientes ───────────────────────────────────────────────────────
+const vistaActiva = vueRef('productos')
+const clientes = vueRef([])
+const cargandoClientes = vueRef(false)
+const clientesCargados = vueRef(false)
+const busquedaCliente = vueRef('')
+
+const clientesFiltrados = computed(() => {
+    const q = busquedaCliente.value.trim().toLowerCase()
+    if (!q) return clientes.value
+    return clientes.value.filter(c => (c.email || '').toLowerCase().includes(q))
+})
+
+const formatearFechaCliente = (ms) => {
+    if (!ms) return '—'
+    return new Date(ms).toLocaleDateString('es-CR', {
+        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    })
+}
+
+const cargarClientes = async () => {
+    cargandoClientes.value = true
+    try {
+        const listar = httpsCallable(getFunctions(), 'listarClientes')
+        const result = await listar()
+        clientes.value = (result.data.clientes || []).sort((a, b) => (b.creadoEn || 0) - (a.creadoEn || 0))
+        clientesCargados.value = true
+    } catch (error) {
+        console.error('Error cargando clientes:', error)
+        mostrarMensaje('Error al cargar clientes', 'error')
+    } finally {
+        cargandoClientes.value = false
+    }
+}
+
+const seleccionarVistaClientes = () => {
+    vistaActiva.value = 'clientes'
+    if (!clientesCargados.value) cargarClientes()
+}
 
 const GLOSARIO_ATRIBUTOS = [
     {

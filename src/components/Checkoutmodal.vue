@@ -136,6 +136,11 @@
               </div>
             </div>
 
+            <!-- Aviso: no se puede mezclar merchandising con comida -->
+            <div v-if="carritoMixto" class="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm font-bold text-center mt-2">
+              ⚠️ No podés combinar merchandising con productos de comida en el mismo pedido. Hacé pedidos separados.
+            </div>
+
             <!-- Envío -->
             <div v-if="withDrawType === 'domicilio' && costoEnvio > 0"
               class="flex justify-between text-sm text-gray-500 mt-2 pt-2 border-t border-dashed">
@@ -266,17 +271,39 @@
                 class="flex-1 py-2 rounded transition-colors duration-300 hover:cursor-pointer">
                 🏪 Sucursal
               </button>
-              <button @click="withDrawType = 'domicilio'"
+              <button v-if="!hayMerchandising" @click="withDrawType = 'domicilio'"
                 :class="withDrawType === 'domicilio' ? 'bg-[var(--primary)] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
                 class="flex-1 py-2 rounded transition-colors duration-300 hover:cursor-pointer">
                 🛵 Domicilio
               </button>
             </div>
+            <p v-if="hayMerchandising" class="text-xs text-gray-400 mt-2">
+              📦 Merchandising: solo se puede retirar en sucursal.
+            </p>
           </div>
 
           <!-- Datos según tipo de retiro -->
           <div class="p-5 border-b">
-            <div v-if="withDrawType === 'sucursal'" class="flex flex-col gap-4">
+            <div v-if="withDrawType === 'sucursal' && hayMerchandising" class="flex flex-col gap-4">
+              <p class="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3 text-sm font-bold text-center">
+                ⏳ TRES A CINCO DÍAS EN ENTREGAR. RETIRAR EN LA SUCURSAL MÁS CERCANA.
+              </p>
+              <div>
+                <label class="text-sm text-gray-500 block mb-1">Sucursal más cercana para retirar</label>
+                <button @click="obtenerUbicacionMerch()" :disabled="obteniendoUbicacion"
+                  class="w-full py-2 border-2 border-dashed border-[var(--primary)] rounded-lg text-[var(--primary)] font-bold hover:bg-purple-50 transition-colors hover:cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+                  <span v-if="obteniendoUbicacion" class="pi pi-spinner animate-spin"></span>
+                  {{ obteniendoUbicacion ? 'Cargando...' : '📍 Usar mi ubicación actual' }}
+                </button>
+                <div v-if="sucursalSeleccionada"
+                  class="mt-2 bg-green-50 border border-green-200 rounded-lg p-3 text-sm">
+                  <p class="text-green-600 font-bold">✅ Retirás en: {{ sucursalSeleccionada }}</p>
+                  <p class="text-gray-500 mt-1">Distancia: {{ locationStore.distancia }} km</p>
+                </div>
+              </div>
+            </div>
+
+            <div v-else-if="withDrawType === 'sucursal'" class="flex flex-col gap-4">
               <div>
                 <label class="text-sm text-gray-500 block mb-1">Sucursal de retiro</label>
                 <select v-model="sucursalSeleccionada" @change="actualizarDatosSinpe"
@@ -308,9 +335,10 @@
               </div>
               <div>
                 <label class="text-sm text-gray-500 block mb-1">Tu ubicación GPS</label>
-                <button @click="obtenerUbicacion()"
-                  class="w-full py-2 border-2 border-dashed border-[var(--primary)] rounded-lg text-[var(--primary)] font-bold hover:bg-purple-50 transition-colors hover:cursor-pointer">
-                  📍 Usar mi ubicación actual
+                <button @click="obtenerUbicacion()" :disabled="obteniendoUbicacion"
+                  class="w-full py-2 border-2 border-dashed border-[var(--primary)] rounded-lg text-[var(--primary)] font-bold hover:bg-purple-50 transition-colors hover:cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+                  <span v-if="obteniendoUbicacion" class="pi pi-spinner animate-spin"></span>
+                  {{ obteniendoUbicacion ? 'Cargando...' : '📍 Usar mi ubicación actual' }}
                 </button>
                 <div v-if="ubicacionObtenida"
                   class="mt-2 bg-green-50 border border-green-200 rounded-lg p-3 text-sm flex justify-between items-center">
@@ -336,7 +364,7 @@
           <div class="p-5 border-b">
             <h2 class="font-bold mb-3">Método de pago</h2>
             <div class="flex gap-2 mb-4">
-              <button @click="metodoPago = 'efectivo'"
+              <button v-if="!hayMerchandising" @click="metodoPago = 'efectivo'"
                 :class="metodoPago === 'efectivo' ? 'bg-[var(--primary)] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
                 class="flex-1 py-2 rounded transition-colors duration-300 hover:cursor-pointer">
                 💵 Efectivo
@@ -348,6 +376,9 @@
               </button>
 
             </div>
+            <p v-if="hayMerchandising" class="text-xs text-gray-400 -mt-2 mb-4">
+              📦 Merchandising: solo se puede pagar por SINPE Móvil.
+            </p>
 
             <div v-if="metodoPago === 'efectivo'" class="flex flex-col gap-2">
               <label class="text-sm text-gray-500">¿Con cuánto vas a pagar?</label>
@@ -394,7 +425,11 @@
 
           <!-- Botón confirmar -->
           <div class="p-5">
-            <button @click="confirmarPedido" :disabled="loading"
+            <p v-if="!ventaHabilitada"
+              class="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3 text-sm font-bold text-center">
+              🚧 ¡Ya casi abrimos! Las compras se habilitan a partir del 3 de agosto. Volvé pronto para confirmar tu pedido.
+            </p>
+            <button v-else @click="confirmarPedido" :disabled="loading"
               class="w-full bg-[var(--primary)] text-white py-3 rounded-xl font-bold hover:bg-[var(--primary-dark)] transition-colors duration-300 hover:cursor-pointer disabled:opacity-50">
               <span v-if="loading" class="pi pi-spinner animate-spin mr-2"></span>
               {{ loading ? 'Enviando pedido...' : 'Confirmar pedido 🎉' }}
@@ -439,6 +474,10 @@ const fueraDeHorario = computed(() => {
   return hora < 11 || hora >= 23
 })
 
+// 3 de agosto de 2026, 00:00 hora Costa Rica (UTC-6) = 06:00 UTC. Igual a LANZAMIENTO_OFICIAL en functions/index.js.
+const LANZAMIENTO_OFICIAL = new Date('2026-08-03T06:00:00.000Z')
+const ventaHabilitada = computed(() => Date.now() >= LANZAMIENTO_OFICIAL.getTime())
+
 const withDrawType = vueRef('sucursal')
 const sucursalSeleccionada = vueRef('')
 const fechaRetiro = vueRef('')
@@ -482,6 +521,19 @@ const toggleAgrandarCoins = (item, val) => {
 const coinsValidosComp = computed(() => obtenerCoinsValidos(puntosActuales.value, ultimaGananciaCoinsVal.value))
 const nivelActual = computed(() => obtenerNivelReal(puntosActuales.value, ultimaGananciaCoinsVal.value, ultimaCompraVal.value))
 const siguienteNivel = computed(() => obtenerSiguienteNivel(puntosActuales.value, ultimaGananciaCoinsVal.value))
+
+// Merchandising (camisas/gorras): pago solo SINPE, retiro solo en sucursal más cercana (via GPS),
+// tarda 3-5 días — no se puede mezclar con productos de comida en el mismo pedido.
+const hayMerchandising = computed(() => cartStore.items.some(item => item._coleccionOrigen === 'merchandising'))
+const hayComidaEnCarrito = computed(() => cartStore.items.some(item => item._coleccionOrigen && item._coleccionOrigen !== 'merchandising'))
+const carritoMixto = computed(() => hayMerchandising.value && hayComidaEnCarrito.value)
+
+watch(hayMerchandising, (val) => {
+  if (val && !carritoMixto.value) {
+    withDrawType.value = 'sucursal'
+    metodoPago.value = 'sinpe'
+  }
+})
 
 const baseCashTotal = computed(() => {
   return cartStore.items.reduce((acc, item) => {
@@ -603,11 +655,14 @@ watch(metodoPago, (nuevoMetodo) => {
   }
 })
 
+const obteniendoUbicacion = vueRef(false)
+
 const obtenerUbicacion = async () => {
   if (!navigator.geolocation) {
     errorMsg.value = 'Geolocalización no disponible.'
     return
   }
+  obteniendoUbicacion.value = true
   try {
     await getLocation(sucursalesStore.sucursalesFoodMania)
     ubicacionObtenida.value = true
@@ -619,6 +674,27 @@ const obtenerUbicacion = async () => {
     }
   } catch {
     errorMsg.value = 'No se pudo obtener tu ubicación. Verificá los permisos e intentá de nuevo.'
+  } finally {
+    obteniendoUbicacion.value = false
+  }
+}
+
+// Merchandising: retiro obligatorio en la sucursal más cercana, determinada por GPS (Haversine),
+// nunca elegida a mano — no tiene sentido pedirle "fecha y hora de retiro" si tarda 3-5 días.
+const obtenerUbicacionMerch = async () => {
+  if (!navigator.geolocation) {
+    errorMsg.value = 'Geolocalización no disponible.'
+    return
+  }
+  obteniendoUbicacion.value = true
+  try {
+    await getLocation(sucursalesStore.sucursalesFoodMania)
+    sucursalSeleccionada.value = locationStore.sucursalCercana
+    actualizarDatosSinpe()
+  } catch {
+    errorMsg.value = 'No se pudo obtener tu ubicación. Verificá los permisos e intentá de nuevo.'
+  } finally {
+    obteniendoUbicacion.value = false
   }
 }
 
@@ -700,18 +776,26 @@ const confirmarPedido = async () => {
   errorMsg.value = ''
   successMsg.value = ''
 
+  if (!ventaHabilitada.value)
+    return errorMsg.value = 'Las compras se habilitan a partir del 3 de agosto.'
   if (cartStore.items.length === 0)
     return errorMsg.value = 'Tu carrito está vacío. Agregá productos antes de continuar.'
+  if (carritoMixto.value)
+    return errorMsg.value = 'No podés combinar merchandising con productos de comida en el mismo pedido — hacé pedidos separados.'
   if (!datosCliente.value.nombre) return errorMsg.value = 'Ingresá tu nombre.'
   if (!datosCliente.value.telefono) return errorMsg.value = 'Ingresá tu teléfono.'
 
   if (withDrawType.value === 'sucursal') {
-    if (!sucursalSeleccionada.value) return errorMsg.value = 'Seleccioná una sucursal.'
-    if (!fechaRetiro.value) return errorMsg.value = 'Seleccioná una fecha de retiro.'
-    if (!horaRetiro.value) return errorMsg.value = 'Seleccioná una hora de retiro.'
-    const [hh] = horaRetiro.value.split(':').map(Number)
-    if (hh < 11 || hh >= 23)
-      return errorMsg.value = 'La hora de retiro debe ser entre 11:00am y 11:00pm.'
+    if (!sucursalSeleccionada.value) return errorMsg.value = hayMerchandising.value
+      ? 'Compartí tu ubicación para encontrar la sucursal más cercana.'
+      : 'Seleccioná una sucursal.'
+    if (!hayMerchandising.value) {
+      if (!fechaRetiro.value) return errorMsg.value = 'Seleccioná una fecha de retiro.'
+      if (!horaRetiro.value) return errorMsg.value = 'Seleccioná una hora de retiro.'
+      const [hh] = horaRetiro.value.split(':').map(Number)
+      if (hh < 11 || hh >= 23)
+        return errorMsg.value = 'La hora de retiro debe ser entre 11:00am y 11:00pm.'
+    }
   } else {
     if (!datosCliente.value.direccion) return errorMsg.value = 'Ingresá la dirección de entrega.'
     if (!ubicacionObtenida.value) return errorMsg.value = 'Debés compartir tu ubicación para el envío a domicilio. 📍'
@@ -751,6 +835,7 @@ const confirmarPedido = async () => {
       nombre: item.nombre,
       precio: item.precio,
       cantidad: item.cantidad,
+      _coleccionOrigen: item._coleccionOrigen || null,
       esCanje: item.esCanje || false,
       esBebida: item.esBebida || false,
       puntosCanje: item.esCanje ? (item.puntosCanje || 0) : 0,

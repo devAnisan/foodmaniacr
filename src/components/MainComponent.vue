@@ -89,9 +89,10 @@
                     <label class="text-sm text-gray-500 text-left block -mb-2">🎂 Fecha de cumpleaños</label>
                     <input v-model="datosNuevos.cumpleanos" type="date"
                         class="p-2 border w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
-                    <button @click="obtenerUbicacionPerfil"
-                        class="w-full py-2 border-2 border-dashed border-[var(--primary)] rounded-lg text-[var(--primary)] font-bold hover:bg-purple-50 transition-colors hover:cursor-pointer text-sm">
-                        📍 Usar mi ubicación actual
+                    <button @click="obtenerUbicacionPerfil" :disabled="isLoading"
+                        class="w-full py-2 border-2 border-dashed border-[var(--primary)] rounded-lg text-[var(--primary)] font-bold hover:bg-purple-50 transition-colors hover:cursor-pointer text-sm disabled:opacity-60 disabled:cursor-not-allowed">
+                        <span v-if="isLoading" class="pi pi-spinner animate-spin"></span>
+                        {{ isLoading ? 'Cargando...' : '📍 Usar mi ubicación actual' }}
                     </button>
                     <p v-if="errorMsg" class="text-red-500 text-sm">{{ errorMsg }}</p>
                     <button @click="completarPerfil" :disabled="isLoading"
@@ -252,10 +253,11 @@
             </section>
 
             <section class="flex justify-center mb-8 px-2">
-                <button @click="getLocations()"
-                    class="flex justify-center items-center shadow-lg p-3 px-6 rounded-full hover:cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-300 bg-white border border-[var(--primary)] text-[var(--primary)] font-bold">
-                    <span class="text-lg">
-                        Conocer mi sucursal más cercana 📍
+                <button @click="getLocations()" :disabled="loaderBranchSection"
+                    class="flex justify-center items-center shadow-lg p-3 px-6 rounded-full hover:cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-300 bg-white border border-[var(--primary)] text-[var(--primary)] font-bold disabled:opacity-60 disabled:cursor-not-allowed">
+                    <span class="text-lg flex items-center gap-2">
+                        <span v-if="loaderBranchSection" class="pi pi-spinner animate-spin"></span>
+                        {{ loaderBranchSection ? 'Cargando...' : 'Conocer mi sucursal más cercana 📍' }}
                     </span>
                 </button>
             </section>
@@ -317,7 +319,7 @@ const {
 } = useAuth()
 
 const sucursales = vueRef([]);
-const loaderBranchSection = vueRef(true);
+const loaderBranchSection = vueRef(false);
 const menuOpen = vueRef(false);
 const imageUrl = vueRef("");
 const imageUrlMenu = vueRef("");
@@ -346,12 +348,14 @@ watch(showUserModal, async (val) => {
   }
 })
 
-const getLocations = () => {
+const getLocations = async () => {
     branchSectionShow.value = true
-    getLocation(sucursales.value)
-    setTimeout(() => {
+    loaderBranchSection.value = true
+    try {
+        await getLocation(sucursales.value)
+    } finally {
         loaderBranchSection.value = false
-    }, 2000);
+    }
 }
 
 

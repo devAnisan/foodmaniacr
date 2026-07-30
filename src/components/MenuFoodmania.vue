@@ -40,9 +40,10 @@
                 <label class="text-sm text-gray-500 text-left block -mb-2">🎂 Fecha de cumpleaños</label>
                 <input v-model="datosNuevos.cumpleanos" type="date"
                     class="p-2 border w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
-                <button @click="obtenerUbicacionPerfil"
-                    class="w-full py-2 border-2 border-dashed border-[var(--primary)] rounded-lg text-[var(--primary)] font-bold hover:bg-purple-50 transition-colors hover:cursor-pointer text-sm">
-                    📍 Usar mi ubicación actual
+                <button @click="obtenerUbicacionPerfil" :disabled="isLoading"
+                    class="w-full py-2 border-2 border-dashed border-[var(--primary)] rounded-lg text-[var(--primary)] font-bold hover:bg-purple-50 transition-colors hover:cursor-pointer text-sm disabled:opacity-60 disabled:cursor-not-allowed">
+                    <span v-if="isLoading" class="pi pi-spinner animate-spin"></span>
+                    {{ isLoading ? 'Cargando...' : '📍 Usar mi ubicación actual' }}
                 </button>
                 <p v-if="errorMsg" class="text-red-500 text-sm">{{ errorMsg }}</p>
                 <button @click="completarPerfil" :disabled="isLoading"
@@ -1040,7 +1041,7 @@ const cargarCategoria = async (cat) => {
                     console.error(`Error cargando imagen de ${data.nombre ?? doc.id}:`, error)
                 }
             }
-            return { id: doc.id, ...data, precio: Number(data.precio) || 0, imageUrl: itemImageUrl }
+            return { id: doc.id, ...data, precio: Number(data.precio) || 0, imageUrl: itemImageUrl, _coleccionOrigen: cat.coleccion }
         }))
         cat.productos.push(...productos)
         cat.cargada = true
@@ -1056,11 +1057,10 @@ const actualizarCanje = () => {
     const canjeCat = categorias.value.find(c => c.esCanje && !c.coleccion)
     if (!canjeCat) return
     canjeCat.productos = categorias.value
-        .filter(c => c.coleccion && c.cargada)
-        .flatMap(c => c.productos.map(p => ({ ...p, _coleccionOrigen: c.coleccion })))
-        // Los productos del menú necesitan el flag ValidoParaCambio para aparecer en Canjear.
-        // El merchandising (camisas, gorras) entra directo con solo tener puntosCanje.
-        .filter(p => p.puntosCanje > 0 && (p.ValidoParaCambio === true || p._coleccionOrigen === 'merchandising'))
+        // El merchandising se compra aparte, solo por colones en su propia pestaña — nunca por Canjear.
+        .filter(c => c.coleccion && c.cargada && c.coleccion !== 'merchandising')
+        .flatMap(c => c.productos)
+        .filter(p => p.ValidoParaCambio === true && p.puntosCanje > 0)
     canjeCat.cargada = true
 }
 

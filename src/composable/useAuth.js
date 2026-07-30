@@ -190,13 +190,15 @@ export function useAuth() {
       errorMsg.value = 'Geolocalización no disponible.'
       return
     }
+    isLoading.value = true
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         datosNuevos.value.lat = pos.coords.latitude.toString()
         datosNuevos.value.lng = pos.coords.longitude.toString()
         successMsg.value = '📍 Ubicación obtenida'
+        isLoading.value = false
       },
-      () => { errorMsg.value = 'No se pudo obtener la ubicación.' }
+      () => { errorMsg.value = 'No se pudo obtener la ubicación.'; isLoading.value = false }
     )
   }
 
