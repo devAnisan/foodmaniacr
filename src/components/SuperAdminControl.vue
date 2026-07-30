@@ -28,11 +28,52 @@
                     <p class="text-xs text-gray-400">Bienvenido, {{ adminNombre }}</p>
                 </div>
             </div>
-            <button @click="cerrarSesion"
-                class="text-sm border px-4 py-2 rounded-full hover:bg-gray-100 transition-colors hover:cursor-pointer">
-                Cerrar sesión
-            </button>
+            <div class="flex items-center gap-2">
+                <button @click="showGlosarioModal = true"
+                    class="text-sm border px-4 py-2 rounded-full hover:bg-gray-100 transition-colors hover:cursor-pointer flex items-center gap-1">
+                    <span>📖</span> Glosario de atributos
+                </button>
+                <button @click="cerrarSesion"
+                    class="text-sm border px-4 py-2 rounded-full hover:bg-gray-100 transition-colors hover:cursor-pointer">
+                    Cerrar sesión
+                </button>
+            </div>
         </header>
+
+        <!-- Modal Glosario de atributos -->
+        <div v-if="showGlosarioModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            @click="showGlosarioModal = false">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto" @click.stop>
+                <div class="flex justify-between items-center p-5 border-b sticky top-0 bg-white">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl">📖</span>
+                        <h2 class="text-xl font-bold">Glosario de atributos de producto</h2>
+                    </div>
+                    <button @click="showGlosarioModal = false"
+                        class="pi pi-times text-red-500 hover:cursor-pointer p-2"></button>
+                </div>
+                <div class="p-5 flex flex-col gap-6 text-sm">
+                    <p class="text-gray-500">
+                        Cada producto en Firestore puede tener estos campos además de los que ya aparecen como inputs
+                        en el formulario. Los que no tienen su propio input acá se pueden agregar/editar desde
+                        "Atributos adicionales" en cada producto.
+                    </p>
+                    <div v-for="grupo in GLOSARIO_ATRIBUTOS" :key="grupo.titulo">
+                        <h3 class="font-bold text-[var(--primary)] mb-2">{{ grupo.titulo }}</h3>
+                        <div class="flex flex-col gap-3">
+                            <div v-for="attr in grupo.atributos" :key="attr.nombre" class="bg-gray-50 rounded-lg p-3">
+                                <p class="font-mono font-bold text-gray-800">
+                                    {{ attr.nombre }}
+                                    <span class="text-gray-400 font-sans font-normal text-xs">({{ attr.tipo }})</span>
+                                </p>
+                                <p class="text-gray-600 mt-1">{{ attr.descripcion }}</p>
+                                <p v-if="attr.depende" class="text-amber-600 text-xs mt-1">⚠️ {{ attr.depende }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <div v-if="mensaje" class="max-w-4xl mx-auto mt-4 px-4">
             <div class="text-sm font-bold px-3 py-2 rounded-lg text-center"
@@ -198,6 +239,47 @@ const productos = vueRef([])
 const cargando = vueRef(false)
 const mensaje = vueRef('')
 const mensajeTipo = vueRef('success')
+const showGlosarioModal = vueRef(false)
+
+const GLOSARIO_ATRIBUTOS = [
+    {
+        titulo: 'Campos fijos (ya tienen su input en este formulario)',
+        atributos: [
+            { nombre: 'nombre', tipo: 'texto', descripcion: 'Nombre del producto, se muestra en el menú.' },
+            { nombre: 'descripcion', tipo: 'texto', descripcion: 'Descripción corta del producto, se muestra en la card del menú (con "Ver más" si es larga).' },
+            { nombre: 'precio', tipo: 'número', descripcion: 'Precio en colones (₡). En Merchandising es el precio para pagar en efectivo/SINPE.' },
+            { nombre: 'incluye', tipo: 'texto', descripcion: 'Texto opcional que aparece como "✅ Incluye..." en la card del producto.' },
+            { nombre: 'imagen', tipo: 'ruta de Storage', descripcion: 'Ruta de la foto del producto en Firebase Storage. Se sube sola al usar "Cambiar imagen", no hace falta tocarla a mano.' },
+            { nombre: 'puntosCanje', tipo: 'número', descripcion: 'Solo en Merchandising: costo en ManiaCoins para canjear el producto.', depende: 'Si un producto de las categorías de comida también tiene este campo, necesita además "ValidoParaCambio" en true para aparecer en la pestaña Canjear. Merchandising no necesita ese segundo campo.' },
+            { nombre: 'talla', tipo: 'lista', descripcion: 'Solo en Merchandising: tallas disponibles (ej. S, M, L, XL).', depende: 'Si el producto tiene tallas cargadas, el cliente tiene que elegir una antes de poder agregarlo al carrito.' },
+            { nombre: 'permiteBebidaOpcional', tipo: 'sí/no', descripcion: 'Muestra el upsell "Agregar bebida (opcional)" (bebida paga) en el personalizador de este producto.', depende: 'Se ignora si el producto ya tiene "bebidaEspecifica" cargado — en ese caso nunca se muestra el upsell, sin importar este campo.' },
+        ]
+    },
+    {
+        titulo: 'Personalización — bebidas y proteína (se agregan como "Atributo adicional")',
+        atributos: [
+            { nombre: 'gaseosaIncluida', tipo: 'sí/no', descripcion: 'Indica que el producto ya trae una gaseosa 600ml incluida en el precio, para que el cliente elija el sabor.', depende: 'Solo tiene efecto junto con "gaseosaSabores" — si no hay sabores cargados, no se muestra ningún selector aunque esto esté en true.' },
+            { nombre: 'gaseosaSabores', tipo: 'lista', descripcion: 'Sabores disponibles para la gaseosa incluida (ej: Cola, Fresa, Naranja).', depende: 'Solo se usa si "gaseosaIncluida" está en true.' },
+            { nombre: 'bebidaEspecifica', tipo: 'objeto (nombre)', descripcion: 'El producto ya incluye UNA bebida específica fija, sin elegir sabor. Se muestra como "Incluye [nombre]" de cortesía en el personalizador, el carrito y la factura, sin cobrarse.', depende: 'Si está presente, oculta siempre el upsell de "Agregar bebida (opcional)", sin importar el valor de "permiteBebidaOpcional".' },
+            { nombre: 'opcionesProteina', tipo: 'lista', descripcion: 'Opciones de proteína para elegir en un combo (ej: Pollo, Res, Cerdo).' },
+        ]
+    },
+    {
+        titulo: 'Personalización — papas y salsas (se agregan como "Atributo adicional")',
+        atributos: [
+            { nombre: 'papas', tipo: 'sí/no', descripcion: 'Indica que el producto incluye una orden de papas fritas. Activa el toggle "¿Papas con salsa? Sí/No" en el personalizador, y el checkbox de "Agrandar papas" (con costo) en el carrito.' },
+            { nombre: 'salsa', tipo: 'lista', descripcion: 'Usado en productos de papas pequeñas/grandes para elegir "Con salsa" o "Sin salsa" como opciones a escoger.', depende: 'Es un campo distinto de "papas" de arriba — no confundirlos, uno es un toggle Sí/No y este es una lista de opciones.' },
+            { nombre: 'permiteAnadirPapas', tipo: 'sí/no', descripcion: 'Muestra un checkbox para agregar una orden de papas fritas totalmente gratis (cortesía), pensado para productos tipo "cantón". Nunca se cobra, sin importar qué tan seguido se marque.' },
+            { nombre: 'salsasDisponibles', tipo: 'sí/no', descripcion: 'Muestra el selector de hasta 2 salsas (viene de la colección "salsas") en productos que no se llaman "Alitas Mania" pero también ofrecen elegir salsas, como Nuggets.', depende: 'Los productos que tienen "Alitas Mania" en el nombre ya muestran este selector automáticamente, sin necesitar este campo.' },
+        ]
+    },
+    {
+        titulo: 'Canje con ManiaCoins',
+        atributos: [
+            { nombre: 'ValidoParaCambio', tipo: 'sí/no', descripcion: 'Marca que un producto de las categorías de comida también puede canjearse con ManiaCoins en la pestaña "Canjear", además de comprarse con colones.', depende: 'Necesita también tener "puntosCanje" mayor a 0. Este campo solo aplica a comida — los productos de Merchandising aparecen en Canjear automáticamente con solo tener puntosCanje, sin necesitar este campo.' },
+        ]
+    },
+]
 
 let tempCounter = 0
 
