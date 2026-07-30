@@ -306,6 +306,14 @@
       </div>
     </div>
 
+    <!-- ✦ Vista previa de imagen (merchandising) ✦ -->
+    <div v-if="imagenPreviewUrl" class="fixed inset-0 bg-black/80 z-100 flex items-center justify-center p-4"
+      @click="imagenPreviewUrl = null">
+      <button @click="imagenPreviewUrl = null"
+        class="absolute top-4 right-4 text-white text-2xl pi pi-times hover:cursor-pointer p-2"></button>
+      <img :src="imagenPreviewUrl" alt="Vista previa" class="max-w-full max-h-full rounded-xl object-contain" @click.stop />
+    </div>
+
     <!-- Header -->
     <header class="fixed top-0 left-0 right-0 z-50 bg-white fontColor shadow-sm">
         <!-- Mobile dropdown -->
@@ -496,11 +504,7 @@
                     </div>
 
                     <!-- Pestañas de categorías -->
-                    <div class="relative w-full flex items-center gap-1">
-                        <button @click="scrollCategorias(-150)"
-                            class="hidden md:flex flex-shrink-0 items-center justify-center w-7 h-7 rounded-full bg-white border shadow-sm hover:bg-gray-100 hover:cursor-pointer">
-                            <span class="pi pi-chevron-left text-xs"></span>
-                        </button>
+                    <div class="relative w-full">
                         <div ref="tabsScrollRef" class="flex gap-2 overflow-x-auto pb-1 w-full scrollbar-hide">
                             <button @click="categoriaActiva = null; busqueda = ''"
                                 :class="categoriaActiva === null && !busqueda ? 'bg-[var(--primary)] text-white' : 'bg-white text-gray-600 hover:bg-gray-100'"
@@ -516,9 +520,13 @@
                                 <img v-if="cat.esCanje" :src="assets.coinIconUrl" alt="ManiaCoins" class="w-4 h-4 inline-block" /><span v-else>{{ cat.emoji }}</span> {{ cat.nombre }}
                             </button>
                         </div>
+                        <button @click="scrollCategorias(-150)"
+                            class="hidden md:flex absolute left-0 top-0 bottom-1 items-center justify-center w-8 bg-gradient-to-r from-gray-50 via-gray-50/90 to-transparent hover:cursor-pointer">
+                            <span class="pi pi-chevron-left text-xs bg-white rounded-full p-1.5 shadow border"></span>
+                        </button>
                         <button @click="scrollCategorias(150)"
-                            class="hidden md:flex flex-shrink-0 items-center justify-center w-7 h-7 rounded-full bg-white border shadow-sm hover:bg-gray-100 hover:cursor-pointer">
-                            <span class="pi pi-chevron-right text-xs"></span>
+                            class="hidden md:flex absolute right-0 top-0 bottom-1 items-center justify-center w-8 bg-gradient-to-l from-gray-50 via-gray-50/90 to-transparent hover:cursor-pointer">
+                            <span class="pi pi-chevron-right text-xs bg-white rounded-full p-1.5 shadow border"></span>
                         </button>
                     </div>
                 </div>
@@ -537,8 +545,9 @@
                         búsqueda</button>
                 </div>
                 <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    <ProductCard v-for="{ item, esPromocion } in resultadosBusqueda" :key="item.id" :item="item"
-                        :esPromocion="esPromocion" :esCanje="false" @personalizar="abrirPersonalizador(item)" />
+                    <ProductCard v-for="{ item, esPromocion, esMerchandising } in resultadosBusqueda" :key="item.id" :item="item"
+                        :esPromocion="esPromocion" :esCanje="false" :conPreview="esMerchandising"
+                        @personalizar="abrirPersonalizador(item)" @preview-imagen="imagenPreviewUrl = $event" />
                 </div>
             </div>
 
@@ -565,7 +574,9 @@
                         <ProductCard v-for="item in categoriaActiva.productos.filter(p => categoriaActiva.esCanje || p.precio)" :key="item.id" :item="item"
                             :esPromocion="categoriaActiva.coleccion === 'promociones'"
                             :esCanje="categoriaActiva.esCanje"
-                            @personalizar="abrirPersonalizador(item, categoriaActiva.esCanje)" />
+                            :conPreview="categoriaActiva.coleccion === 'merchandising' || item._coleccionOrigen === 'merchandising'"
+                            @personalizar="abrirPersonalizador(item, categoriaActiva.esCanje)"
+                            @preview-imagen="imagenPreviewUrl = $event" />
                     </div>
                 </div>
 
@@ -598,7 +609,9 @@
                         <div v-else class="grid grid-cols-2 md:grid-cols-5 gap-4">
                             <ProductCard v-for="item in cat.productos.filter(p => cat.esCanje || p.precio).slice(0, 5)" :key="item.id" :item="item"
                                 :esPromocion="cat.coleccion === 'promociones'" :esCanje="cat.esCanje"
-                                @personalizar="abrirPersonalizador(item, cat.esCanje)" />
+                                :conPreview="cat.coleccion === 'merchandising' || item._coleccionOrigen === 'merchandising'"
+                                @personalizar="abrirPersonalizador(item, cat.esCanje)"
+                                @preview-imagen="imagenPreviewUrl = $event" />
                         </div>
                     </div>
                 </div>
@@ -637,8 +650,8 @@ import NotificationBanner from './NotificationBanner.vue'
 import { useNotifications } from '../composable/useNotifications.js'
 // ── Componente inline ProductCard ──────────────────────────────────────────
 const ProductCard = defineComponent({
-    props: { item: Object, esPromocion: Boolean, esCanje: Boolean },
-    emits: ['personalizar'],
+    props: { item: Object, esPromocion: Boolean, esCanje: Boolean, conPreview: Boolean },
+    emits: ['personalizar', 'preview-imagen'],
     setup(props, { emit }) {
 
         const assets = useAssets()
@@ -653,7 +666,20 @@ const ProductCard = defineComponent({
                 ? h('span', { class: 'absolute -top-2 -left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow z-10' }, '🔥 Promo de hoy')
                 : null,
             props.item.imageUrl
-                ? h('img', { src: props.item.imageUrl, alt: props.item.nombre, loading: 'lazy', class: 'w-full h-32 object-cover rounded-lg mb-3' })
+                ? h('div', { class: 'relative mb-3' }, [
+                    h('img', {
+                        src: props.item.imageUrl,
+                        alt: props.item.nombre,
+                        loading: 'lazy',
+                        class: 'w-full h-32 object-cover rounded-lg' + (props.conPreview ? ' hover:cursor-zoom-in' : ''),
+                        onClick: props.conPreview
+                            ? (e) => { e.stopPropagation(); emit('preview-imagen', props.item.imageUrl) }
+                            : undefined
+                    }),
+                    props.conPreview
+                        ? h('span', { class: 'absolute bottom-1.5 right-1.5 bg-black/50 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center pi pi-search-plus pointer-events-none' })
+                        : null
+                ])
                 : h('div', { class: 'w-full h-32 bg-gray-100 rounded-lg mb-3 flex items-center justify-center text-3xl' }, '🍽️'),
             h('h3', { class: 'font-bold text-sm mb-1 flex-1 line-clamp-2' }, props.item.nombre),
             props.item.descripcion
@@ -715,6 +741,7 @@ const drinkMsg = vueRef('')
 const canjeMsg = vueRef('')
 const canjeMsgType = vueRef('success')
 const notifToast = vueRef(null)
+const imagenPreviewUrl = vueRef(null)
 
 const mostrarCanjeMsg = (msg, type = 'success') => {
   canjeMsg.value = msg
@@ -1059,7 +1086,7 @@ const resultadosBusqueda = computed(() => {
         .flatMap(cat =>
             cat.productos
                 .filter(p => p.precio && (p.nombre?.toLowerCase().includes(q) || p.descripcion?.toLowerCase().includes(q)))
-                .map(p => ({ item: p, esPromocion: cat.coleccion === 'promociones' }))
+                .map(p => ({ item: p, esPromocion: cat.coleccion === 'promociones', esMerchandising: cat.coleccion === 'merchandising' }))
         )
 })
 
