@@ -197,8 +197,8 @@
             <label class="font-bold block mb-2">🥤 Incluye {{ itemPersonalizando.bebidaEspecifica.nombre }}</label>
           </div>
 
-          <!-- Bebida (opcional, se oculta si el producto ya es una bebida, ya trae bebida específica, o ya incluye gaseosa) -->
-          <div v-else-if="!esItemBebida && !itemPersonalizando?.gaseosaIncluida" class="mt-4">
+          <!-- Bebida (opcional, controlado por el campo permiteBebidaOpcional del producto) -->
+          <div v-else-if="!esItemBebida && itemPersonalizando?.permiteBebidaOpcional === true" class="mt-4">
             <label class="font-bold block mb-2">🥤 Agregar bebida (opcional)</label>
             <div v-if="bebidasCargando" class="flex items-center gap-2 text-sm text-gray-400">
               <span class="pi pi-spinner animate-spin"></span> Cargando bebidas...

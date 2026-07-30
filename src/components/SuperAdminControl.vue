@@ -88,6 +88,64 @@
                             <input v-model="producto.talla" type="text" placeholder="Tallas disponibles, separadas por coma (ej: S, M, L, XL)"
                                 class="flex-1 p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
                         </div>
+                        <label v-if="coleccionActiva !== 'bebidas' && coleccionActiva !== 'merchandising'"
+                            class="flex items-center gap-1.5 text-sm hover:cursor-pointer">
+                            <input type="checkbox" v-model="producto.permiteBebidaOpcional" class="accent-[var(--primary)]" />
+                            🥤 Permite agregar bebida opcional
+                        </label>
+
+                        <!-- Atributos adicionales (cualquier otro campo que tenga el producto en Firestore) -->
+                        <div class="border-t pt-2 mt-1">
+                            <p class="text-xs text-gray-400 font-bold uppercase mb-1">Atributos adicionales</p>
+                            <div v-for="(attr, idx) in producto.atributosExtra" :key="attr.clave"
+                                class="flex items-center gap-2 mb-1.5">
+                                <span class="text-xs text-gray-500 w-28 flex-shrink-0 truncate" :title="attr.clave">{{ attr.clave }}</span>
+                                <input v-if="attr.tipo === 'string' || attr.tipo === 'array'" v-model="attr.valor" type="text"
+                                    :placeholder="attr.tipo === 'array' ? 'Valores separados por coma' : ''"
+                                    class="flex-1 p-1.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                                <input v-else-if="attr.tipo === 'number'" v-model="attr.valor" type="number"
+                                    class="flex-1 p-1.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                                <label v-else-if="attr.tipo === 'boolean'" class="flex items-center gap-1.5 text-sm hover:cursor-pointer">
+                                    <input type="checkbox" v-model="attr.valor" class="accent-[var(--primary)]" /> Activado
+                                </label>
+                                <textarea v-else-if="attr.tipo === 'object'" v-model="attr.valor" rows="2"
+                                    class="flex-1 p-1.5 border rounded-lg text-xs font-mono resize-none focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"></textarea>
+                                <button @click="eliminarAtributo(producto, idx)" title="Eliminar atributo"
+                                    class="text-red-400 hover:text-red-600 px-1 hover:cursor-pointer">
+                                    <span class="pi pi-times text-xs"></span>
+                                </button>
+                            </div>
+
+                            <button v-if="!producto._nuevoAtributo" @click="mostrarFormNuevoAtributo(producto)"
+                                class="text-[var(--primary)] text-xs font-bold hover:underline hover:cursor-pointer mt-1">
+                                + Agregar atributo
+                            </button>
+                            <div v-else class="flex flex-wrap items-center gap-2 mt-2 bg-gray-50 p-2 rounded-lg">
+                                <input v-model="producto._nuevoAtributo.clave" type="text" placeholder="Nombre del campo"
+                                    class="w-32 p-1.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                                <select v-model="producto._nuevoAtributo.tipo"
+                                    class="p-1.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]">
+                                    <option value="string">Texto</option>
+                                    <option value="number">Número</option>
+                                    <option value="boolean">Sí / No</option>
+                                    <option value="array">Lista (separada por coma)</option>
+                                </select>
+                                <label v-if="producto._nuevoAtributo.tipo === 'boolean'" class="flex items-center gap-1.5 text-sm hover:cursor-pointer">
+                                    <input type="checkbox" v-model="producto._nuevoAtributo.valor" /> Activado
+                                </label>
+                                <input v-else v-model="producto._nuevoAtributo.valor" type="text" placeholder="Valor"
+                                    class="flex-1 p-1.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                                <button @click="confirmarNuevoAtributo(producto)"
+                                    class="bg-[var(--primary)] text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:cursor-pointer">
+                                    Agregar
+                                </button>
+                                <button @click="producto._nuevoAtributo = null"
+                                    class="text-gray-400 text-xs hover:cursor-pointer">
+                                    Cancelar
+                                </button>
+                            </div>
+                        </div>
+
                         <div class="flex gap-2 justify-end mt-1">
                             <button @click="eliminarProducto(producto)"
                                 class="text-red-500 hover:text-red-700 px-3 py-1.5 rounded-lg text-sm font-bold hover:cursor-pointer">
@@ -115,7 +173,7 @@ import { ref as vueRef, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth, db, storage } from '../firebase.js'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
-import { doc, getDoc, collection, getDocs, updateDoc, addDoc, deleteDoc } from 'firebase/firestore'
+import { doc, getDoc, collection, getDocs, updateDoc, addDoc, deleteDoc, deleteField } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 
 const router = useRouter()
@@ -149,6 +207,60 @@ const mostrarMensaje = (msg, tipo = 'success') => {
     setTimeout(() => { mensaje.value = '' }, 3000)
 }
 
+// ── Atributos adicionales (campos libres, cualquier producto) ──────────────
+// Campos que ya tienen su propio input en el formulario — todo lo demás que
+// traiga el documento de Firestore se muestra como "atributo adicional".
+const CAMPOS_FIJOS = ['nombre', 'descripcion', 'precio', 'incluye', 'imagen', 'puntosCanje', 'talla', 'permiteBebidaOpcional']
+
+const inferirTipo = (valor) => {
+    if (typeof valor === 'boolean') return 'boolean'
+    if (typeof valor === 'number') return 'number'
+    if (Array.isArray(valor)) return 'array'
+    if (valor !== null && typeof valor === 'object') return 'object'
+    return 'string'
+}
+
+const construirAtributosExtra = (data) => {
+    return Object.entries(data)
+        .filter(([clave]) => !CAMPOS_FIJOS.includes(clave))
+        .map(([clave, valorOriginal]) => {
+            const tipo = inferirTipo(valorOriginal)
+            let valor = valorOriginal
+            if (tipo === 'array') valor = (valorOriginal || []).join(', ')
+            else if (tipo === 'object') valor = JSON.stringify(valorOriginal, null, 2)
+            return { clave, tipo, valor }
+        })
+}
+
+const convertirAtributoAValor = (attr) => {
+    if (attr.tipo === 'number') return Number(attr.valor) || 0
+    if (attr.tipo === 'boolean') return !!attr.valor
+    if (attr.tipo === 'array') return attr.valor ? attr.valor.split(',').map(s => s.trim()).filter(Boolean) : []
+    if (attr.tipo === 'object') return JSON.parse(attr.valor)
+    return attr.valor
+}
+
+const mostrarFormNuevoAtributo = (producto) => {
+    producto._nuevoAtributo = { clave: '', tipo: 'string', valor: '' }
+}
+
+const confirmarNuevoAtributo = (producto) => {
+    const clave = producto._nuevoAtributo.clave.trim()
+    if (!clave) return mostrarMensaje('Ingresá un nombre para el atributo', 'error')
+    if (clave.includes('.')) return mostrarMensaje('El nombre del atributo no puede contener puntos', 'error')
+    if (CAMPOS_FIJOS.includes(clave) || producto.atributosExtra.some(a => a.clave === clave)) {
+        return mostrarMensaje('Ese atributo ya existe', 'error')
+    }
+    producto.atributosExtra.push({ ...producto._nuevoAtributo, clave })
+    producto._atributosEliminados = producto._atributosEliminados.filter(k => k !== clave)
+    producto._nuevoAtributo = null
+}
+
+const eliminarAtributo = (producto, idx) => {
+    const [attr] = producto.atributosExtra.splice(idx, 1)
+    if (attr) producto._atributosEliminados.push(attr.clave)
+}
+
 const cargarProductos = async () => {
     cargando.value = true
     try {
@@ -174,6 +286,10 @@ const cargarProductos = async () => {
                 imagenUrl,
                 puntosCanje: data.puntosCanje ?? '',
                 talla: (data.talla || []).join(', '),
+                permiteBebidaOpcional: data.permiteBebidaOpcional ?? true,
+                atributosExtra: construirAtributosExtra(data),
+                _atributosEliminados: [],
+                _nuevoAtributo: null,
                 _archivo: null,
                 _nuevo: false,
                 _guardando: false,
@@ -204,6 +320,10 @@ const agregarNuevo = () => {
         imagenUrl: '',
         puntosCanje: '',
         talla: '',
+        permiteBebidaOpcional: true,
+        atributosExtra: [],
+        _atributosEliminados: [],
+        _nuevoAtributo: null,
         _archivo: null,
         _nuevo: true,
         _guardando: false,
@@ -230,6 +350,16 @@ const guardarProducto = async (producto) => {
         mostrarMensaje('El nombre es obligatorio', 'error')
         return
     }
+    for (const attr of producto.atributosExtra) {
+        if (attr.tipo === 'object') {
+            try {
+                JSON.parse(attr.valor)
+            } catch {
+                mostrarMensaje(`El atributo "${attr.clave}" tiene un JSON inválido`, 'error')
+                return
+            }
+        }
+    }
     producto._guardando = true
     try {
         const imagenPath = await subirImagenSiHaceFalta(producto)
@@ -246,6 +376,15 @@ const guardarProducto = async (producto) => {
                 ? producto.talla.split(',').map(t => t.trim()).filter(Boolean)
                 : []
         }
+        if (coleccionActiva.value !== 'bebidas' && coleccionActiva.value !== 'merchandising') {
+            payload.permiteBebidaOpcional = !!producto.permiteBebidaOpcional
+        }
+        for (const attr of producto.atributosExtra) {
+            payload[attr.clave] = convertirAtributoAValor(attr)
+        }
+        for (const clave of producto._atributosEliminados) {
+            payload[clave] = deleteField()
+        }
         if (producto._nuevo) {
             const nuevoDoc = await addDoc(collection(db, coleccionActiva.value), payload)
             producto.id = nuevoDoc.id
@@ -255,6 +394,7 @@ const guardarProducto = async (producto) => {
         }
         producto.imagen = imagenPath
         producto._archivo = null
+        producto._atributosEliminados = []
         mostrarMensaje('Producto guardado ✅')
     } catch (error) {
         console.error('Error guardando producto:', error)
