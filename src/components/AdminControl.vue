@@ -311,6 +311,13 @@
                         <p class="text-sm text-gray-500">📞 {{ pedidoDetalle.telefono }}</p>
                     </div>
 
+                    <!-- Comentarios del cliente -->
+                    <div v-if="pedidoDetalle.comentarios"
+                        class="bg-amber-50 border-2 border-dashed border-amber-400 text-amber-800 rounded-xl p-3">
+                        <p class="text-xs uppercase font-bold mb-1">📝 Comentarios del cliente</p>
+                        <p class="text-sm">{{ pedidoDetalle.comentarios }}</p>
+                    </div>
+
                     <!-- Items -->
                     <div>
                         <p class="text-xs text-gray-400 uppercase font-bold mb-2">Productos</p>
@@ -334,6 +341,14 @@
                         <div class="flex justify-between text-sm mb-1">
                             <span>Subtotal productos</span>
                             <span>₡{{ pedidoDetalle.subtotal }}</span>
+                        </div>
+                        <div v-if="pedidoDetalle.costoBebidas > 0" class="flex justify-between text-sm mb-1">
+                            <span>🥤 Bebidas</span>
+                            <span>₡{{ pedidoDetalle.costoBebidas }}</span>
+                        </div>
+                        <div v-if="pedidoDetalle.costoAgrandar > 0" class="flex justify-between text-sm mb-1">
+                            <span>⬆️ Agrandados</span>
+                            <span>₡{{ pedidoDetalle.costoAgrandar }}</span>
                         </div>
                         <div v-if="pedidoDetalle.costoEnvio > 0" class="flex justify-between text-sm mb-1">
                             <span>🛵 Envío</span>
@@ -408,6 +423,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions'
 import { useRouter } from 'vue-router'
 import { useCartStore, useAssets } from '../stores/cartStores.js'
 import { cargarCoinIcon } from '../composable/useCoinIcon.js'
+import { costoBebidaManiaCoins, COIN_COSTOS } from '../utils/maniacoins.js'
 import { db, auth } from '../firebase.js'
 
 const router = useRouter()
@@ -764,17 +780,30 @@ const escapeHtml = (valor) => {
         .replace(/'/g, '&#39;')
 }
 
+// Mismo valor que AGRANDAR_COSTO en Checkoutmodal.vue y functions/calculos.js.
+const AGRANDAR_COSTO = 500
+
 // Extras de un ítem de pedido, usado tanto en el ticket impreso como en el modal de detalle.
 const obtenerExtrasItem = (item) => {
     const extras = []
-    if (item.bebida) extras.push(`🥤 ${item.bebida.nombre}`)
+    if (item.bebida) {
+        const costo = item.bebida.canjeadoConPuntos
+            ? `🪙 ${costoBebidaManiaCoins(item.bebida.precio) * item.cantidad}`
+            : `+₡${item.bebida.precio * item.cantidad}`
+        extras.push(`🥤 ${item.bebida.nombre} — ${costo}`)
+    }
     if (item.bebidaEspecifica) extras.push(`🥤 Incluye ${item.bebidaEspecifica.nombre} (cortesía)`)
     if (item.proteinaSel) extras.push(`🍗 ${item.proteinaSel}`)
     if (item.gaseosaSel) extras.push(`🥤 Sabor: ${item.gaseosaSel}`)
     if (item.papasConSalsa) extras.push('🍟 Papas con salsa')
     if (item.salsaSel) extras.push(`🌶️ ${item.salsaSel}`)
     if (item.salsasAlitas?.length) extras.push(`🌶️ Salsas: ${item.salsasAlitas.join(', ')}`)
-    if (item.agrandarPapas) extras.push('⬆️ Papas agrandadas')
+    if (item.agrandarPapas) {
+        const costo = item.agrandarConPuntos
+            ? `🪙 ${COIN_COSTOS.AGRANDAR * item.cantidad}`
+            : `+₡${AGRANDAR_COSTO * item.cantidad}`
+        extras.push(`⬆️ Papas agrandadas — ${costo}`)
+    }
     if (item.papasFritasGratisSel) extras.push('🍟 Papas fritas (cortesía)')
     if (item.tallaSel) extras.push(`👕 Talla: ${item.tallaSel}`)
     return extras
@@ -873,11 +902,19 @@ const imprimirPedido = (pedido) => {
         <div class="fila-simple"><strong>Cliente:</strong> ${escapeHtml(pedido.nombre)}</div>
         <div class="fila-simple"><strong>Tel:</strong> ${escapeHtml(pedido.telefono)}</div>
         <div class="sep"></div>
+        ${pedido.comentarios ? `
+        <div class="center" style="border:2px dashed #000;padding:5px;font-weight:bold;">
+            <p style="margin:0;">📝 COMENTARIOS DEL CLIENTE</p>
+            <p style="margin:3px 0 0;font-weight:normal;">${escapeHtml(pedido.comentarios)}</p>
+        </div>
+        <div class="sep"></div>` : ''}
         <table class="items">
             <tbody>${construirFilasItemsFactura(pedido.items)}</tbody>
         </table>
         <div class="sep"></div>
         <div class="fila"><span>Subtotal</span><span>₡${escapeHtml(pedido.subtotal)}</span></div>
+        ${pedido.costoBebidas > 0 ? `<div class="fila"><span>Bebidas</span><span>₡${escapeHtml(pedido.costoBebidas)}</span></div>` : ''}
+        ${pedido.costoAgrandar > 0 ? `<div class="fila"><span>Agrandados</span><span>₡${escapeHtml(pedido.costoAgrandar)}</span></div>` : ''}
         ${pedido.costoEnvio > 0 ? `<div class="fila"><span>Envío</span><span>₡${escapeHtml(pedido.costoEnvio)}</span></div>` : ''}
         <div class="sep"></div>
         <div class="fila total-row"><span>TOTAL</span><span>₡${escapeHtml(pedido.total)}</span></div>

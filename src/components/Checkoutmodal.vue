@@ -374,7 +374,6 @@
                 class="flex-1 py-2 rounded transition-colors duration-300 hover:cursor-pointer">
                 📱 SINPE Móvil
               </button>
-
             </div>
             <p v-if="hayMerchandising" class="text-xs text-gray-400 -mt-2 mb-4">
               📦 Merchandising: solo se puede pagar por SINPE Móvil.
@@ -403,13 +402,27 @@
               <p class="text-gray-500 mt-2">Enviá el comprobante por WhatsApp al finalizar 📲</p>
             </div>
 
-            <p v-if="withDrawType === 'sucursal'" class="text-xs text-gray-500 mt-6 text-center">
+            <p v-if="withDrawType === 'sucursal'"
+              class="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg p-2 mt-4 text-center">
               ℹ️ En retiro en tienda, el pago es únicamente en efectivo o SINPE Móvil.
             </p>
           </div>
 
-          <!-- Aviso de tiempo de espera -->
-          <div class="px-5 pb-5">
+          <!-- Comentarios del cliente -->
+          <div class="p-5 border-b">
+            <h2 class="font-bold mb-3">¿Algo que agregar? (opcional)</h2>
+            <textarea v-model="comentarios"
+              placeholder="Ej: sin cebolla, término medio, tocar el timbre, etc."
+              maxlength="300"
+              class="w-full p-2 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" rows="3"></textarea>
+            <p class="text-xs text-gray-400 mt-1 text-right">{{ comentarios.length }}/300</p>
+          </div>
+
+          <!-- Avisos finales -->
+          <div class="px-5 pb-5 flex flex-col gap-3">
+            <p class="bg-gray-50 border border-gray-200 text-gray-600 rounded-xl p-3 text-sm text-center font-bold">
+              💵📱 Los precios mostrados aplican únicamente para pagos en Efectivo o SINPE Móvil.
+            </p>
             <p class="bg-blue-50 border border-blue-200 text-blue-700 rounded-xl p-3 text-sm text-center font-bold">
               ⏱️ Esperá un mínimo de 25 minutos antes de
               {{ withDrawType === 'sucursal' ? 'pasar a retirar tu pedido' : 'que llegue a domicilio' }}.
@@ -496,6 +509,7 @@ const puntosActuales = vueRef(null)
 const ultimaCompraVal = vueRef(null)
 const ultimaGananciaCoinsVal = vueRef(null)
 const primeraCompra = vueRef(false)
+const comentarios = vueRef('')
 
 const datosCliente = vueRef({
   nombre: '',
@@ -752,13 +766,17 @@ const armarMensajeWhatsApp = () => {
     ? `\n🪙 ManiaCoins canjeados: ${totalCoinsAGastar.value}`
     : ''
 
+  const comentariosCadena = comentarios.value.trim()
+    ? `\n📝 Comentarios: ${comentarios.value.trim()}`
+    : ''
+
   const base = `🍔 *Nuevo pedido en Foodmania*\n\n` +
     `👤 Cliente: ${datosCliente.value.nombre}\n` +
     `📞 Teléfono: ${datosCliente.value.telefono}\n\n` +
     `📋 *Pedido:*\n${items}\n` +
     `💰 Total: ₡${totalConEnvio.value}${puntosCadena}\n` +
     `${esDiaDobleHoy.value ? `🔥 ${nombreDiaDobleHoy.value} x2 — ` : ''}🪙 ManiaCoins ganados: ${coinsAGanarDisplay.value}\n` +
-    `💳 Pago: ${pagoCadena}\n\n`
+    `💳 Pago: ${pagoCadena}${comentariosCadena}\n\n`
 
   if (withDrawType.value === 'sucursal') {
     return base +
@@ -861,6 +879,7 @@ const confirmarPedido = async () => {
     const pedido = {
       nombre: datosCliente.value.nombre,
       telefono: datosCliente.value.telefono,
+      comentarios: comentarios.value.trim() || null,
       items: itemsConExtras,
       puntosCanjeados: totalCoinsAGastar.value,
       metodoPago: metodoPago.value,
@@ -920,6 +939,7 @@ watch(() => props.modelValue, (newValue) => {
   if (newValue) {
     errorMsg.value = ''
     successMsg.value = ''
+    comentarios.value = ''
     Object.keys(agrandarMap).forEach(k => delete agrandarMap[k])
     Object.keys(agrandarPuntosMap).forEach(k => delete agrandarPuntosMap[k])
     Object.keys(bebidaPuntosMap).forEach(k => delete bebidaPuntosMap[k])
