@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { ref as vueRef, computed } from "vue";
+import { precioItemConDescuento, aplicarDescuentoGlobal } from "../composable/descuentos.js";
 
 export const useSucursales = defineStore("sucursales", () => {
     const sucursalesFoodMania = vueRef([])
@@ -48,6 +49,23 @@ export const useLocationStore = defineStore("location", () => {
     },
 })
 
+export const useDescuentoGlobalStore = defineStore("descuentoGlobal", () => {
+    const activo = vueRef(false)
+    const porcentaje = vueRef(0)
+
+    return { activo, porcentaje }
+}, {
+    persist: {
+        enabled: true,
+        strategies: [
+            {
+                key: "descuentoGlobal",
+                storage: localStorage,
+            }
+        ]
+    }
+})
+
 let uidCounter = 0
 const genUid = () => `cart_${++uidCounter}_${Date.now()}`
 
@@ -55,9 +73,10 @@ export const useCartStore = defineStore(
     "cart",
     () => {
         const items = vueRef([]);
+        const descuentoGlobalStore = useDescuentoGlobalStore()
 
         const precioFinal = (item) => {
-            return Number(item.precio) + Number(item.bebida?.precio || 0)
+            return precioItemConDescuento(item, descuentoGlobalStore) + Number(item.bebida?.precio || 0)
         }
 
         const addItem = (producto, extras = {}) => {
@@ -120,17 +139,19 @@ export const useCartStore = defineStore(
         };
 
         const total = computed(() => {
-            return items.value.reduce(
+            const suma = items.value.reduce(
                 (acc, item) => acc + precioFinal(item) * item.cantidad,
                 0,
             );
+            return aplicarDescuentoGlobal(suma, descuentoGlobalStore)
         });
 
         const cashTotal = computed(() => {
-            return items.value.reduce((acc, item) => {
+            const suma = items.value.reduce((acc, item) => {
                 if (item.esCanje) return acc
                 return acc + precioFinal(item) * item.cantidad
             }, 0)
+            return aplicarDescuentoGlobal(suma, descuentoGlobalStore)
         })
 
         const totalItems = computed(() => {

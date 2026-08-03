@@ -80,6 +80,12 @@ function nombreDiaDoble(fecha = new Date()) {
   return null
 }
 
+function precioConDescuentoProducto(precio, descuentoProducto) {
+  const descuento = Number(descuentoProducto) || 0
+  if (descuento <= 0) return precio
+  return Math.round(precio * (1 - descuento / 100))
+}
+
 function esPromocionActiva(nombreProducto) {
   const hoy = new Date().getDay()
 
@@ -94,12 +100,16 @@ function esPromocionActiva(nombreProducto) {
   return reglas[nombreProducto] ?? false
 }
 
-function calculateOrderTotals(items, distanciaKm, withDrawType, agrandarMap, agrandarPuntosMap, bebidaPuntosMap) {
+function calculateOrderTotals(items, distanciaKm, withDrawType, agrandarMap, agrandarPuntosMap, bebidaPuntosMap, descuentoGlobal = { activo: false, porcentaje: 0 }) {
   const AGRANDAR_COSTO = 500
+  const descuentoGlobalActivo = !!descuentoGlobal?.activo
 
   const baseCashTotal = items.reduce((acc, item) => {
     if (item.esCanje) return acc
-    return acc + Number(item.precio) * Number(item.cantidad)
+    const precio = descuentoGlobalActivo
+      ? Number(item.precio)
+      : precioConDescuentoProducto(Number(item.precio), item.descuento)
+    return acc + precio * Number(item.cantidad)
   }, 0)
 
   const totalBebidasCash = items.reduce((acc, item) => {
@@ -118,7 +128,12 @@ function calculateOrderTotals(items, distanciaKm, withDrawType, agrandarMap, agr
     return acc
   }, 0)
 
-  const cashTotalSinEnvio = baseCashTotal + totalBebidasCash + totalAgrandarCash
+  const cashTotalSinDescuento = baseCashTotal + totalBebidasCash + totalAgrandarCash
+  const porcentajeDescuentoGlobal = Number(descuentoGlobal?.porcentaje) || 0
+  const cashTotalSinEnvio = descuentoGlobalActivo && porcentajeDescuentoGlobal > 0
+    ? Math.round(cashTotalSinDescuento * (1 - porcentajeDescuentoGlobal / 100))
+    : cashTotalSinDescuento
+  const montoDescuento = cashTotalSinDescuento - cashTotalSinEnvio
   const costoEnvio = withDrawType === 'domicilio' ? calcularTarifaEnvio(distanciaKm) : 0
   const totalConEnvio = cashTotalSinEnvio + costoEnvio
   const coinsGanados = coinsAGanar(cashTotalSinEnvio)
@@ -128,6 +143,7 @@ function calculateOrderTotals(items, distanciaKm, withDrawType, agrandarMap, agr
     totalBebidasCash,
     totalAgrandarCash,
     cashTotalSinEnvio,
+    montoDescuento,
     costoEnvio,
     totalConEnvio,
     coinsGanados,
@@ -144,6 +160,7 @@ module.exports = {
   esDiaDoble,
   nombreDiaDoble,
   esPromocionActiva,
+  precioConDescuentoProducto,
   calculateOrderTotals,
   COLONES_POR_COIN,
   COIN_COSTOS,

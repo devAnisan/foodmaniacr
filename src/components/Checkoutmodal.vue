@@ -141,6 +141,13 @@
               ⚠️ No podés combinar merchandising con productos de comida en el mismo pedido. Hacé pedidos separados.
             </div>
 
+            <!-- Descuento aplicado -->
+            <div v-if="montoDescuento > 0"
+              class="flex justify-between text-sm text-green-600 font-bold mt-2 pt-2 border-t border-dashed">
+              <span>🏷️ Descuento aplicado</span>
+              <span>-₡{{ montoDescuento }}</span>
+            </div>
+
             <!-- Envío -->
             <div v-if="withDrawType === 'domicilio' && costoEnvio > 0"
               class="flex justify-between text-sm text-gray-500 mt-2 pt-2 border-t border-dashed">
@@ -444,8 +451,10 @@
 
 <script setup>
 import { ref as vueRef, computed, watch, reactive } from 'vue'
-import { useCartStore, useLocationStore, useSucursales, useAssets } from '../stores/cartStores.js'
+import { useCartStore, useLocationStore, useSucursales, useAssets, useDescuentoGlobalStore } from '../stores/cartStores.js'
 import { cargarCoinIcon } from '../composable/useCoinIcon.js'
+import { cargarDescuentoGlobal } from '../composable/useDescuentoGlobal.js'
+import { precioItemConDescuento, aplicarDescuentoGlobal } from '../composable/descuentos.js'
 import { db, auth } from '../firebase.js'
 import { doc, getDoc, updateDoc, increment } from 'firebase/firestore'
 import { getFunctions, httpsCallable } from 'firebase/functions'
@@ -464,7 +473,9 @@ const cartStore = useCartStore()
 const locationStore = useLocationStore()
 const sucursalesStore = useSucursales()
 const assets = useAssets()
+const descuentoGlobalStore = useDescuentoGlobalStore()
 cargarCoinIcon()
+cargarDescuentoGlobal()
 
 const hoy = new Date().toISOString().split('T')[0]
 const userLogueado = vueRef(!!auth.currentUser)
@@ -538,7 +549,7 @@ watch(hayMerchandising, (val) => {
 const baseCashTotal = computed(() => {
   return cartStore.items.reduce((acc, item) => {
     if (item.esCanje) return acc
-    return acc + item.precio * item.cantidad
+    return acc + precioItemConDescuento(item, descuentoGlobalStore) * item.cantidad
   }, 0)
 })
 
@@ -576,9 +587,15 @@ const totalCoinsAGastar = computed(() => {
   return coins
 })
 
-const cashTotalSinEnvio = computed(() => {
+const cashTotalSinDescuento = computed(() => {
   return baseCashTotal.value + totalBebidasCash.value + totalAgrandarCash.value
 })
+
+const cashTotalSinEnvio = computed(() => {
+  return aplicarDescuentoGlobal(cashTotalSinDescuento.value, descuentoGlobalStore)
+})
+
+const montoDescuento = computed(() => cashTotalSinDescuento.value - cashTotalSinEnvio.value)
 
 const distancia = computed(() => {
   return parseFloat(locationStore.distancia) || 0

@@ -193,6 +193,7 @@
 
     <main v-if="!loader" @click="menuOpen = false" class="fontColor pt-20 md:pt-28">
         <div>
+            <DescuentoGlobalBanner />
             <HeroCarousel />
 
             <!-- Donde comprar + CTA section -->
@@ -304,10 +305,13 @@ import { esCumpleanos, formatearCumpleanos } from "../utils/maniacoins.js";
 import { useLocationStore, useSucursales } from "../stores/cartStores.js";
 import { useAuth } from "../composable/useAuth.js";
 import { getLocation } from "../composable/saberDistancia.js";
+import { cargarDescuentoGlobal } from "../composable/useDescuentoGlobal.js";
+import DescuentoGlobalBanner from "./DescuentoGlobalBanner.vue";
 
 const router = useRouter();
 const locationStore = useLocationStore()
 const sucursalesStore = useSucursales()
+cargarDescuentoGlobal()
 
 const {
     user, esAdmin, showUserModal, menuLogIn, justLogin, forgotPassword,

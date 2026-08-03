@@ -471,6 +471,7 @@
 
     <!-- Main -->
     <main class="pt-24 fontColor min-h-screen bg-gray-50">
+        <DescuentoGlobalBanner />
 
         <!-- Loader general -->
         <div v-if="loader" class="flex flex-col items-center justify-center min-h-screen gap-4">
@@ -638,11 +639,14 @@ import { ref as storageRef, getDownloadURL } from 'firebase/storage'
 import { storage } from '../firebase.js'
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore'
 import { db, auth } from '../firebase.js'
-import { useCartStore, useLocationStore, useSucursales, useAssets } from '../stores/cartStores.js'
+import { useCartStore, useLocationStore, useSucursales, useAssets, useDescuentoGlobalStore } from '../stores/cartStores.js'
 import { useAuth } from '../composable/useAuth.js'
 import { cargarCoinIcon } from '../composable/useCoinIcon.js'
+import { cargarDescuentoGlobal } from '../composable/useDescuentoGlobal.js'
+import { precioItemConDescuento } from '../composable/descuentos.js'
 import Footer from './Footer.vue'
 import CheckoutModal from './Checkoutmodal.vue'
+import DescuentoGlobalBanner from './DescuentoGlobalBanner.vue'
 import { esPromocionActiva, diaPromocion } from '../composable/promociones.js'
 import { obtenerNivelReal, obtenerCoinsValidos, obtenerSiguienteNivel, obtenerTiempoRestanteExpiracion, esCumpleanos, formatearCumpleanos, COLONES_POR_COIN } from '../utils/maniacoins.js'
 import EditProfileModal from './EditProfileModal.vue'
@@ -656,16 +660,23 @@ const ProductCard = defineComponent({
     setup(props, { emit }) {
 
         const assets = useAssets()
+        const descuentoGlobalStore = useDescuentoGlobalStore()
         const activo = computed(() =>
             props.esPromocion ? esPromocionActiva(props.item.nombre) : true
         )
-        const coinsGanados = computed(() => Math.floor((props.item.precio || 0) / COLONES_POR_COIN))
+        const tieneDescuentoProducto = computed(() =>
+            !descuentoGlobalStore.activo && Number(props.item.descuento) > 0
+        )
+        const precioMostrado = computed(() => precioItemConDescuento(props.item, descuentoGlobalStore))
+        const coinsGanados = computed(() => Math.floor((precioMostrado.value || 0) / COLONES_POR_COIN))
         const expandido = vueRef(false)
 
         return () => h('div', { class: 'relative bg-white rounded-xl shadow-md p-3 flex flex-col hover:shadow-lg transition-shadow duration-200' + (props.esCanje ? ' border-2 border-yellow-400' : '') }, [
             props.esPromocion && activo.value
                 ? h('span', { class: 'absolute -top-2 -left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow z-10' }, '🔥 Promo de hoy')
-                : null,
+                : (tieneDescuentoProducto.value
+                    ? h('span', { class: 'absolute -top-2 -left-2 bg-green-600 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow z-10' }, `-${props.item.descuento}%`)
+                    : null),
             props.item.imageUrl
                 ? h('div', { class: 'relative mb-3' }, [
                     h('img', {
@@ -702,7 +713,12 @@ const ProductCard = defineComponent({
                         h('img', { src: assets.coinIconUrl, alt: 'ManiaCoins', class: 'w-4 h-4 inline-block' }),
                         props.item.puntosCanje
                     ])
-                    : h('p', { class: 'font-bold text-[var(--primary)]' }, `₡${props.item.precio}`),
+                    : h('p', { class: 'flex items-center gap-1.5' }, [
+                        tieneDescuentoProducto.value
+                            ? h('span', { class: 'text-gray-400 text-xs line-through' }, `₡${props.item.precio}`)
+                            : null,
+                        h('span', { class: 'font-bold text-[var(--primary)]' }, `₡${precioMostrado.value}`)
+                    ]),
                 !props.esCanje && coinsGanados.value > 0
                     ? h('span', { class: 'text-[10px] font-bold text-yellow-700 bg-yellow-50 px-1.5 py-0.5 rounded-full whitespace-nowrap flex items-center gap-0.5' }, [
                         h('img', { src: assets.coinIconUrl, alt: 'ManiaCoins', class: 'w-3 h-3 inline-block' }),
@@ -728,6 +744,7 @@ const locationStore = useLocationStore()
 const sucursalesStore = useSucursales()
 const assets = useAssets()
 cargarCoinIcon()
+cargarDescuentoGlobal()
 
 // ── Estado ─────────────────────────────────────────────────────────────────
 const loader = vueRef(true)
@@ -1041,7 +1058,7 @@ const cargarCategoria = async (cat) => {
                     console.error(`Error cargando imagen de ${data.nombre ?? doc.id}:`, error)
                 }
             }
-            return { id: doc.id, ...data, precio: Number(data.precio) || 0, imageUrl: itemImageUrl, _coleccionOrigen: cat.coleccion }
+            return { id: doc.id, ...data, precio: Number(data.precio) || 0, descuento: Number(data.descuento) || 0, imageUrl: itemImageUrl, _coleccionOrigen: cat.coleccion }
         }))
         cat.productos.push(...productos)
         cat.cargada = true
