@@ -1,5 +1,9 @@
 <template>
-  <div class="w-full relative aspect-video overflow-hidden bg-gray-100">
+  <div class="w-full relative aspect-video overflow-hidden bg-gradient-to-br from-[var(--primary)] via-[var(--primary-dark)] to-[var(--accent-dark)]">
+    <!-- Manchas decorativas de fondo, visibles cuando aun no hay imagenes cargadas -->
+    <div class="absolute -top-10 -left-10 w-56 h-56 rounded-full bg-[var(--accent)]/30 blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-16 -right-16 w-72 h-72 rounded-full bg-white/10 blur-3xl pointer-events-none"></div>
+
     <Transition name="fade">
       <img
         :key="currentIndex"
@@ -23,30 +27,32 @@
       </p>
     </div>
 
-    <button
-      class="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white text-[var(--primary)] w-9 h-9 flex items-center justify-center rounded-full shadow-lg transition-colors hover:cursor-pointer"
-      @click="emitBackCarousel()"
-    >
-      <span class="pi pi-chevron-left text-sm"></span>
-    </button>
-    <button
-      class="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white text-[var(--primary)] w-9 h-9 flex items-center justify-center rounded-full shadow-lg transition-colors hover:cursor-pointer"
-      @click="emitNextCarousel()"
-    >
-      <span class="pi pi-chevron-right text-sm"></span>
-    </button>
+    <template v-if="images.length > 0">
+      <button
+        class="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white text-[var(--primary)] w-9 h-9 flex items-center justify-center rounded-full shadow-lg transition-colors hover:cursor-pointer"
+        @click="emitBackCarousel()"
+      >
+        <span class="pi pi-chevron-left text-sm"></span>
+      </button>
+      <button
+        class="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white text-[var(--primary)] w-9 h-9 flex items-center justify-center rounded-full shadow-lg transition-colors hover:cursor-pointer"
+        @click="emitNextCarousel()"
+      >
+        <span class="pi pi-chevron-right text-sm"></span>
+      </button>
 
-    <div
-      class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-1.5"
-    >
-      <span
-        v-for="(_, index) in images"
-        :key="index"
-        class="h-1.5 rounded-full cursor-pointer transition-all duration-300"
-        :class="index === currentIndex ? 'w-6 bg-[var(--accent)]' : 'w-1.5 bg-white/60 hover:bg-white/90'"
-        @click="currentIndex = index"
-      ></span>
-    </div>
+      <div
+        class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-1.5"
+      >
+        <span
+          v-for="(_, index) in images"
+          :key="index"
+          class="h-1.5 rounded-full cursor-pointer transition-all duration-300"
+          :class="index === currentIndex ? 'w-6 bg-[var(--accent)]' : 'w-1.5 bg-white/60 hover:bg-white/90'"
+          @click="currentIndex = index"
+        ></span>
+      </div>
+    </template>
   </div>
 </template>
 

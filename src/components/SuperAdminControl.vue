@@ -234,34 +234,59 @@
                 <div v-if="cargandoClientes" class="text-center text-gray-400 py-10">
                     <span class="pi pi-spinner animate-spin text-3xl"></span>
                 </div>
-                <div v-else class="bg-white rounded-xl shadow-md overflow-hidden">
-                    <div class="p-3 border-b">
-                        <input v-model="busquedaCliente" type="text" placeholder="Buscar por correo..."
-                            class="w-full p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                <div v-else>
+                    <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 flex items-center justify-between">
+                        <span class="font-bold text-amber-800">
+                            🎁 Regalías de lanzamiento entregadas: {{ promoLanzamiento.total }}/{{ promoLanzamiento.limite }}
+                        </span>
+                        <button @click="cargarClientes" :disabled="cargandoClientes"
+                            class="text-xs font-bold text-amber-700 border border-amber-300 rounded-full px-3 py-1 hover:bg-amber-100 transition-colors hover:cursor-pointer disabled:opacity-50">
+                            🔄 Actualizar
+                        </button>
                     </div>
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="bg-gray-50 text-gray-500 text-left">
-                                <th class="p-3">Email</th>
-                                <th class="p-3">Correo verificado</th>
-                                <th class="p-3">Creado el</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="cliente in clientesFiltrados" :key="cliente.uid" class="border-t hover:bg-gray-50">
-                                <td class="p-3">{{ cliente.email || '—' }}</td>
-                                <td class="p-3">
-                                    <span :class="cliente.emailVerificado ? 'text-green-600' : 'text-red-500'" class="font-bold">
-                                        {{ cliente.emailVerificado ? '✅ Verificado' : '❌ No verificado' }}
-                                    </span>
-                                </td>
-                                <td class="p-3 text-gray-500">{{ formatearFechaCliente(cliente.creadoEn) }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <p v-if="clientesFiltrados.length === 0" class="text-center text-gray-400 py-10">
-                        No hay clientes que coincidan con la búsqueda.
-                    </p>
+                    <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                        <div class="p-3 border-b">
+                            <input v-model="busquedaCliente" type="text" placeholder="Buscar por correo..."
+                                class="w-full p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                        </div>
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="bg-gray-50 text-gray-500 text-left">
+                                    <th class="p-3">Email</th>
+                                    <th class="p-3">Correo verificado</th>
+                                    <th class="p-3">Creado el</th>
+                                    <th class="p-3">Primera compra pendiente</th>
+                                    <th class="p-3">Regalía lanzamiento</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="cliente in clientesFiltrados" :key="cliente.uid" class="border-t hover:bg-gray-50">
+                                    <td class="p-3">{{ cliente.email || '—' }}</td>
+                                    <td class="p-3">
+                                        <span :class="cliente.emailVerificado ? 'text-green-600' : 'text-red-500'" class="font-bold">
+                                            {{ cliente.emailVerificado ? '✅ Verificado' : '❌ No verificado' }}
+                                        </span>
+                                    </td>
+                                    <td class="p-3 text-gray-500">{{ formatearFechaCliente(cliente.creadoEn) }}</td>
+                                    <td class="p-3">
+                                        <span :class="cliente.primeraCompra ? 'text-purple-600' : 'text-gray-400'" class="font-bold">
+                                            {{ cliente.primeraCompra ? '⭐ Sí (x2 en su próxima compra)' : 'Ya la usó' }}
+                                        </span>
+                                    </td>
+                                    <td class="p-3">
+                                        <span v-if="cliente.regalia" class="font-bold text-amber-700">
+                                            🎁 Pedido #{{ cliente.regalia.numero }}/{{ promoLanzamiento.limite }}
+                                            <span class="text-gray-400 font-normal">({{ cliente.regalia.estado }})</span>
+                                        </span>
+                                        <span v-else class="text-gray-300">—</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p v-if="clientesFiltrados.length === 0" class="text-center text-gray-400 py-10">
+                            No hay clientes que coincidan con la búsqueda.
+                        </p>
+                    </div>
                 </div>
             </div>
 
@@ -334,6 +359,7 @@ const clientes = vueRef([])
 const cargandoClientes = vueRef(false)
 const clientesCargados = vueRef(false)
 const busquedaCliente = vueRef('')
+const promoLanzamiento = vueRef({ total: 0, limite: 100 })
 
 const clientesFiltrados = computed(() => {
     const q = busquedaCliente.value.trim().toLowerCase()
@@ -354,6 +380,7 @@ const cargarClientes = async () => {
         const listar = httpsCallable(getFunctions(), 'listarClientes')
         const result = await listar()
         clientes.value = (result.data.clientes || []).sort((a, b) => (b.creadoEn || 0) - (a.creadoEn || 0))
+        promoLanzamiento.value = result.data.promoLanzamiento || { total: 0, limite: 100 }
         clientesCargados.value = true
     } catch (error) {
         console.error('Error cargando clientes:', error)

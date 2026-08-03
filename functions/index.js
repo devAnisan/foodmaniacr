@@ -602,7 +602,9 @@ exports.sendNotification = onCall(async (request) => {
 })
 
 // Vista de clientes para Super Admin: email, si el correo está verificado (vive en Firebase Auth,
-// no en Firestore) y fecha de creación. Solo expone estos 3 campos, nada de teléfono/dirección/puntos.
+// no en Firestore), fecha de creación, si ya consumió su bono de primera compra (ManiaCoins x2) y si
+// le tocó la regalía de lanzamiento (papas gratis primeros 100 pedidos). Solo expone estos campos,
+// nada de teléfono/dirección/puntos.
 exports.listarClientes = onCall(async (request) => {
   const uid = request.auth?.uid
   if (!uid) throw new HttpsError('unauthenticated', 'Iniciá sesión.')
@@ -612,13 +614,34 @@ exports.listarClientes = onCall(async (request) => {
     throw new HttpsError('permission-denied', 'No tenés permisos de super admin.')
   }
 
+  // Regalía de lanzamiento: se otorga por pedido (con o sin sesión iniciada), no por cliente.
+  // Se cruza por email contra `usuario` del pedido para saber a qué cliente logueado le tocó.
+  const promoPedidosSnap = await db.collection('pedidos').where('promoPapasGratis', '==', true).get()
+  const regaliaPorEmail = {}
+  promoPedidosSnap.forEach(doc => {
+    const d = doc.data()
+    if (!d.usuario || d.usuario === 'Anónimo') return
+    regaliaPorEmail[d.usuario] = {
+      numero: d.promoPapasGratisNumero || null,
+      creadoEn: d.creadoEn?.toMillis ? d.creadoEn.toMillis() : null,
+      estado: d.estado || null,
+    }
+  })
+
+  const contadorSnap = await db.collection('contadores').doc('promoLanzamiento').get()
+  const promoLanzamiento = {
+    total: contadorSnap.exists ? (contadorSnap.data().pedidosConPromo || 0) : 0,
+    limite: PROMO_LIMITE,
+  }
+
   const clientesSnap = await db.collection('clientes').get()
-  if (clientesSnap.empty) return { clientes: [] }
+  if (clientesSnap.empty) return { clientes: [], promoLanzamiento }
 
   const clientesData = clientesSnap.docs.map(d => ({
     uid: d.id,
     email: d.data().email || null,
     creadoEn: d.data().creadoEn || null,
+    primeraCompra: d.data().primeraCompra === true,
   }))
 
   // admin.auth().getUsers() acepta hasta 100 identificadores por llamada.
@@ -638,7 +661,9 @@ exports.listarClientes = onCall(async (request) => {
     email: c.email,
     emailVerificado: emailVerificadoPorUid[c.uid] ?? false,
     creadoEn: c.creadoEn?.toMillis ? c.creadoEn.toMillis() : null,
+    primeraCompra: c.primeraCompra,
+    regalia: c.email ? (regaliaPorEmail[c.email] || null) : null,
   }))
 
-  return { clientes }
+  return { clientes, promoLanzamiento }
 })
