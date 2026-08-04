@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref as vueRef, computed } from "vue";
-import { precioItemConDescuento, aplicarDescuentoGlobal } from "../composable/descuentos.js";
+import { precioItemConDescuento, aplicarDescuentoGlobal, esPromocion } from "../composable/descuentos.js";
 
 export const useSucursales = defineStore("sucursales", () => {
     const sucursalesFoodMania = vueRef([])
@@ -139,19 +139,24 @@ export const useCartStore = defineStore(
         };
 
         const total = computed(() => {
-            const suma = items.value.reduce(
-                (acc, item) => acc + precioFinal(item) * item.cantidad,
-                0,
+            const promoSuma = items.value.filter(esPromocion).reduce(
+                (acc, item) => acc + precioFinal(item) * item.cantidad, 0,
             );
-            return aplicarDescuentoGlobal(suma, descuentoGlobalStore)
+            const resto = items.value.filter(item => !esPromocion(item)).reduce(
+                (acc, item) => acc + precioFinal(item) * item.cantidad, 0,
+            );
+            return aplicarDescuentoGlobal(resto, descuentoGlobalStore) + promoSuma
         });
 
         const cashTotal = computed(() => {
-            const suma = items.value.reduce((acc, item) => {
-                if (item.esCanje) return acc
-                return acc + precioFinal(item) * item.cantidad
-            }, 0)
-            return aplicarDescuentoGlobal(suma, descuentoGlobalStore)
+            const relevantes = items.value.filter(item => !item.esCanje)
+            const promoSuma = relevantes.filter(esPromocion).reduce(
+                (acc, item) => acc + precioFinal(item) * item.cantidad, 0,
+            )
+            const resto = relevantes.filter(item => !esPromocion(item)).reduce(
+                (acc, item) => acc + precioFinal(item) * item.cantidad, 0,
+            )
+            return aplicarDescuentoGlobal(resto, descuentoGlobalStore) + promoSuma
         })
 
         const totalItems = computed(() => {

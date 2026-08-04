@@ -467,7 +467,7 @@ import { ref as vueRef, computed, watch, reactive } from 'vue'
 import { useCartStore, useLocationStore, useSucursales, useAssets, useDescuentoGlobalStore } from '../stores/cartStores.js'
 import { cargarCoinIcon } from '../composable/useCoinIcon.js'
 import { cargarDescuentoGlobal } from '../composable/useDescuentoGlobal.js'
-import { precioItemConDescuento, aplicarDescuentoGlobal } from '../composable/descuentos.js'
+import { precioItemConDescuento, aplicarDescuentoGlobal, esPromocion } from '../composable/descuentos.js'
 import { db, auth } from '../firebase.js'
 import { doc, getDoc, updateDoc, increment } from 'firebase/firestore'
 import { getFunctions, httpsCallable } from 'firebase/functions'
@@ -560,28 +560,36 @@ watch(hayMerchandising, (val) => {
   }
 })
 
+const bebidaItemCash = (item) => (item.bebida && !bebidaPuntosMap[item._uid]) ? item.bebida.precio : 0
+const agrandarItemCash = (item) => (agrandarMap[item._uid] && !agrandarPuntosMap[item._uid]) ? AGRANDAR_COSTO : 0
+
 const baseCashTotal = computed(() => {
   return cartStore.items.reduce((acc, item) => {
-    if (item.esCanje) return acc
+    if (item.esCanje || esPromocion(item)) return acc
     return acc + precioItemConDescuento(item, descuentoGlobalStore) * item.cantidad
   }, 0)
 })
 
 const totalBebidasCash = computed(() => {
   return cartStore.items.reduce((acc, item) => {
-    if (item.bebida && !bebidaPuntosMap[item._uid]) {
-      return acc + (item.bebida.precio * item.cantidad)
-    }
-    return acc
+    if (esPromocion(item)) return acc
+    return acc + bebidaItemCash(item) * item.cantidad
   }, 0)
 })
 
 const totalAgrandarCash = computed(() => {
   return cartStore.items.reduce((acc, item) => {
-    if (agrandarMap[item._uid] && !agrandarPuntosMap[item._uid]) {
-      return acc + (AGRANDAR_COSTO * item.cantidad)
-    }
-    return acc
+    if (esPromocion(item)) return acc
+    return acc + agrandarItemCash(item) * item.cantidad
+  }, 0)
+})
+
+// Las promociones ya traen su propio descuento incluido en el precio — el %
+// de descuento global no se les aplica encima, para no descontarlas dos veces.
+const promoTotal = computed(() => {
+  return cartStore.items.reduce((acc, item) => {
+    if (item.esCanje || !esPromocion(item)) return acc
+    return acc + (precioItemConDescuento(item, descuentoGlobalStore) + bebidaItemCash(item) + agrandarItemCash(item)) * item.cantidad
   }, 0)
 })
 
@@ -605,11 +613,11 @@ const cashTotalSinDescuento = computed(() => {
   return baseCashTotal.value + totalBebidasCash.value + totalAgrandarCash.value
 })
 
-const cashTotalSinEnvio = computed(() => {
-  return aplicarDescuentoGlobal(cashTotalSinDescuento.value, descuentoGlobalStore)
-})
+const cashTotalConDescuento = computed(() => aplicarDescuentoGlobal(cashTotalSinDescuento.value, descuentoGlobalStore))
 
-const montoDescuento = computed(() => cashTotalSinDescuento.value - cashTotalSinEnvio.value)
+const cashTotalSinEnvio = computed(() => cashTotalConDescuento.value + promoTotal.value)
+
+const montoDescuento = computed(() => cashTotalSinDescuento.value - cashTotalConDescuento.value)
 
 const distancia = computed(() => {
   return parseFloat(locationStore.distancia) || 0

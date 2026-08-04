@@ -1,24 +1,15 @@
-export const esPromocionActiva = (nombreProducto) => {
-  const hoy = new Date().getDay()
+const NOMBRES_DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
 
-  const reglas = {
-    '2X1 Tacos':        hoy === 2, // Martes
-    '2X1 Nachos':       hoy === 1, // Lunes
-    '2 Enteros':        true,       // Todos los días
-    'Jueves de Alitas': hoy === 4, // Jueves
-    '3X2 Enteros':      hoy === 3, // Miércoles
-  }
-
-  return reglas[nombreProducto] ?? false
+export const esPromocionActivaHoy = (diasActivos) => {
+  if (!diasActivos || diasActivos.length === 0) return true
+  return diasActivos.includes(new Date().getDay())
 }
 
-export const diaPromocion = (nombreProducto) => {
-  const dias = {
-    '2X1 Tacos':        'Solo los martes',
-    '2X1 Nachos':       'Solo los lunes',
-    '2 Enteros':        'Todos los días',
-    'Jueves de Alitas': 'Solo los jueves',
-    '3X2 Enteros':      'Solo los miércoles',
-  }
-  return dias[nombreProducto] ?? ''
+const pluralDia = (nombre) => nombre.endsWith('s') ? nombre : `${nombre}s`
+
+export const descripcionDias = (diasActivos) => {
+  if (!diasActivos || diasActivos.length === 0) return 'Todos los días'
+  const nombres = [...diasActivos].sort((a, b) => a - b).map(d => NOMBRES_DIAS[d])
+  if (nombres.length === 1) return `Solo los ${pluralDia(nombres[0])}`
+  return `Solo ${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}`
 }

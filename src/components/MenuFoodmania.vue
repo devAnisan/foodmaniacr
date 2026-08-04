@@ -647,7 +647,7 @@ import { precioItemConDescuento } from '../composable/descuentos.js'
 import Footer from './Footer.vue'
 import CheckoutModal from './Checkoutmodal.vue'
 import DescuentoGlobalBanner from './DescuentoGlobalBanner.vue'
-import { esPromocionActiva, diaPromocion } from '../composable/promociones.js'
+import { esPromocionActivaHoy, descripcionDias } from '../composable/promociones.js'
 import { obtenerNivelReal, obtenerCoinsValidos, obtenerSiguienteNivel, obtenerTiempoRestanteExpiracion, esCumpleanos, formatearCumpleanos, COLONES_POR_COIN } from '../utils/maniacoins.js'
 import EditProfileModal from './EditProfileModal.vue'
 import InstallPWAPrompt from './InstallPWAPrompt.vue'
@@ -662,7 +662,7 @@ const ProductCard = defineComponent({
         const assets = useAssets()
         const descuentoGlobalStore = useDescuentoGlobalStore()
         const activo = computed(() =>
-            props.esPromocion ? esPromocionActiva(props.item.nombre) : true
+            props.esPromocion ? esPromocionActivaHoy(props.item.diasActivos) : true
         )
         const tieneDescuentoProducto = computed(() =>
             !descuentoGlobalStore.activo && Number(props.item.descuento) > 0
@@ -734,7 +734,7 @@ const ProductCard = defineComponent({
                         : 'w-full bg-[var(--primary)] text-white py-2 rounded-lg text-sm font-bold hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer')
                     : 'w-full bg-gray-200 text-gray-400 py-2 rounded-lg text-sm font-bold cursor-not-allowed',
                 onClick: () => activo.value && emit('personalizar')
-            }, activo.value ? (props.esCanje ? '+ Canjear 🎉' : '+ Agregar 🎉') : diaPromocion(props.item.nombre))
+            }, activo.value ? (props.esCanje ? '+ Canjear 🎉' : '+ Agregar 🎉') : descripcionDias(props.item.diasActivos))
         ])
     }
 })
@@ -1058,7 +1058,7 @@ const cargarCategoria = async (cat) => {
                     console.error(`Error cargando imagen de ${data.nombre ?? doc.id}:`, error)
                 }
             }
-            return { id: doc.id, ...data, precio: Number(data.precio) || 0, descuento: Number(data.descuento) || 0, imageUrl: itemImageUrl, _coleccionOrigen: cat.coleccion }
+            return { id: doc.id, ...data, precio: Number(data.precio) || 0, descuento: Number(data.descuento) || 0, diasActivos: Array.isArray(data.diasActivos) ? data.diasActivos : [], imageUrl: itemImageUrl, _coleccionOrigen: cat.coleccion }
         }))
         cat.productos.push(...productos)
         cat.cargada = true

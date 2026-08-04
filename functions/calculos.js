@@ -86,54 +86,54 @@ function precioConDescuentoProducto(precio, descuentoProducto) {
   return Math.round(precio * (1 - descuento / 100))
 }
 
-function esPromocionActiva(nombreProducto) {
-  const hoy = new Date().getDay()
-
-  const reglas = {
-    '2X1 Tacos':        hoy === 2,
-    '2X1 Nachos':       hoy === 1,
-    '2 Enteros':        true,
-    'Jueves de Alitas': hoy === 4,
-    '3X2 Enteros':      hoy === 3,
-  }
-
-  return reglas[nombreProducto] ?? false
-}
-
 function calculateOrderTotals(items, distanciaKm, withDrawType, agrandarMap, agrandarPuntosMap, bebidaPuntosMap, descuentoGlobal = { activo: false, porcentaje: 0 }) {
   const AGRANDAR_COSTO = 500
   const descuentoGlobalActivo = !!descuentoGlobal?.activo
+  const esPromocion = (item) => item._coleccionOrigen === 'promociones'
+
+  const precioBaseItem = (item) => descuentoGlobalActivo
+    ? Number(item.precio)
+    : precioConDescuentoProducto(Number(item.precio), item.descuento)
+
+  const bebidaItem = (item) => {
+    const uid = item._uid || item.id
+    return (item.bebida && !bebidaPuntosMap[uid]) ? Number(item.bebida.precio) : 0
+  }
+
+  const agrandarItem = (item) => {
+    const uid = item._uid || item.id
+    return (agrandarMap[uid] && !agrandarPuntosMap[uid]) ? AGRANDAR_COSTO : 0
+  }
 
   const baseCashTotal = items.reduce((acc, item) => {
-    if (item.esCanje) return acc
-    const precio = descuentoGlobalActivo
-      ? Number(item.precio)
-      : precioConDescuentoProducto(Number(item.precio), item.descuento)
-    return acc + precio * Number(item.cantidad)
+    if (item.esCanje || esPromocion(item)) return acc
+    return acc + precioBaseItem(item) * Number(item.cantidad)
   }, 0)
 
   const totalBebidasCash = items.reduce((acc, item) => {
-    const uid = item._uid || item.id
-    if (item.bebida && !bebidaPuntosMap[uid]) {
-      return acc + (Number(item.bebida.precio) * Number(item.cantidad))
-    }
-    return acc
+    if (esPromocion(item)) return acc
+    return acc + bebidaItem(item) * Number(item.cantidad)
   }, 0)
 
   const totalAgrandarCash = items.reduce((acc, item) => {
-    const uid = item._uid || item.id
-    if (agrandarMap[uid] && !agrandarPuntosMap[uid]) {
-      return acc + (AGRANDAR_COSTO * Number(item.cantidad))
-    }
-    return acc
+    if (esPromocion(item)) return acc
+    return acc + agrandarItem(item) * Number(item.cantidad)
+  }, 0)
+
+  // Las promociones ya traen su propio descuento incluido en el precio — el %
+  // de descuento global no se les aplica encima, para no descontarlas dos veces.
+  const promoTotal = items.reduce((acc, item) => {
+    if (item.esCanje || !esPromocion(item)) return acc
+    return acc + (precioBaseItem(item) + bebidaItem(item) + agrandarItem(item)) * Number(item.cantidad)
   }, 0)
 
   const cashTotalSinDescuento = baseCashTotal + totalBebidasCash + totalAgrandarCash
   const porcentajeDescuentoGlobal = Number(descuentoGlobal?.porcentaje) || 0
-  const cashTotalSinEnvio = descuentoGlobalActivo && porcentajeDescuentoGlobal > 0
+  const cashTotalConDescuento = descuentoGlobalActivo && porcentajeDescuentoGlobal > 0
     ? Math.round(cashTotalSinDescuento * (1 - porcentajeDescuentoGlobal / 100))
     : cashTotalSinDescuento
-  const montoDescuento = cashTotalSinDescuento - cashTotalSinEnvio
+  const montoDescuento = cashTotalSinDescuento - cashTotalConDescuento
+  const cashTotalSinEnvio = cashTotalConDescuento + promoTotal
   const costoEnvio = withDrawType === 'domicilio' ? calcularTarifaEnvio(distanciaKm) : 0
   const totalConEnvio = cashTotalSinEnvio + costoEnvio
   const coinsGanados = coinsAGanar(cashTotalSinEnvio)
@@ -142,6 +142,7 @@ function calculateOrderTotals(items, distanciaKm, withDrawType, agrandarMap, agr
     baseCashTotal,
     totalBebidasCash,
     totalAgrandarCash,
+    promoTotal,
     cashTotalSinEnvio,
     montoDescuento,
     costoEnvio,
@@ -159,7 +160,6 @@ module.exports = {
   descripcionTarifaEnvio,
   esDiaDoble,
   nombreDiaDoble,
-  esPromocionActiva,
   precioConDescuentoProducto,
   calculateOrderTotals,
   COLONES_POR_COIN,

@@ -1,3 +1,7 @@
+// Las promociones ya traen su propio descuento incluido en el precio — nunca
+// se les aplica el % de descuento global encima, para no descontarlas dos veces.
+export const esPromocion = (item) => item?._coleccionOrigen === 'promociones'
+
 export const precioItemConDescuento = (item, descuentoGlobal) => {
   const precio = Number(item?.precio) || 0
   if (descuentoGlobal?.activo) return precio
