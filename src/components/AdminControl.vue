@@ -118,7 +118,13 @@
 
             <!-- Hoy -->
             <div class="mb-6">
-                <h3 class="font-bold text-lg mb-2">🧾 Cierre de caja — Hoy</h3>
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="font-bold text-lg">🧾 Cierre de caja — Hoy</h3>
+                    <button v-if="!ventasHoy?.cerrado" @click="recalcularHoy" :disabled="recalculandoDia"
+                        class="text-xs font-bold text-gray-500 border rounded-full px-3 py-1 hover:bg-gray-100 transition-colors hover:cursor-pointer disabled:opacity-50">
+                        {{ recalculandoDia ? 'Recalculando...' : '🔄 Recalcular' }}
+                    </button>
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="bg-white rounded-xl shadow-sm p-4">
                         <h4 class="font-bold mb-2">🏪 Negocio</h4>
@@ -522,6 +528,7 @@ const ventasHoy = vueRef(null)
 const ventasSemana = vueRef(null)
 const cerrandoDia = vueRef(false)
 const cerrandoSemana = vueRef(false)
+const recalculandoDia = vueRef(false)
 const errorCierre = vueRef('')
 
 const estados = [
@@ -701,6 +708,20 @@ const setupVentasListener = () => {
 
 const cerrarVentaDiaFn = httpsCallable(getFunctions(), 'cerrarVentaDia')
 const cerrarVentaSemanaFn = httpsCallable(getFunctions(), 'cerrarVentaSemana')
+const recalcularVentaDiaFn = httpsCallable(getFunctions(), 'recalcularVentaDia')
+
+const recalcularHoy = async () => {
+    errorCierre.value = ''
+    recalculandoDia.value = true
+    try {
+        await recalcularVentaDiaFn()
+    } catch (error) {
+        console.error('Error recalculando ventas de hoy:', error)
+        errorCierre.value = error.message || 'Error al recalcular'
+    } finally {
+        recalculandoDia.value = false
+    }
+}
 
 const cerrarCaja = async () => {
     if (!confirm('¿Cerrar la caja de hoy? Esta acción no se puede deshacer.')) return
@@ -778,11 +799,13 @@ watch(sonidoSilenciado, (silenciado) => {
 })
 
 const totalHoy = computed(() => {
-    const inicioHoy = new Date()
-    inicioHoy.setHours(0, 0, 0, 0)
-    const inicioHoySeconds = inicioHoy.getTime() / 1000
+    // Mismo criterio que "Cierre de caja — Hoy": solo pedidos finalizados,
+    // y el día se cuenta en horario Costa Rica (no medianoche del navegador).
+    const cr = new Date(Date.now() - OFFSET_CR_MS)
+    const inicioHoyUTC = Date.UTC(cr.getUTCFullYear(), cr.getUTCMonth(), cr.getUTCDate(), 6, 0, 0)
+    const inicioHoySeconds = inicioHoyUTC / 1000
     return pedidosDeSucursal.value
-        .filter(p => (p.creadoEn?.seconds ?? 0) >= inicioHoySeconds)
+        .filter(p => p.estado === 'finalizado' && (p.creadoEn?.seconds ?? 0) >= inicioHoySeconds)
         .reduce((acc, p) => acc + (Number(p.total) || 0), 0)
 })
 
@@ -1006,7 +1029,7 @@ const imprimirPedido = (pedido) => {
 <style>
     @page { size: 80mm auto; margin: 0; }
     * { box-sizing: border-box; }
-    body { font-family: 'Courier New', Courier, monospace; color: #000; margin: 0; padding: 4mm 0; background: #fff; }
+    body { font-family: 'Courier New', Courier, monospace; color: #000; margin: 0; padding: 4mm 0; background: #fff; font-weight: bold; }
     .ticket { width: 72mm; margin: 0 auto; font-size: 12px; line-height: 1.4; }
     .center { text-align: center; }
     .logo { width: 44px; height: 44px; object-fit: contain; margin-bottom: 4px; }

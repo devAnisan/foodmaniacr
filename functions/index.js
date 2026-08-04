@@ -436,22 +436,83 @@ exports.onPedidoFinalizado = onDocumentUpdated('pedidos/{pedidoId}', async (even
 
   const fechaCreacion = despues.creadoEn?.toDate ? despues.creadoEn.toDate() : new Date()
   const fecha = fechaVentaCR(fechaCreacion)
+  const pedidoRef = event.data.after.ref
+  const ventaRef = db.collection('ventas').doc(fecha)
 
-  await db.collection('ventas').doc(fecha).set({
-    fecha,
-    actualizadoEn: admin.firestore.Timestamp.now(),
-    sucursales: {
-      [sucursal]: {
-        montoProductos: admin.firestore.FieldValue.increment(Number(despues.cashTotalSinEnvio) || 0),
-        montoEnvio: admin.firestore.FieldValue.increment(Number(despues.costoEnvio) || 0),
-        montoTotal: admin.firestore.FieldValue.increment(Number(despues.total) || 0),
-        cantidadPedidos: admin.firestore.FieldValue.increment(1),
-        cantidadPedidosDomicilio: admin.firestore.FieldValue.increment(despues.tipoRetiro === 'domicilio' ? 1 : 0),
+  // Los triggers de Firestore entregan el evento "al menos una vez": ante un
+  // reintento (timeout, cold start, etc.) el mismo pedido podría procesarse
+  // dos veces. La bandera `ventaRegistrada`, chequeada y escrita en la misma
+  // transacción que el incremento, evita contar la misma venta dos veces.
+  await db.runTransaction(async (tx) => {
+    const pedidoSnap = await tx.get(pedidoRef)
+    if (pedidoSnap.data()?.ventaRegistrada) return
+
+    tx.set(ventaRef, {
+      fecha,
+      actualizadoEn: admin.firestore.Timestamp.now(),
+      sucursales: {
+        [sucursal]: {
+          montoProductos: admin.firestore.FieldValue.increment(Number(despues.cashTotalSinEnvio) || 0),
+          montoEnvio: admin.firestore.FieldValue.increment(Number(despues.costoEnvio) || 0),
+          montoTotal: admin.firestore.FieldValue.increment(Number(despues.total) || 0),
+          cantidadPedidos: admin.firestore.FieldValue.increment(1),
+          cantidadPedidosDomicilio: admin.firestore.FieldValue.increment(despues.tipoRetiro === 'domicilio' ? 1 : 0),
+        }
       }
-    }
-  }, { merge: true })
+    }, { merge: true })
+
+    tx.set(pedidoRef, { ventaRegistrada: true }, { merge: true })
+  })
 
   logger.log(`Venta registrada — ${fecha} / ${sucursal} / pedido ${event.params.pedidoId}`)
+})
+
+// Recalcula desde cero (a partir de los pedidos reales) los montos de un día,
+// por si quedaron desincronizados (ej. un reintento de trigger que se coló
+// antes de este fix, o una corrección manual de un pedido).
+exports.recalcularVentaDia = onCall(async (request) => {
+  const uid = request.auth?.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'Iniciá sesión.')
+  const sucursal = await obtenerSucursalAdmin(uid)
+  const fecha = request.data?.fecha || fechaVentaCR()
+
+  const ref = db.collection('ventas').doc(fecha)
+  const snap = await ref.get()
+  if (snap.data()?.sucursales?.[sucursal]?.cerrado) {
+    throw new HttpsError('failed-precondition', 'Ese día ya está cerrado, no se puede recalcular.')
+  }
+
+  const [anio, mes, dia] = fecha.split('-').map(Number)
+  const inicioUTC = new Date(Date.UTC(anio, mes - 1, dia, 6, 0, 0)) // 00:00 CR = 06:00 UTC
+  const finUTC = new Date(inicioUTC.getTime() + 24 * 60 * 60 * 1000)
+
+  // Rango simple (un solo campo) para no depender de un índice compuesto —
+  // el estado se filtra en memoria, el volumen diario de una sucursal es chico.
+  const pedidosSnap = await db.collection('pedidos')
+    .where('creadoEn', '>=', inicioUTC)
+    .where('creadoEn', '<', finUTC)
+    .get()
+
+  const totales = { montoProductos: 0, montoEnvio: 0, montoTotal: 0, cantidadPedidos: 0, cantidadPedidosDomicilio: 0 }
+  pedidosSnap.forEach(doc => {
+    const pedido = doc.data()
+    if (pedido.estado !== 'finalizado') return
+    if (sucursalDelPedido(pedido) !== sucursal) return
+    totales.montoProductos += Number(pedido.cashTotalSinEnvio) || 0
+    totales.montoEnvio += Number(pedido.costoEnvio) || 0
+    totales.montoTotal += Number(pedido.total) || 0
+    totales.cantidadPedidos += 1
+    totales.cantidadPedidosDomicilio += pedido.tipoRetiro === 'domicilio' ? 1 : 0
+  })
+
+  await ref.set({
+    fecha,
+    actualizadoEn: admin.firestore.Timestamp.now(),
+    sucursales: { [sucursal]: totales }
+  }, { merge: true })
+
+  logger.log(`Venta recalculada — ${fecha} / ${sucursal}`, totales)
+  return totales
 })
 
 // La Cloud Function nunca confía en una sucursal que mande el cliente: siempre
