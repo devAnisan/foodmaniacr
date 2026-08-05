@@ -178,6 +178,11 @@
           <p v-if="personalizandoEsCanje" class="text-lg font-bold text-yellow-600 flex items-center gap-1">
             <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-5 h-5 inline-block" /> {{ itemPersonalizando?.puntosCanje }}
           </p>
+          <div v-else-if="itemPersonalizando?.descuento?.porcentaje" class="flex items-center gap-2">
+            <span class="text-sm text-gray-400 line-through">₡{{ itemPersonalizando.precio }}</span>
+            <span class="text-lg font-bold text-[var(--primary)]">₡{{ precioConDescuento(itemPersonalizando) }}</span>
+            <span class="text-[10px] font-bold text-white bg-red-500 px-1.5 py-0.5 rounded">-{{ itemPersonalizando.descuento.porcentaje }}%</span>
+          </div>
           <p v-else class="text-lg font-bold text-[var(--primary)]">₡{{ itemPersonalizando?.precio }}</p>
 
           <!-- Talla a elegir (merchandising) -->
@@ -214,6 +219,14 @@
                 <span class="block text-xs font-normal mt-0.5">₡{{ b.precio }}</span>
               </button>
             </div>
+          </div>
+
+          <!-- Extra opcional con costo (campo "extra": {nombre, monto} del producto) -->
+          <div v-if="itemPersonalizando?.extra" class="mt-4">
+            <label class="flex items-center gap-2 font-bold hover:cursor-pointer">
+              <input type="checkbox" v-model="extraSel" class="w-5 h-5 accent-[var(--primary)]" />
+              ➕ {{ itemPersonalizando.extra.nombre }} (+₡{{ itemPersonalizando.extra.monto }})
+            </label>
           </div>
 
           <!-- Proteína a elegir -->
@@ -389,6 +402,8 @@
                         </div>
                         <div v-if="value.papasFritasGratisSel" class="text-xs text-gray-500">🍟 Papas fritas (cortesía)</div>
                         <div v-if="value.tallaSel" class="text-xs text-gray-500">👕 Talla: {{ value.tallaSel }}</div>
+                        <div v-if="value.extra" class="text-xs text-gray-500">➕ {{ value.extra.nombre }} +₡{{ value.extra.monto }}</div>
+                        <div v-if="value.descuento" class="text-xs text-green-600 font-bold">🏷️ Descuento -{{ value.descuento.porcentaje }}%</div>
                     </div>
                     <div v-if="value.esCanje" class="text-sm mr-2 font-bold text-yellow-600 flex items-center gap-1"><img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3.5 h-3.5 inline-block" /> {{ value.puntosCanje * value.cantidad }}</div>
                     <div v-else class="text-sm mr-2">₡{{ cartStore.precioFinal(value) * value.cantidad }}</div>
@@ -649,6 +664,14 @@ import EditProfileModal from './EditProfileModal.vue'
 import InstallPWAPrompt from './InstallPWAPrompt.vue'
 import NotificationBanner from './NotificationBanner.vue'
 import { useNotifications } from '../composable/useNotifications.js'
+
+const precioConDescuento = (item) => {
+    const precio = Number(item?.precio) || 0
+    const porcentaje = Number(item?.descuento?.porcentaje) || 0
+    if (!porcentaje) return precio
+    return Math.round(precio * (1 - porcentaje / 100))
+}
+
 // ── Componente inline ProductCard ──────────────────────────────────────────
 const ProductCard = defineComponent({
     props: { item: Object, esPromocion: Boolean, esCanje: Boolean, conPreview: Boolean },
@@ -659,7 +682,7 @@ const ProductCard = defineComponent({
         const activo = computed(() =>
             props.esPromocion ? esPromocionActiva(props.item.nombre) : true
         )
-        const coinsGanados = computed(() => Math.floor((props.item.precio || 0) / COLONES_POR_COIN))
+        const coinsGanados = computed(() => Math.floor(precioConDescuento(props.item) / COLONES_POR_COIN))
         const expandido = vueRef(false)
 
         return () => h('div', { class: 'relative bg-white rounded-xl shadow-md p-3 flex flex-col hover:shadow-lg transition-shadow duration-200' + (props.esCanje ? ' border-2 border-yellow-400' : '') }, [
@@ -702,7 +725,13 @@ const ProductCard = defineComponent({
                         h('img', { src: assets.coinIconUrl, alt: 'ManiaCoins', class: 'w-4 h-4 inline-block' }),
                         props.item.puntosCanje
                     ])
-                    : h('p', { class: 'font-bold text-[var(--primary)]' }, `₡${props.item.precio}`),
+                    : (props.item.descuento?.porcentaje
+                        ? h('div', { class: 'flex items-center gap-1.5 flex-wrap' }, [
+                            h('span', { class: 'text-gray-400 text-xs line-through' }, `₡${props.item.precio}`),
+                            h('span', { class: 'font-bold text-[var(--primary)]' }, `₡${precioConDescuento(props.item)}`),
+                            h('span', { class: 'text-[9px] font-bold text-white bg-red-500 px-1 py-0.5 rounded' }, `-${props.item.descuento.porcentaje}%`),
+                        ])
+                        : h('p', { class: 'font-bold text-[var(--primary)]' }, `₡${props.item.precio}`)),
                 !props.esCanje && coinsGanados.value > 0
                     ? h('span', { class: 'text-[10px] font-bold text-yellow-700 bg-yellow-50 px-1.5 py-0.5 rounded-full whitespace-nowrap flex items-center gap-0.5' }, [
                         h('img', { src: assets.coinIconUrl, alt: 'ManiaCoins', class: 'w-3 h-3 inline-block' }),
@@ -819,6 +848,7 @@ const gaseosaSel = vueRef(null)
 const salsaSel = vueRef(null)
 const papasFritasGratisSel = vueRef(false)
 const tallaSel = vueRef(null)
+const extraSel = vueRef(false)
 const personalizandoEsCanje = vueRef(false)
 
 const bebidas = vueRef([])
@@ -888,6 +918,7 @@ const abrirPersonalizador = async (item, esCanje = false) => {
       gaseosaSel.value = null
       salsaSel.value = null
       papasFritasGratisSel.value = false
+      extraSel.value = false
       personalizadorAbierto.value = true
       return
     }
@@ -914,6 +945,7 @@ const abrirPersonalizador = async (item, esCanje = false) => {
   salsaSel.value = item.salsa?.length ? item.salsa[0] : null
   papasFritasGratisSel.value = false
   tallaSel.value = item.talla?.length ? item.talla[0] : null
+  extraSel.value = false
   personalizadorAbierto.value = true
 }
 
@@ -955,6 +987,9 @@ const confirmarPersonalizacion = () => {
       nombre: bebidaSel.value.nombre,
       precio: bebidaSel.value.precio,
     }
+  }
+  if (extraSel.value && itemPersonalizando.value?.extra) {
+    extras.extra = { ...itemPersonalizando.value.extra }
   }
   cartStore.addItem(itemPersonalizando.value, extras)
   cerrarPersonalizador()

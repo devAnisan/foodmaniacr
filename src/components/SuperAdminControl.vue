@@ -135,6 +135,8 @@
                         <div class="flex gap-2">
                             <input v-model="producto.precio" type="number" placeholder="Precio (₡)"
                                 class="w-32 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                            <input v-model="producto.descuentoPorcentaje" type="number" placeholder="Descuento %"
+                                class="w-28 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
                             <input v-if="coleccionActiva === 'merchandising'" v-model="producto.puntosCanje" type="number" placeholder="Puntos ManiaCoins (opcional)"
                                 class="w-48 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
                             <input v-model="producto.incluye" type="text" placeholder="Incluye (opcional)"
@@ -149,6 +151,13 @@
                             <input type="checkbox" v-model="producto.permiteBebidaOpcional" class="accent-[var(--primary)]" />
                             🥤 Permite agregar bebida opcional
                         </label>
+
+                        <div v-if="coleccionActiva !== 'bebidas' && coleccionActiva !== 'merchandising'" class="flex gap-2">
+                            <input v-model="producto.extraNombre" type="text" placeholder="Nombre del extra (ej: Papas)"
+                                class="flex-1 p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                            <input v-model="producto.extraMonto" type="number" placeholder="Monto ₡"
+                                class="w-28 p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                        </div>
 
                         <!-- Atributos adicionales (cualquier otro campo que tenga el producto en Firestore) -->
                         <div class="border-t pt-2 mt-1">
@@ -373,6 +382,8 @@ const GLOSARIO_ATRIBUTOS = [
             { nombre: 'puntosCanje', tipo: 'número', descripcion: 'Solo en Merchandising: costo en ManiaCoins para canjear el producto.', depende: 'Si un producto de las categorías de comida también tiene este campo, necesita además "ValidoParaCambio" en true para aparecer en la pestaña Canjear. Merchandising no necesita ese segundo campo.' },
             { nombre: 'talla', tipo: 'lista', descripcion: 'Solo en Merchandising: tallas disponibles (ej. S, M, L, XL).', depende: 'Si el producto tiene tallas cargadas, el cliente tiene que elegir una antes de poder agregarlo al carrito.' },
             { nombre: 'permiteBebidaOpcional', tipo: 'sí/no', descripcion: 'Muestra el upsell "Agregar bebida (opcional)" (bebida paga) en el personalizador de este producto.', depende: 'Se ignora si el producto ya tiene "bebidaEspecifica" cargado — en ese caso nunca se muestra el upsell, sin importar este campo.' },
+            { nombre: 'extra', tipo: 'objeto ({nombre, monto})', descripcion: 'Extra opcional con costo adicional (ej: "Papas" +₡1000). Se muestra como checkbox opcional en el personalizador del cliente, junto a la bebida opcional. Se llena con los dos campos "Nombre del extra" y "Monto ₡" de este formulario.' },
+            { nombre: 'descuento', tipo: 'objeto ({porcentaje})', descripcion: 'Descuento activo sobre el precio del producto (ej: 10% off). Se muestra en el menú con el precio original tachado y el precio con descuento, y se refleja en el carrito, el checkout y la factura impresa. Se llena con el campo "Descuento %" de este formulario — dejarlo vacío o en 0 lo desactiva.' },
         ]
     },
     {
@@ -412,7 +423,7 @@ const mostrarMensaje = (msg, tipo = 'success') => {
 // ── Atributos adicionales (campos libres, cualquier producto) ──────────────
 // Campos que ya tienen su propio input en el formulario — todo lo demás que
 // traiga el documento de Firestore se muestra como "atributo adicional".
-const CAMPOS_FIJOS = ['nombre', 'descripcion', 'precio', 'incluye', 'imagen', 'puntosCanje', 'talla', 'permiteBebidaOpcional']
+const CAMPOS_FIJOS = ['nombre', 'descripcion', 'precio', 'incluye', 'imagen', 'puntosCanje', 'talla', 'permiteBebidaOpcional', 'extra', 'descuento']
 
 const inferirTipo = (valor) => {
     if (typeof valor === 'boolean') return 'boolean'
@@ -489,6 +500,9 @@ const cargarProductos = async () => {
                 puntosCanje: data.puntosCanje ?? '',
                 talla: (data.talla || []).join(', '),
                 permiteBebidaOpcional: data.permiteBebidaOpcional ?? true,
+                extraNombre: data.extra?.nombre || '',
+                extraMonto: data.extra?.monto ?? '',
+                descuentoPorcentaje: data.descuento?.porcentaje ?? '',
                 atributosExtra: construirAtributosExtra(data),
                 _atributosEliminados: [],
                 _nuevoAtributo: null,
@@ -523,6 +537,9 @@ const agregarNuevo = () => {
         puntosCanje: '',
         talla: '',
         permiteBebidaOpcional: true,
+        extraNombre: '',
+        extraMonto: '',
+        descuentoPorcentaje: '',
         atributosExtra: [],
         _atributosEliminados: [],
         _nuevoAtributo: null,
@@ -580,6 +597,19 @@ const guardarProducto = async (producto) => {
         }
         if (coleccionActiva.value !== 'bebidas' && coleccionActiva.value !== 'merchandising') {
             payload.permiteBebidaOpcional = !!producto.permiteBebidaOpcional
+            const extraNombre = (producto.extraNombre || '').trim()
+            const extraMonto = Number(producto.extraMonto)
+            if (extraNombre && producto.extraMonto !== '' && !Number.isNaN(extraMonto)) {
+                payload.extra = { nombre: extraNombre, monto: extraMonto }
+            } else if (!producto._nuevo) {
+                payload.extra = deleteField()
+            }
+        }
+        const descuentoPorcentaje = Number(producto.descuentoPorcentaje)
+        if (producto.descuentoPorcentaje !== '' && !Number.isNaN(descuentoPorcentaje) && descuentoPorcentaje > 0) {
+            payload.descuento = { porcentaje: descuentoPorcentaje }
+        } else if (!producto._nuevo) {
+            payload.descuento = deleteField()
         }
         for (const attr of producto.atributosExtra) {
             payload[attr.clave] = convertirAtributoAValor(attr)

@@ -200,21 +200,15 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
   const fechaPedido = new Date()
   const esDiaDobleActivo = esDiaDoble(fechaPedido)
   const nombreDiaDobleActivo = nombreDiaDoble(fechaPedido)
-  if (esDiaDobleActivo) {
-    puntosGanados *= 2
-    logger.log(`🔥 ${nombreDiaDobleActivo} — ManiaCoins x2`)
-  }
 
   if (uid) {
     const clientRef = db.collection('clientes').doc(uid)
     const clientSnap = await clientRef.get()
     if (clientSnap.exists && clientSnap.data().primeraCompra === true) {
       esPrimeraCompra = true
-      puntosGanados *= 2
       // No apagamos primeraCompra acá todavía: un pedido creado puede cancelarse o
       // quedarse en "pendiente" para siempre (pruebas, etc). Se consume recién cuando
       // el admin/cajero lo marca "finalizado" — ver otorgarPuntos() en AdminControl.vue.
-      logger.log('🎉 Primera compra — ManiaCoins x2 para', email)
     }
     const cumpleanos = clientSnap.exists ? clientSnap.data().cumpleanos : null
     if (cumpleanos) {
@@ -228,6 +222,17 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
     await clientRef.set({
       ultimaCompra: admin.firestore.Timestamp.now()
     }, { merge: true })
+  }
+
+  // El x2 de "primera compra" y el x2 de "día FoodManiaco" no se acumulan entre sí:
+  // si el cliente tiene primera compra activa, ese x2 manda y el del día doble se ignora.
+  const diaDobleAplicado = esDiaDobleActivo && !esPrimeraCompra
+  if (esPrimeraCompra) {
+    puntosGanados *= 2
+    logger.log('🎉 Primera compra — ManiaCoins x2 para', email)
+  } else if (diaDobleAplicado) {
+    puntosGanados *= 2
+    logger.log(`🔥 ${nombreDiaDobleActivo} — ManiaCoins x2`)
   }
 
   // Promo de lanzamiento: primeros 100 pedidos desde el 3 de agosto reciben papas pequeñas gratis.
@@ -377,7 +382,7 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
               <p style="margin:0 0 4px;"><strong>💳 Pago:</strong> ${pedidoData.metodoPago || '—'}</p>
               <p style="margin:0 0 4px;"><strong>🏪 Retiro:</strong> ${pedidoData.tipoRetiro === 'sucursal' ? pedidoData.sucursal : 'Domicilio'}</p>
               ${esPrimeraCompra ? '<p style="margin:0 0 4px;color:#642d81;font-weight:bold;">🎉 ¡Primera compra! ManiaCoins x2</p>' : ''}
-              ${esDiaDobleActivo ? `<p style="margin:0 0 4px;background:linear-gradient(135deg,#642d81,#eab308);color:white;padding:8px 12px;border-radius:8px;font-weight:bold;text-align:center;">🔥 ${nombreDiaDobleActivo} — ManiaCoins x2</p>` : ''}
+              ${diaDobleAplicado ? `<p style="margin:0 0 4px;background:linear-gradient(135deg,#642d81,#eab308);color:white;padding:8px 12px;border-radius:8px;font-weight:bold;text-align:center;">🔥 ${nombreDiaDobleActivo} — ManiaCoins x2</p>` : ''}
               ${esCumpleanos ? '<p style="margin:0 0 4px;background:linear-gradient(135deg,#e91e63,#ff6f00);color:white;padding:8px 12px;border-radius:8px;font-weight:bold;text-align:center;">🎂 ¡Feliz cumpleaños! Recibiste 100 ManiaCoins de regalo</p>' : ''}
               ${promoAplicada ? `<p style="margin:0 0 4px;background:linear-gradient(135deg,#16a34a,#22c55e);color:white;padding:8px 12px;border-radius:8px;font-weight:bold;text-align:center;">🎁 ¡Ganaste papas pequeñas GRATIS! (pedido #${promoNumero}/${PROMO_LIMITE})</p>` : ''}
               <p style="margin:0 0 4px;"><strong>🪙 ManiaCoins ganados:</strong> ${puntosGanados || 0}</p>

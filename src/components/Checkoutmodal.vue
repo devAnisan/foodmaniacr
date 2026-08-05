@@ -46,7 +46,7 @@
           <p class="text-5xl">🕐</p>
           <p class="text-lg font-bold text-gray-500">Estamos cerrados</p>
           <p class="text-sm text-gray-400">
-            Nuestro horario de delivery es <strong>Lunes a Domingo, 11am a 11pm</strong>.<br />
+            Nuestro horario de delivery es <strong>Lunes a Domingo, 11am a 10:50pm</strong>.<br />
             Podés programar un retiro en sucursal para otra hora.
           </p>
           <button @click="withDrawType = 'sucursal'"
@@ -65,9 +65,13 @@
                 <div>
                   <span class="font-bold">{{ item.nombre }}</span>
                   <span class="text-gray-400"> x{{ item.cantidad }}</span>
+                  <span v-if="item.descuento" class="text-[9px] font-bold text-white bg-red-500 px-1 py-0.5 rounded ml-1">-{{ item.descuento.porcentaje }}%</span>
                 </div>
                 <span v-if="item.esCanje" class="font-bold text-yellow-600 text-right flex items-center gap-1"><img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3.5 h-3.5 inline-block" /> {{ item.puntosCanje * item.cantidad }} ManiaCoins</span>
-                <span v-else class="font-bold text-right">₡{{ item.precio * item.cantidad }} colones</span>
+                <span v-else class="font-bold text-right">
+                  <span v-if="item.descuento" class="block text-[10px] text-gray-400 line-through font-normal">₡{{ item.precioOriginal * item.cantidad }}</span>
+                  ₡{{ item.precio * item.cantidad }} colones
+                </span>
               </div>
 
               <!-- Bebida asociada a un producto -->
@@ -91,6 +95,12 @@
 
               <!-- Bebida específica incluida (cortesía, no se cobra) -->
               <div v-if="item.bebidaEspecifica" class="text-xs text-gray-500 mt-1 ml-2">🥤 Incluye {{ item.bebidaEspecifica.nombre }} (cortesía)</div>
+
+              <!-- Extra opcional con costo -->
+              <div v-if="item.extra" class="flex justify-between text-xs text-gray-500 mt-1 ml-2">
+                <span>➕ {{ item.extra.nombre }} x{{ item.cantidad }}</span>
+                <span>+₡{{ item.extra.monto * item.cantidad }}</span>
+              </div>
 
               <!-- Papas con salsa -->
               <div v-if="item.papasConSalsa" class="text-xs text-gray-500 mt-1 ml-2">🍟 Papas con salsa</div>
@@ -320,9 +330,9 @@
               </div>
               <div>
                 <label class="text-sm text-gray-500 block mb-1">¿A qué hora pasarás?</label>
-                <input v-model="horaRetiro" type="time" min="11:00" max="23:00"
+                <input v-model="horaRetiro" type="time" min="11:00" max="22:55"
                   class="w-full p-2 border rounded-lg" />
-                <p class="text-xs text-gray-400 mt-1">Horario: Lun–Dom, 11:00am – 11:00pm</p>
+                <p class="text-xs text-gray-400 mt-1">Horario: Lun–Dom, 11:00am – 10:55pm</p>
               </div>
             </div>
 
@@ -479,12 +489,14 @@ const sucursalesStore = useSucursales()
 const assets = useAssets()
 cargarCoinIcon()
 
-const hoy = new Date().toISOString().split('T')[0]
+const ahora = new Date()
+const hoy = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`
 const userLogueado = vueRef(!!auth.currentUser)
 
 const fueraDeHorario = computed(() => {
-  const hora = new Date().getHours()
-  return hora < 11 || hora >= 23
+  const ahora = new Date()
+  const minutosDelDia = ahora.getHours() * 60 + ahora.getMinutes()
+  return minutosDelDia < 11 * 60 || minutosDelDia >= 22 * 60 + 50
 })
 
 // 3 de agosto de 2026, 00:00 hora Costa Rica (UTC-6) = 06:00 UTC. Igual a LANZAMIENTO_OFICIAL en functions/index.js.
@@ -574,6 +586,13 @@ const totalAgrandarCash = computed(() => {
   }, 0)
 })
 
+const totalExtraCash = computed(() => {
+  return cartStore.items.reduce((acc, item) => {
+    if (item.extra) return acc + (Number(item.extra.monto) * item.cantidad)
+    return acc
+  }, 0)
+})
+
 const totalCoinsAGastar = computed(() => {
   let coins = 0
   for (const item of cartStore.items) {
@@ -591,7 +610,7 @@ const totalCoinsAGastar = computed(() => {
 })
 
 const cashTotalSinEnvio = computed(() => {
-  return baseCashTotal.value + totalBebidasCash.value + totalAgrandarCash.value
+  return baseCashTotal.value + totalBebidasCash.value + totalExtraCash.value + totalAgrandarCash.value
 })
 
 const distancia = computed(() => {
@@ -721,12 +740,18 @@ const armarLineaItem = (item) => {
   let linea = item.esCanje
     ? `• ${item.nombre} x${item.cantidad} (🪙 ${item.puntosCanje * item.cantidad})`
     : `• ${item.nombre} x${item.cantidad} — ₡${item.precio * item.cantidad}`
+  if (item.descuento) {
+    linea += ` (🏷️ -${item.descuento.porcentaje}%, antes ₡${item.precioOriginal * item.cantidad})`
+  }
   if (item.bebida) {
     const esCanje = bebidaPuntosMap[item._uid]
     linea += `\n  🥤 ${item.bebida.nombre} x${item.cantidad}${esCanje ? ` (🪙 ${costoBebidaManiaCoins(item.bebida.precio) * item.cantidad})` : ` — ₡${item.bebida.precio * item.cantidad}`}`
   }
   if (item.bebidaEspecifica) {
     linea += `\n  🥤 Incluye ${item.bebidaEspecifica.nombre} (cortesía)`
+  }
+  if (item.extra) {
+    linea += `\n  ➕ ${item.extra.nombre} x${item.cantidad} — +₡${item.extra.monto * item.cantidad}`
   }
   if (item.proteinaSel) {
     linea += `\n  🍗 ${item.proteinaSel}`
@@ -810,9 +835,9 @@ const confirmarPedido = async () => {
     if (!hayMerchandising.value) {
       if (!fechaRetiro.value) return errorMsg.value = 'Seleccioná una fecha de retiro.'
       if (!horaRetiro.value) return errorMsg.value = 'Seleccioná una hora de retiro.'
-      const [hh] = horaRetiro.value.split(':').map(Number)
-      if (hh < 11 || hh >= 23)
-        return errorMsg.value = 'La hora de retiro debe ser entre 11:00am y 11:00pm.'
+      const [hh, mm] = horaRetiro.value.split(':').map(Number)
+      if (hh < 11 || hh > 22 || (hh === 22 && mm > 55))
+        return errorMsg.value = 'La hora de retiro debe ser entre 11:00am y 10:55pm.'
     }
   } else {
     if (!datosCliente.value.direccion) return errorMsg.value = 'Ingresá la dirección de entrega.'
@@ -865,6 +890,9 @@ const confirmarPedido = async () => {
         canjeadoConPuntos: !!bebidaPuntosMap[item._uid]
       } : null,
       bebidaEspecifica: item.bebidaEspecifica ? { nombre: item.bebidaEspecifica.nombre } : null,
+      extra: item.extra ? { nombre: item.extra.nombre, monto: item.extra.monto } : null,
+      descuento: item.descuento ? { porcentaje: item.descuento.porcentaje } : null,
+      precioOriginal: item.descuento ? item.precioOriginal : null,
       papasConSalsa: item.papasConSalsa || false,
       salsasAlitas: item.salsasAlitas || [],
       proteinaSel: item.proteinaSel || null,

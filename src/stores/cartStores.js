@@ -57,7 +57,7 @@ export const useCartStore = defineStore(
         const items = vueRef([]);
 
         const precioFinal = (item) => {
-            return Number(item.precio) + Number(item.bebida?.precio || 0)
+            return Number(item.precio) + Number(item.bebida?.precio || 0) + Number(item.extra?.monto || 0)
         }
 
         const addItem = (producto, extras = {}) => {
@@ -72,6 +72,12 @@ export const useCartStore = defineStore(
             const salsaSel = extras.salsaSel ?? producto.salsaSel ?? null
             const papasFritasGratisSel = extras.papasFritasGratisSel ?? producto.papasFritasGratisSel ?? false
             const tallaSel = extras.tallaSel ?? producto.tallaSel ?? null
+            const extra = extras.extra ?? producto.extra ?? null
+            const descuento = producto.descuento || null
+            const precioOriginal = Number(producto.precio) || 0
+            const precio = descuento?.porcentaje
+                ? Math.round(precioOriginal * (1 - Number(descuento.porcentaje) / 100))
+                : precioOriginal
             let variantKey = producto.id
             if (bebida) variantKey += `_beb_${bebida.id || bebida.nombre}`
             if (proteinaSel) variantKey += `_prot_${proteinaSel}`
@@ -80,6 +86,7 @@ export const useCartStore = defineStore(
             if (salsaSel) variantKey += `_slsa_${salsaSel}`
             if (papasFritasGratisSel) variantKey += `_papasgratis`
             if (tallaSel) variantKey += `_talla_${tallaSel}`
+            if (extra) variantKey += `_ext_${extra.nombre}`
             const existing = items.value.find(
                 item => item._variantKey === variantKey
             )
@@ -91,6 +98,9 @@ export const useCartStore = defineStore(
                     cantidad: 1,
                     _uid: genUid(),
                     _variantKey: variantKey,
+                    precio,
+                    precioOriginal,
+                    descuento,
                     bebida,
                     bebidaEspecifica,
                     papasConSalsa,
@@ -102,6 +112,7 @@ export const useCartStore = defineStore(
                     salsaSel,
                     papasFritasGratisSel,
                     tallaSel,
+                    extra,
                 })
             }
         };

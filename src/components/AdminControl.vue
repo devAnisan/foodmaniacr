@@ -350,6 +350,10 @@
                             <span>⬆️ Agrandados</span>
                             <span>₡{{ pedidoDetalle.costoAgrandar }}</span>
                         </div>
+                        <div v-if="calcularAhorroDescuento(pedidoDetalle.items) > 0" class="flex justify-between text-sm mb-1 text-green-600 font-bold">
+                            <span>🏷️ Descuento</span>
+                            <span>-₡{{ calcularAhorroDescuento(pedidoDetalle.items) }}</span>
+                        </div>
                         <div v-if="pedidoDetalle.costoEnvio > 0" class="flex justify-between text-sm mb-1">
                             <span>🛵 Envío</span>
                             <span>₡{{ pedidoDetalle.costoEnvio }}</span>
@@ -783,6 +787,16 @@ const escapeHtml = (valor) => {
 // Mismo valor que AGRANDAR_COSTO en Checkoutmodal.vue y functions/calculos.js.
 const AGRANDAR_COSTO = 500
 
+// Total ahorrado por descuentos de producto en un pedido, usado en el ticket impreso y el modal de detalle.
+const calcularAhorroDescuento = (items) => {
+    return (items || []).reduce((acc, item) => {
+        if (item.descuento && item.precioOriginal != null) {
+            return acc + (item.precioOriginal - item.precio) * item.cantidad
+        }
+        return acc
+    }, 0)
+}
+
 // Extras de un ítem de pedido, usado tanto en el ticket impreso como en el modal de detalle.
 const obtenerExtrasItem = (item) => {
     const extras = []
@@ -793,6 +807,8 @@ const obtenerExtrasItem = (item) => {
         extras.push(`🥤 ${item.bebida.nombre} — ${costo}`)
     }
     if (item.bebidaEspecifica) extras.push(`🥤 Incluye ${item.bebidaEspecifica.nombre} (cortesía)`)
+    if (item.extra) extras.push(`➕ ${item.extra.nombre} — +₡${item.extra.monto * item.cantidad}`)
+    if (item.descuento) extras.push(`🏷️ Descuento -${item.descuento.porcentaje}% (antes ₡${item.precioOriginal * item.cantidad})`)
     if (item.proteinaSel) extras.push(`🍗 ${item.proteinaSel}`)
     if (item.gaseosaSel) extras.push(`🥤 Sabor: ${item.gaseosaSel}`)
     if (item.papasConSalsa) extras.push('🍟 Papas con salsa')
@@ -915,6 +931,7 @@ const imprimirPedido = (pedido) => {
         <div class="fila"><span>Subtotal</span><span>₡${escapeHtml(pedido.subtotal)}</span></div>
         ${pedido.costoBebidas > 0 ? `<div class="fila"><span>Bebidas</span><span>₡${escapeHtml(pedido.costoBebidas)}</span></div>` : ''}
         ${pedido.costoAgrandar > 0 ? `<div class="fila"><span>Agrandados</span><span>₡${escapeHtml(pedido.costoAgrandar)}</span></div>` : ''}
+        ${calcularAhorroDescuento(pedido.items) > 0 ? `<div class="fila" style="font-weight:bold;"><span>🏷️ Descuento</span><span>-₡${escapeHtml(calcularAhorroDescuento(pedido.items))}</span></div>` : ''}
         ${pedido.costoEnvio > 0 ? `<div class="fila"><span>Envío</span><span>₡${escapeHtml(pedido.costoEnvio)}</span></div>` : ''}
         <div class="sep"></div>
         <div class="fila total-row"><span>TOTAL</span><span>₡${escapeHtml(pedido.total)}</span></div>

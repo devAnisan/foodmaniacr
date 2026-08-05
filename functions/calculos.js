@@ -118,7 +118,12 @@ function calculateOrderTotals(items, distanciaKm, withDrawType, agrandarMap, agr
     return acc
   }, 0)
 
-  const cashTotalSinEnvio = baseCashTotal + totalBebidasCash + totalAgrandarCash
+  const totalExtraCash = items.reduce((acc, item) => {
+    if (item.extra) return acc + (Number(item.extra.monto) * Number(item.cantidad))
+    return acc
+  }, 0)
+
+  const cashTotalSinEnvio = baseCashTotal + totalBebidasCash + totalExtraCash + totalAgrandarCash
   const costoEnvio = withDrawType === 'domicilio' ? calcularTarifaEnvio(distanciaKm) : 0
   const totalConEnvio = cashTotalSinEnvio + costoEnvio
   const coinsGanados = coinsAGanar(cashTotalSinEnvio)
@@ -126,6 +131,7 @@ function calculateOrderTotals(items, distanciaKm, withDrawType, agrandarMap, agr
   return {
     baseCashTotal,
     totalBebidasCash,
+    totalExtraCash,
     totalAgrandarCash,
     cashTotalSinEnvio,
     costoEnvio,
