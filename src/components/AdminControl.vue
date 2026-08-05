@@ -110,6 +110,82 @@
                 </div>
             </div>
 
+            <!-- Cierre de caja -->
+            <div v-if="errorCierre"
+                class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 text-sm font-bold">
+                ⚠️ {{ errorCierre }}
+            </div>
+
+            <!-- Hoy -->
+            <div class="mb-6">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="font-bold text-lg">🧾 Cierre de caja — Hoy</h3>
+                    <button v-if="!ventasHoy?.cerrado" @click="recalcularHoy" :disabled="recalculandoDia"
+                        class="text-xs font-bold text-gray-500 border rounded-full px-3 py-1 hover:bg-gray-100 transition-colors hover:cursor-pointer disabled:opacity-50">
+                        {{ recalculandoDia ? 'Recalculando...' : '🔄 Recalcular' }}
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white rounded-xl shadow-sm p-4">
+                        <h4 class="font-bold mb-2">🏪 Negocio</h4>
+                        <div v-if="ventasHoy" class="text-sm text-gray-600 flex flex-col gap-1 mb-3">
+                            <div class="flex justify-between"><span>Total</span><span class="font-bold">₡{{ (ventasHoy.montoProductos || 0).toLocaleString('es-CR') }}</span></div>
+                            <div class="flex justify-between text-xs text-gray-400"><span>Pedidos</span><span>{{ ventasHoy.cantidadPedidos || 0 }}</span></div>
+                        </div>
+                        <p v-else class="text-sm text-gray-400 mb-3">Todavía no hay ventas finalizadas hoy.</p>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm p-4">
+                        <h4 class="font-bold mb-2">🛵 Domicilio</h4>
+                        <div v-if="ventasHoy" class="text-sm text-gray-600 flex flex-col gap-1 mb-3">
+                            <div class="flex justify-between"><span>Total</span><span class="font-bold">₡{{ (ventasHoy.montoEnvio || 0).toLocaleString('es-CR') }}</span></div>
+                            <div class="flex justify-between text-xs text-gray-400"><span>Pedidos</span><span>{{ ventasHoy.cantidadPedidosDomicilio || 0 }}</span></div>
+                        </div>
+                        <p v-else class="text-sm text-gray-400 mb-3">Todavía no hay envíos finalizados hoy.</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm p-4 mt-4">
+                    <p v-if="ventasHoy?.cerrado" class="text-sm font-bold text-green-600">
+                        ✅ Cerrado a las {{ new Date(ventasHoy.cierre.cerradoEn.seconds * 1000).toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' }) }} por {{ ventasHoy.cierre.cerradoPor }} — Total del día: ₡{{ (ventasHoy.cierre.montoTotal || 0).toLocaleString('es-CR') }}
+                    </p>
+                    <button v-else @click="cerrarCaja" :disabled="cerrandoDia || !ventasHoy"
+                        class="w-full bg-[var(--primary)] text-white py-2 rounded-xl font-bold hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer disabled:opacity-50">
+                        {{ cerrandoDia ? 'Cerrando...' : 'Cerrar caja de hoy' }}
+                    </button>
+                </div>
+            </div>
+
+            <!-- Semana -->
+            <div class="mb-6">
+                <h3 class="font-bold text-lg mb-2">📅 Cierre semanal</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white rounded-xl shadow-sm p-4">
+                        <h4 class="font-bold mb-2">🏪 Negocio</h4>
+                        <div v-if="ventasSemana" class="text-sm text-gray-600 flex flex-col gap-1 mb-3">
+                            <div class="flex justify-between"><span>Total</span><span class="font-bold">₡{{ (ventasSemana.montoProductos || 0).toLocaleString('es-CR') }}</span></div>
+                            <div class="flex justify-between text-xs text-gray-400"><span>Pedidos</span><span>{{ ventasSemana.cantidadPedidos || 0 }}</span></div>
+                        </div>
+                        <p v-else class="text-sm text-gray-400 mb-3">Todavía no hay ventas finalizadas esta semana.</p>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm p-4">
+                        <h4 class="font-bold mb-2">🛵 Domicilio</h4>
+                        <div v-if="ventasSemana" class="text-sm text-gray-600 flex flex-col gap-1 mb-3">
+                            <div class="flex justify-between"><span>Total</span><span class="font-bold">₡{{ (ventasSemana.montoEnvio || 0).toLocaleString('es-CR') }}</span></div>
+                            <div class="flex justify-between text-xs text-gray-400"><span>Pedidos</span><span>{{ ventasSemana.cantidadPedidosDomicilio || 0 }}</span></div>
+                        </div>
+                        <p v-else class="text-sm text-gray-400 mb-3">Todavía no hay envíos finalizados esta semana.</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm p-4 mt-4">
+                    <p v-if="ventasSemana?.cerrado" class="text-sm font-bold text-green-600">
+                        ✅ Cerrada ({{ ventasSemana.cierre.diasCerrados }}/{{ ventasSemana.cierre.diasTotales }} días cerrados) por {{ ventasSemana.cierre.cerradoPor }} — Total de la semana: ₡{{ (ventasSemana.cierre.montoTotal || 0).toLocaleString('es-CR') }}
+                    </p>
+                    <button v-else @click="cerrarSemana" :disabled="cerrandoSemana || !ventasSemana"
+                        class="w-full bg-[var(--primary)] text-white py-2 rounded-xl font-bold hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer disabled:opacity-50">
+                        {{ cerrandoSemana ? 'Cerrando...' : 'Cerrar semana' }}
+                    </button>
+                </div>
+            </div>
+
             <!-- Filtro de estado -->
             <div
                 class="bg-white rounded-xl shadow-sm p-4 mb-6 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
@@ -350,9 +426,13 @@
                             <span>⬆️ Agrandados</span>
                             <span>₡{{ pedidoDetalle.costoAgrandar }}</span>
                         </div>
-                        <div v-if="calcularAhorroDescuento(pedidoDetalle.items) > 0" class="flex justify-between text-sm mb-1 text-green-600 font-bold">
+                        <div v-if="pedidoDetalle.costoExtra > 0" class="flex justify-between text-sm mb-1">
+                            <span>➕ Extras</span>
+                            <span>₡{{ pedidoDetalle.costoExtra }}</span>
+                        </div>
+                        <div v-if="pedidoDetalle.montoDescuento > 0" class="flex justify-between text-sm mb-1 text-green-600 font-bold">
                             <span>🏷️ Descuento</span>
-                            <span>-₡{{ calcularAhorroDescuento(pedidoDetalle.items) }}</span>
+                            <span>-₡{{ pedidoDetalle.montoDescuento }}</span>
                         </div>
                         <div v-if="pedidoDetalle.costoEnvio > 0" class="flex justify-between text-sm mb-1">
                             <span>🛵 Envío</span>
@@ -452,6 +532,12 @@ const notifTarget = vueRef('all')
 const notifLoading = vueRef(false)
 const notifMsg = vueRef('')
 const notifMsgType = vueRef('success')
+const ventasHoy = vueRef(null)
+const ventasSemana = vueRef(null)
+const cerrandoDia = vueRef(false)
+const cerrandoSemana = vueRef(false)
+const recalculandoDia = vueRef(false)
+const errorCierre = vueRef('')
 
 const estados = [
     { value: 'pendiente', label: 'Pendiente', emoji: '🕐' },
@@ -475,6 +561,7 @@ const verificarAdmin = async (user) => {
                 adminNombre.value = superUserData.usuario || user.email
                 adminSucursal.value = superUserData.sucursal || ''
                 await setupPedidosListener()
+                setupVentasListener()
             }
         }
     } catch (error) {
@@ -587,6 +674,91 @@ const setupPedidosListener = () => {
     )
 }
 
+// ── Ventas del día/semana (cierre de caja) ─────────────────────────────────
+// Mismo ajuste de horario Costa Rica (UTC-6) que usan esDiaDoble/fechaVentaCR
+// en el servidor — duplicado a propósito, igual que ya pasa con promociones.js.
+const OFFSET_CR_MS = 6 * 60 * 60 * 1000
+
+const fechaHoyCR = () => {
+    const cr = new Date(Date.now() - OFFSET_CR_MS)
+    const y = cr.getUTCFullYear()
+    const m = String(cr.getUTCMonth() + 1).padStart(2, '0')
+    const d = String(cr.getUTCDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+}
+
+const semanaIdHoyCR = () => {
+    const cr = new Date(Date.now() - OFFSET_CR_MS)
+    const soloFecha = new Date(Date.UTC(cr.getUTCFullYear(), cr.getUTCMonth(), cr.getUTCDate()))
+    const diaSemana = soloFecha.getUTCDay() || 7
+    const jueves = new Date(soloFecha)
+    jueves.setUTCDate(jueves.getUTCDate() - diaSemana + 1 + 3)
+    const inicioAno = new Date(Date.UTC(jueves.getUTCFullYear(), 0, 1))
+    const numeroSemana = Math.ceil((((jueves - inicioAno) / 86400000) + 1) / 7)
+    return `${jueves.getUTCFullYear()}-W${String(numeroSemana).padStart(2, '0')}`
+}
+
+let unsubVentasHoy = null
+let unsubVentasSemana = null
+
+const setupVentasListener = () => {
+    if (unsubVentasHoy) unsubVentasHoy()
+    if (unsubVentasSemana) unsubVentasSemana()
+
+    unsubVentasHoy = onSnapshot(doc(db, 'ventas', fechaHoyCR()), (snap) => {
+        ventasHoy.value = snap.data()?.sucursales?.[adminSucursal.value] || null
+    }, (error) => console.error('Error escuchando ventas de hoy:', error))
+
+    unsubVentasSemana = onSnapshot(doc(db, 'ventas_semanales', semanaIdHoyCR()), (snap) => {
+        ventasSemana.value = snap.data()?.sucursales?.[adminSucursal.value] || null
+    }, (error) => console.error('Error escuchando ventas de la semana:', error))
+}
+
+const cerrarVentaDiaFn = httpsCallable(getFunctions(), 'cerrarVentaDia')
+const cerrarVentaSemanaFn = httpsCallable(getFunctions(), 'cerrarVentaSemana')
+const recalcularVentaDiaFn = httpsCallable(getFunctions(), 'recalcularVentaDia')
+
+const recalcularHoy = async () => {
+    errorCierre.value = ''
+    recalculandoDia.value = true
+    try {
+        await recalcularVentaDiaFn()
+    } catch (error) {
+        console.error('Error recalculando ventas de hoy:', error)
+        errorCierre.value = error.message || 'Error al recalcular'
+    } finally {
+        recalculandoDia.value = false
+    }
+}
+
+const cerrarCaja = async () => {
+    if (!confirm('¿Cerrar la caja de hoy? Esta acción no se puede deshacer.')) return
+    errorCierre.value = ''
+    cerrandoDia.value = true
+    try {
+        await cerrarVentaDiaFn()
+    } catch (error) {
+        console.error('Error cerrando caja:', error)
+        errorCierre.value = error.message || 'Error al cerrar la caja'
+    } finally {
+        cerrandoDia.value = false
+    }
+}
+
+const cerrarSemana = async () => {
+    if (!confirm('¿Cerrar la semana? Esta acción no se puede deshacer.')) return
+    errorCierre.value = ''
+    cerrandoSemana.value = true
+    try {
+        await cerrarVentaSemanaFn()
+    } catch (error) {
+        console.error('Error cerrando semana:', error)
+        errorCierre.value = error.message || 'Error al cerrar la semana'
+    } finally {
+        cerrandoSemana.value = false
+    }
+}
+
 // ── ✅ Filtrar pedidos por sucursal del admin Y estado ─────────────────────
 const pedidosDeSucursal = computed(() =>
     pedidos.value.filter(p => {
@@ -635,11 +807,13 @@ watch(sonidoSilenciado, (silenciado) => {
 })
 
 const totalHoy = computed(() => {
-    const inicioHoy = new Date()
-    inicioHoy.setHours(0, 0, 0, 0)
-    const inicioHoySeconds = inicioHoy.getTime() / 1000
+    // Mismo criterio que "Cierre de caja — Hoy": solo pedidos finalizados,
+    // y el día se cuenta en horario Costa Rica (no medianoche del navegador).
+    const cr = new Date(Date.now() - OFFSET_CR_MS)
+    const inicioHoyUTC = Date.UTC(cr.getUTCFullYear(), cr.getUTCMonth(), cr.getUTCDate(), 6, 0, 0)
+    const inicioHoySeconds = inicioHoyUTC / 1000
     return pedidosDeSucursal.value
-        .filter(p => (p.creadoEn?.seconds ?? 0) >= inicioHoySeconds)
+        .filter(p => p.estado === 'finalizado' && (p.creadoEn?.seconds ?? 0) >= inicioHoySeconds)
         .reduce((acc, p) => acc + (Number(p.total) || 0), 0)
 })
 
@@ -787,16 +961,6 @@ const escapeHtml = (valor) => {
 // Mismo valor que AGRANDAR_COSTO en Checkoutmodal.vue y functions/calculos.js.
 const AGRANDAR_COSTO = 500
 
-// Total ahorrado por descuentos de producto en un pedido, usado en el ticket impreso y el modal de detalle.
-const calcularAhorroDescuento = (items) => {
-    return (items || []).reduce((acc, item) => {
-        if (item.descuento && item.precioOriginal != null) {
-            return acc + (item.precioOriginal - item.precio) * item.cantidad
-        }
-        return acc
-    }, 0)
-}
-
 // Extras de un ítem de pedido, usado tanto en el ticket impreso como en el modal de detalle.
 const obtenerExtrasItem = (item) => {
     const extras = []
@@ -808,7 +972,7 @@ const obtenerExtrasItem = (item) => {
     }
     if (item.bebidaEspecifica) extras.push(`🥤 Incluye ${item.bebidaEspecifica.nombre} (cortesía)`)
     if (item.extra) extras.push(`➕ ${item.extra.nombre} — +₡${item.extra.monto * item.cantidad}`)
-    if (item.descuento) extras.push(`🏷️ Descuento -${item.descuento.porcentaje}% (antes ₡${item.precioOriginal * item.cantidad})`)
+    if (item.descuento > 0) extras.push(`🏷️ Descuento producto -${item.descuento}%`)
     if (item.proteinaSel) extras.push(`🍗 ${item.proteinaSel}`)
     if (item.gaseosaSel) extras.push(`🥤 Sabor: ${item.gaseosaSel}`)
     if (item.papasConSalsa) extras.push('🍟 Papas con salsa')
@@ -875,7 +1039,7 @@ const imprimirPedido = (pedido) => {
 <style>
     @page { size: 80mm auto; margin: 0; }
     * { box-sizing: border-box; }
-    body { font-family: 'Courier New', Courier, monospace; color: #000; margin: 0; padding: 4mm 0; background: #fff; }
+    body { font-family: 'Courier New', Courier, monospace; color: #000; margin: 0; padding: 4mm 0; background: #fff; font-weight: bold; }
     .ticket { width: 72mm; margin: 0 auto; font-size: 12px; line-height: 1.4; }
     .center { text-align: center; }
     .logo { width: 44px; height: 44px; object-fit: contain; margin-bottom: 4px; }
@@ -931,7 +1095,8 @@ const imprimirPedido = (pedido) => {
         <div class="fila"><span>Subtotal</span><span>₡${escapeHtml(pedido.subtotal)}</span></div>
         ${pedido.costoBebidas > 0 ? `<div class="fila"><span>Bebidas</span><span>₡${escapeHtml(pedido.costoBebidas)}</span></div>` : ''}
         ${pedido.costoAgrandar > 0 ? `<div class="fila"><span>Agrandados</span><span>₡${escapeHtml(pedido.costoAgrandar)}</span></div>` : ''}
-        ${calcularAhorroDescuento(pedido.items) > 0 ? `<div class="fila" style="font-weight:bold;"><span>🏷️ Descuento</span><span>-₡${escapeHtml(calcularAhorroDescuento(pedido.items))}</span></div>` : ''}
+        ${pedido.costoExtra > 0 ? `<div class="fila"><span>Extras</span><span>₡${escapeHtml(pedido.costoExtra)}</span></div>` : ''}
+        ${pedido.montoDescuento > 0 ? `<div class="fila" style="font-weight:bold;"><span>🏷️ Descuento</span><span>-₡${escapeHtml(pedido.montoDescuento)}</span></div>` : ''}
         ${pedido.costoEnvio > 0 ? `<div class="fila"><span>Envío</span><span>₡${escapeHtml(pedido.costoEnvio)}</span></div>` : ''}
         <div class="sep"></div>
         <div class="fila total-row"><span>TOTAL</span><span>₡${escapeHtml(pedido.total)}</span></div>
@@ -1020,6 +1185,8 @@ onUnmounted(() => {
     if (unsubAuth) unsubAuth()
     if (unsubPedidosSucursal) unsubPedidosSucursal()
     if (unsubPedidosDomicilio) unsubPedidosDomicilio()
+    if (unsubVentasHoy) unsubVentasHoy()
+    if (unsubVentasSemana) unsubVentasSemana()
     if (intervaloSonido) clearInterval(intervaloSonido)
 })
 </script>

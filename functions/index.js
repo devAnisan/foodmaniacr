@@ -1,9 +1,11 @@
 const admin = require('firebase-admin')
 const nodemailer = require('nodemailer')
 const { onCall, HttpsError } = require('firebase-functions/v2/https')
+const { onDocumentUpdated } = require('firebase-functions/v2/firestore')
 const { defineJsonSecret } = require('firebase-functions/params')
 const { logger } = require('firebase-functions')
 const { calculateOrderTotals, esDiaDoble, nombreDiaDoble } = require('./calculos')
+const { fechaVentaCR, semanaIdCR, diasDeSemanaCR } = require('./fechas')
 
 const PROMO_LIMITE = 100
 // 3 de agosto de 2026, 00:00 hora Costa Rica (UTC-6, sin horario de verano) = 06:00 UTC.
@@ -16,6 +18,12 @@ const emailConfig = defineJsonSecret('FUNCTIONS_CONFIG_EXPORT')
 admin.initializeApp()
 
 const db = admin.firestore()
+
+async function obtenerDescuentoGlobal() {
+  const snap = await db.collection('descuento_global').doc('descuento_glbl').get()
+  const data = snap.exists ? snap.data() : {}
+  return { activo: !!data.estado, porcentaje: Number(data.descuento) || 0 }
+}
 
 let transporter = null
 
@@ -142,13 +150,16 @@ exports.calculateOrderTotals = onCall(async (request) => {
     throw new HttpsError('invalid-argument', 'Carrito vacío')
   }
 
+  const descuentoGlobal = await obtenerDescuentoGlobal()
+
   const totals = calculateOrderTotals(
     items,
     parseFloat(distanciaKm) || 0,
     withDrawType || 'sucursal',
     agrandarMap || {},
     agrandarPuntosMap || {},
-    bebidaPuntosMap || {}
+    bebidaPuntosMap || {},
+    descuentoGlobal
   )
 
   logger.log('Order totals calculated:', totals)
@@ -184,13 +195,16 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
       'Demasiados pedidos en poco tiempo. Esperá unos minutos e intentá de nuevo.')
   }
 
+  const descuentoGlobal = await obtenerDescuentoGlobal()
+
   const totals = calculateOrderTotals(
     pedidoData.items || [],
     parseFloat(pedidoData.distanciaKm) || parseFloat(pedidoData.distanciaKm || 0),
     pedidoData.tipoRetiro || 'sucursal',
     pedidoData.agrandarMap || {},
     pedidoData.agrandarPuntosMap || {},
-    pedidoData.bebidaPuntosMap || {}
+    pedidoData.bebidaPuntosMap || {},
+    descuentoGlobal
   )
 
   let puntosGanados = totals.coinsGanados
@@ -262,7 +276,9 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
     ...pedidoData,
     subtotal: totals.baseCashTotal,
     costoBebidas: totals.totalBebidasCash,
+    costoExtra: totals.totalExtraCash,
     costoAgrandar: totals.totalAgrandarCash,
+    montoDescuento: totals.montoDescuento,
     costoEnvio: totals.costoEnvio,
     total: totals.totalConEnvio,
     puntosGanados,
@@ -403,6 +419,198 @@ exports.createOrder = onCall({ secrets: [emailConfig] }, async (request) => {
   }
 
   return { id: docRef.id }
+})
+
+// ============================================================
+// Ventas — registro agregado por día/sucursal, con cierre de caja
+// ============================================================
+
+// Un pedido de mostrador se atribuye a su "sucursal"; uno a domicilio se
+// atribuye a la sucursal responsable del reparto ("sucursalCercana") — mismo
+// criterio dual que ya usa AdminControl.vue para filtrar pedidos por sucursal.
+function sucursalDelPedido(pedido) {
+  return pedido.tipoRetiro === 'domicilio' ? pedido.sucursalCercana : pedido.sucursal
+}
+
+exports.onPedidoFinalizado = onDocumentUpdated('pedidos/{pedidoId}', async (event) => {
+  const antes = event.data.before.data()
+  const despues = event.data.after.data()
+
+  if (despues.estado !== 'finalizado' || antes.estado === 'finalizado') return
+
+  const sucursal = sucursalDelPedido(despues)
+  if (!sucursal) return
+
+  const fechaCreacion = despues.creadoEn?.toDate ? despues.creadoEn.toDate() : new Date()
+  const fecha = fechaVentaCR(fechaCreacion)
+  const pedidoRef = event.data.after.ref
+  const ventaRef = db.collection('ventas').doc(fecha)
+
+  // Los triggers de Firestore entregan el evento "al menos una vez": ante un
+  // reintento (timeout, cold start, etc.) el mismo pedido podría procesarse
+  // dos veces. La bandera `ventaRegistrada`, chequeada y escrita en la misma
+  // transacción que el incremento, evita contar la misma venta dos veces.
+  await db.runTransaction(async (tx) => {
+    const pedidoSnap = await tx.get(pedidoRef)
+    if (pedidoSnap.data()?.ventaRegistrada) return
+
+    tx.set(ventaRef, {
+      fecha,
+      actualizadoEn: admin.firestore.Timestamp.now(),
+      sucursales: {
+        [sucursal]: {
+          montoProductos: admin.firestore.FieldValue.increment(Number(despues.cashTotalSinEnvio) || 0),
+          montoEnvio: admin.firestore.FieldValue.increment(Number(despues.costoEnvio) || 0),
+          montoTotal: admin.firestore.FieldValue.increment(Number(despues.total) || 0),
+          cantidadPedidos: admin.firestore.FieldValue.increment(1),
+          cantidadPedidosDomicilio: admin.firestore.FieldValue.increment(despues.tipoRetiro === 'domicilio' ? 1 : 0),
+        }
+      }
+    }, { merge: true })
+
+    tx.set(pedidoRef, { ventaRegistrada: true }, { merge: true })
+  })
+
+  logger.log(`Venta registrada — ${fecha} / ${sucursal} / pedido ${event.params.pedidoId}`)
+})
+
+// Recalcula desde cero (a partir de los pedidos reales) los montos de un día,
+// por si quedaron desincronizados (ej. un reintento de trigger que se coló
+// antes de este fix, o una corrección manual de un pedido).
+exports.recalcularVentaDia = onCall(async (request) => {
+  const uid = request.auth?.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'Iniciá sesión.')
+  const sucursal = await obtenerSucursalAdmin(uid)
+  const fecha = request.data?.fecha || fechaVentaCR()
+
+  const ref = db.collection('ventas').doc(fecha)
+  const snap = await ref.get()
+  if (snap.data()?.sucursales?.[sucursal]?.cerrado) {
+    throw new HttpsError('failed-precondition', 'Ese día ya está cerrado, no se puede recalcular.')
+  }
+
+  const [anio, mes, dia] = fecha.split('-').map(Number)
+  const inicioUTC = new Date(Date.UTC(anio, mes - 1, dia, 6, 0, 0)) // 00:00 CR = 06:00 UTC
+  const finUTC = new Date(inicioUTC.getTime() + 24 * 60 * 60 * 1000)
+
+  // Rango simple (un solo campo) para no depender de un índice compuesto —
+  // el estado se filtra en memoria, el volumen diario de una sucursal es chico.
+  const pedidosSnap = await db.collection('pedidos')
+    .where('creadoEn', '>=', inicioUTC)
+    .where('creadoEn', '<', finUTC)
+    .get()
+
+  const totales = { montoProductos: 0, montoEnvio: 0, montoTotal: 0, cantidadPedidos: 0, cantidadPedidosDomicilio: 0 }
+  pedidosSnap.forEach(doc => {
+    const pedido = doc.data()
+    if (pedido.estado !== 'finalizado') return
+    if (sucursalDelPedido(pedido) !== sucursal) return
+    totales.montoProductos += Number(pedido.cashTotalSinEnvio) || 0
+    totales.montoEnvio += Number(pedido.costoEnvio) || 0
+    totales.montoTotal += Number(pedido.total) || 0
+    totales.cantidadPedidos += 1
+    totales.cantidadPedidosDomicilio += pedido.tipoRetiro === 'domicilio' ? 1 : 0
+  })
+
+  await ref.set({
+    fecha,
+    actualizadoEn: admin.firestore.Timestamp.now(),
+    sucursales: { [sucursal]: totales }
+  }, { merge: true })
+
+  logger.log(`Venta recalculada — ${fecha} / ${sucursal}`, totales)
+  return totales
+})
+
+// La Cloud Function nunca confía en una sucursal que mande el cliente: siempre
+// la deriva del propio documento superUser del usuario autenticado.
+async function obtenerSucursalAdmin(uid) {
+  const snap = await db.collection('superUser').doc(uid).get()
+  if (!snap.exists || snap.data().rol !== 'administrador') {
+    throw new HttpsError('permission-denied', 'No tenés permisos de administrador.')
+  }
+  const sucursal = snap.data().sucursal
+  if (!sucursal) throw new HttpsError('failed-precondition', 'Tu usuario no tiene una sucursal asignada.')
+  return sucursal
+}
+
+exports.cerrarVentaDia = onCall(async (request) => {
+  const uid = request.auth?.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'Iniciá sesión.')
+  const sucursal = await obtenerSucursalAdmin(uid)
+  const fecha = request.data?.fecha || fechaVentaCR()
+
+  const ref = db.collection('ventas').doc(fecha)
+  const snap = await ref.get()
+  const datosSucursal = snap.data()?.sucursales?.[sucursal]
+  if (!datosSucursal) {
+    throw new HttpsError('not-found', 'No hay ventas registradas ese día para tu sucursal.')
+  }
+  if (datosSucursal.cerrado) {
+    throw new HttpsError('already-exists', 'Ese día ya fue cerrado.')
+  }
+
+  const cierre = {
+    montoProductos: datosSucursal.montoProductos || 0,
+    montoEnvio: datosSucursal.montoEnvio || 0,
+    montoTotal: datosSucursal.montoTotal || 0,
+    cantidadPedidos: datosSucursal.cantidadPedidos || 0,
+    cantidadPedidosDomicilio: datosSucursal.cantidadPedidosDomicilio || 0,
+    cerradoEn: admin.firestore.Timestamp.now(),
+    cerradoPor: request.auth.token.email || uid,
+  }
+
+  await ref.set({
+    sucursales: { [sucursal]: { cerrado: true, cierre } }
+  }, { merge: true })
+
+  logger.log(`Caja cerrada — ${fecha} / ${sucursal} / por ${cierre.cerradoPor}`)
+  return cierre
+})
+
+exports.cerrarVentaSemana = onCall(async (request) => {
+  const uid = request.auth?.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'Iniciá sesión.')
+  const sucursal = await obtenerSucursalAdmin(uid)
+  const fechaReferencia = request.data?.fecha ? new Date(request.data.fecha) : new Date()
+  const semanaId = semanaIdCR(fechaReferencia)
+  const dias = diasDeSemanaCR(fechaReferencia)
+
+  const semanaRef = db.collection('ventas_semanales').doc(semanaId)
+  const semanaSnap = await semanaRef.get()
+  if (semanaSnap.data()?.sucursales?.[sucursal]?.cerrado) {
+    throw new HttpsError('already-exists', 'Esa semana ya fue cerrada.')
+  }
+
+  const diasSnaps = await Promise.all(dias.map(f => db.collection('ventas').doc(f).get()))
+  const totales = diasSnaps.reduce((acc, diaSnap) => {
+    const datosSucursal = diaSnap.data()?.sucursales?.[sucursal]
+    if (!datosSucursal) return acc
+    acc.montoProductos += datosSucursal.montoProductos || 0
+    acc.montoEnvio += datosSucursal.montoEnvio || 0
+    acc.montoTotal += datosSucursal.montoTotal || 0
+    acc.cantidadPedidos += datosSucursal.cantidadPedidos || 0
+    acc.cantidadPedidosDomicilio += datosSucursal.cantidadPedidosDomicilio || 0
+    return acc
+  }, { montoProductos: 0, montoEnvio: 0, montoTotal: 0, cantidadPedidos: 0, cantidadPedidosDomicilio: 0 })
+  const diasCerrados = diasSnaps.filter(diaSnap => diaSnap.data()?.sucursales?.[sucursal]?.cerrado).length
+
+  const cierre = {
+    ...totales,
+    diasCerrados,
+    diasTotales: dias.length,
+    cerradoEn: admin.firestore.Timestamp.now(),
+    cerradoPor: request.auth.token.email || uid,
+  }
+
+  await semanaRef.set({
+    semana: semanaId,
+    dias,
+    sucursales: { [sucursal]: { cerrado: true, cierre } }
+  }, { merge: true })
+
+  logger.log(`Semana cerrada — ${semanaId} / ${sucursal} / por ${cierre.cerradoPor}`)
+  return cierre
 })
 
 exports.sendNotification = onCall(async (request) => {

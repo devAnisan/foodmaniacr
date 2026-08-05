@@ -178,12 +178,12 @@
           <p v-if="personalizandoEsCanje" class="text-lg font-bold text-yellow-600 flex items-center gap-1">
             <img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-5 h-5 inline-block" /> {{ itemPersonalizando?.puntosCanje }}
           </p>
-          <div v-else-if="itemPersonalizando?.descuento?.porcentaje" class="flex items-center gap-2">
+          <div v-else-if="!descuentoGlobalStore.activo && Number(itemPersonalizando?.descuento) > 0" class="flex items-center gap-2">
             <span class="text-sm text-gray-400 line-through">₡{{ itemPersonalizando.precio }}</span>
-            <span class="text-lg font-bold text-[var(--primary)]">₡{{ precioConDescuento(itemPersonalizando) }}</span>
-            <span class="text-[10px] font-bold text-white bg-red-500 px-1.5 py-0.5 rounded">-{{ itemPersonalizando.descuento.porcentaje }}%</span>
+            <span class="text-lg font-bold text-[var(--primary)]">₡{{ precioItemConDescuento(itemPersonalizando, descuentoGlobalStore) }}</span>
+            <span class="text-[10px] font-bold text-white bg-red-500 px-1.5 py-0.5 rounded">-{{ itemPersonalizando.descuento }}%</span>
           </div>
-          <p v-else class="text-lg font-bold text-[var(--primary)]">₡{{ itemPersonalizando?.precio }}</p>
+          <p v-else class="text-lg font-bold text-[var(--primary)]">₡{{ precioItemConDescuento(itemPersonalizando, descuentoGlobalStore) }}</p>
 
           <!-- Talla a elegir (merchandising) -->
           <div v-if="itemPersonalizando?.talla?.length" class="mt-4">
@@ -403,7 +403,7 @@
                         <div v-if="value.papasFritasGratisSel" class="text-xs text-gray-500">🍟 Papas fritas (cortesía)</div>
                         <div v-if="value.tallaSel" class="text-xs text-gray-500">👕 Talla: {{ value.tallaSel }}</div>
                         <div v-if="value.extra" class="text-xs text-gray-500">➕ {{ value.extra.nombre }} +₡{{ value.extra.monto }}</div>
-                        <div v-if="value.descuento" class="text-xs text-green-600 font-bold">🏷️ Descuento -{{ value.descuento.porcentaje }}%</div>
+                        <div v-if="!descuentoGlobalStore.activo && value.descuento" class="text-xs text-green-600 font-bold">🏷️ Descuento -{{ value.descuento }}%</div>
                     </div>
                     <div v-if="value.esCanje" class="text-sm mr-2 font-bold text-yellow-600 flex items-center gap-1"><img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3.5 h-3.5 inline-block" /> {{ value.puntosCanje * value.cantidad }}</div>
                     <div v-else class="text-sm mr-2">₡{{ cartStore.precioFinal(value) * value.cantidad }}</div>
@@ -486,6 +486,7 @@
 
     <!-- Main -->
     <main class="pt-24 fontColor min-h-screen bg-gray-50">
+        <DescuentoGlobalBanner />
 
         <!-- Loader general -->
         <div v-if="loader" class="flex flex-col items-center justify-center min-h-screen gap-4">
@@ -653,24 +654,20 @@ import { ref as storageRef, getDownloadURL } from 'firebase/storage'
 import { storage } from '../firebase.js'
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore'
 import { db, auth } from '../firebase.js'
-import { useCartStore, useLocationStore, useSucursales, useAssets } from '../stores/cartStores.js'
+import { useCartStore, useLocationStore, useSucursales, useAssets, useDescuentoGlobalStore } from '../stores/cartStores.js'
 import { useAuth } from '../composable/useAuth.js'
 import { cargarCoinIcon } from '../composable/useCoinIcon.js'
+import { cargarDescuentoGlobal } from '../composable/useDescuentoGlobal.js'
+import { precioItemConDescuento } from '../composable/descuentos.js'
 import Footer from './Footer.vue'
 import CheckoutModal from './Checkoutmodal.vue'
-import { esPromocionActiva, diaPromocion } from '../composable/promociones.js'
+import DescuentoGlobalBanner from './DescuentoGlobalBanner.vue'
+import { esPromocionActivaHoy, descripcionDias } from '../composable/promociones.js'
 import { obtenerNivelReal, obtenerCoinsValidos, obtenerSiguienteNivel, obtenerTiempoRestanteExpiracion, esCumpleanos, formatearCumpleanos, COLONES_POR_COIN } from '../utils/maniacoins.js'
 import EditProfileModal from './EditProfileModal.vue'
 import InstallPWAPrompt from './InstallPWAPrompt.vue'
 import NotificationBanner from './NotificationBanner.vue'
 import { useNotifications } from '../composable/useNotifications.js'
-
-const precioConDescuento = (item) => {
-    const precio = Number(item?.precio) || 0
-    const porcentaje = Number(item?.descuento?.porcentaje) || 0
-    if (!porcentaje) return precio
-    return Math.round(precio * (1 - porcentaje / 100))
-}
 
 // ── Componente inline ProductCard ──────────────────────────────────────────
 const ProductCard = defineComponent({
@@ -679,16 +676,23 @@ const ProductCard = defineComponent({
     setup(props, { emit }) {
 
         const assets = useAssets()
+        const descuentoGlobalStore = useDescuentoGlobalStore()
         const activo = computed(() =>
-            props.esPromocion ? esPromocionActiva(props.item.nombre) : true
+            props.esPromocion ? esPromocionActivaHoy(props.item.diasActivos) : true
         )
-        const coinsGanados = computed(() => Math.floor(precioConDescuento(props.item) / COLONES_POR_COIN))
+        const tieneDescuentoProducto = computed(() =>
+            !descuentoGlobalStore.activo && Number(props.item.descuento) > 0
+        )
+        const precioMostrado = computed(() => precioItemConDescuento(props.item, descuentoGlobalStore))
+        const coinsGanados = computed(() => Math.floor((precioMostrado.value || 0) / COLONES_POR_COIN))
         const expandido = vueRef(false)
 
         return () => h('div', { class: 'relative bg-white rounded-xl shadow-md p-3 flex flex-col hover:shadow-lg transition-shadow duration-200' + (props.esCanje ? ' border-2 border-yellow-400' : '') }, [
             props.esPromocion && activo.value
                 ? h('span', { class: 'absolute -top-2 -left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow z-10' }, '🔥 Promo de hoy')
-                : null,
+                : (tieneDescuentoProducto.value
+                    ? h('span', { class: 'absolute -top-2 -left-2 bg-green-600 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow z-10' }, `-${props.item.descuento}%`)
+                    : null),
             props.item.imageUrl
                 ? h('div', { class: 'relative mb-3' }, [
                     h('img', {
@@ -725,13 +729,12 @@ const ProductCard = defineComponent({
                         h('img', { src: assets.coinIconUrl, alt: 'ManiaCoins', class: 'w-4 h-4 inline-block' }),
                         props.item.puntosCanje
                     ])
-                    : (props.item.descuento?.porcentaje
-                        ? h('div', { class: 'flex items-center gap-1.5 flex-wrap' }, [
-                            h('span', { class: 'text-gray-400 text-xs line-through' }, `₡${props.item.precio}`),
-                            h('span', { class: 'font-bold text-[var(--primary)]' }, `₡${precioConDescuento(props.item)}`),
-                            h('span', { class: 'text-[9px] font-bold text-white bg-red-500 px-1 py-0.5 rounded' }, `-${props.item.descuento.porcentaje}%`),
-                        ])
-                        : h('p', { class: 'font-bold text-[var(--primary)]' }, `₡${props.item.precio}`)),
+                    : h('p', { class: 'flex items-center gap-1.5' }, [
+                        tieneDescuentoProducto.value
+                            ? h('span', { class: 'text-gray-400 text-xs line-through' }, `₡${props.item.precio}`)
+                            : null,
+                        h('span', { class: 'font-bold text-[var(--primary)]' }, `₡${precioMostrado.value}`)
+                    ]),
                 !props.esCanje && coinsGanados.value > 0
                     ? h('span', { class: 'text-[10px] font-bold text-yellow-700 bg-yellow-50 px-1.5 py-0.5 rounded-full whitespace-nowrap flex items-center gap-0.5' }, [
                         h('img', { src: assets.coinIconUrl, alt: 'ManiaCoins', class: 'w-3 h-3 inline-block' }),
@@ -747,7 +750,7 @@ const ProductCard = defineComponent({
                         : 'w-full bg-[var(--primary)] text-white py-2 rounded-lg text-sm font-bold hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer')
                     : 'w-full bg-gray-200 text-gray-400 py-2 rounded-lg text-sm font-bold cursor-not-allowed',
                 onClick: () => activo.value && emit('personalizar')
-            }, activo.value ? (props.esCanje ? '+ Canjear 🎉' : '+ Agregar 🎉') : diaPromocion(props.item.nombre))
+            }, activo.value ? (props.esCanje ? '+ Canjear 🎉' : '+ Agregar 🎉') : descripcionDias(props.item.diasActivos))
         ])
     }
 })
@@ -756,7 +759,9 @@ const cartStore = useCartStore()
 const locationStore = useLocationStore()
 const sucursalesStore = useSucursales()
 const assets = useAssets()
+const descuentoGlobalStore = useDescuentoGlobalStore()
 cargarCoinIcon()
+cargarDescuentoGlobal()
 
 // ── Estado ─────────────────────────────────────────────────────────────────
 const loader = vueRef(true)
@@ -1076,7 +1081,7 @@ const cargarCategoria = async (cat) => {
                     console.error(`Error cargando imagen de ${data.nombre ?? doc.id}:`, error)
                 }
             }
-            return { id: doc.id, ...data, precio: Number(data.precio) || 0, imageUrl: itemImageUrl, _coleccionOrigen: cat.coleccion }
+            return { id: doc.id, ...data, precio: Number(data.precio) || 0, descuento: Number(data.descuento) || 0, diasActivos: Array.isArray(data.diasActivos) ? data.diasActivos : [], imageUrl: itemImageUrl, _coleccionOrigen: cat.coleccion }
         }))
         cat.productos.push(...productos)
         cat.cargada = true

@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { ref as vueRef, computed } from "vue";
+import { precioItemConDescuento, aplicarDescuentoGlobal, esPromocion } from "../composable/descuentos.js";
 
 export const useSucursales = defineStore("sucursales", () => {
     const sucursalesFoodMania = vueRef([])
@@ -48,6 +49,23 @@ export const useLocationStore = defineStore("location", () => {
     },
 })
 
+export const useDescuentoGlobalStore = defineStore("descuentoGlobal", () => {
+    const activo = vueRef(false)
+    const porcentaje = vueRef(0)
+
+    return { activo, porcentaje }
+}, {
+    persist: {
+        enabled: true,
+        strategies: [
+            {
+                key: "descuentoGlobal",
+                storage: localStorage,
+            }
+        ]
+    }
+})
+
 let uidCounter = 0
 const genUid = () => `cart_${++uidCounter}_${Date.now()}`
 
@@ -55,9 +73,10 @@ export const useCartStore = defineStore(
     "cart",
     () => {
         const items = vueRef([]);
+        const descuentoGlobalStore = useDescuentoGlobalStore()
 
         const precioFinal = (item) => {
-            return Number(item.precio) + Number(item.bebida?.precio || 0) + Number(item.extra?.monto || 0)
+            return precioItemConDescuento(item, descuentoGlobalStore) + Number(item.bebida?.precio || 0) + Number(item.extra?.monto || 0)
         }
 
         const addItem = (producto, extras = {}) => {
@@ -73,11 +92,6 @@ export const useCartStore = defineStore(
             const papasFritasGratisSel = extras.papasFritasGratisSel ?? producto.papasFritasGratisSel ?? false
             const tallaSel = extras.tallaSel ?? producto.tallaSel ?? null
             const extra = extras.extra ?? producto.extra ?? null
-            const descuento = producto.descuento || null
-            const precioOriginal = Number(producto.precio) || 0
-            const precio = descuento?.porcentaje
-                ? Math.round(precioOriginal * (1 - Number(descuento.porcentaje) / 100))
-                : precioOriginal
             let variantKey = producto.id
             if (bebida) variantKey += `_beb_${bebida.id || bebida.nombre}`
             if (proteinaSel) variantKey += `_prot_${proteinaSel}`
@@ -98,9 +112,6 @@ export const useCartStore = defineStore(
                     cantidad: 1,
                     _uid: genUid(),
                     _variantKey: variantKey,
-                    precio,
-                    precioOriginal,
-                    descuento,
                     bebida,
                     bebidaEspecifica,
                     papasConSalsa,
@@ -131,17 +142,24 @@ export const useCartStore = defineStore(
         };
 
         const total = computed(() => {
-            return items.value.reduce(
-                (acc, item) => acc + precioFinal(item) * item.cantidad,
-                0,
+            const promoSuma = items.value.filter(esPromocion).reduce(
+                (acc, item) => acc + precioFinal(item) * item.cantidad, 0,
             );
+            const resto = items.value.filter(item => !esPromocion(item)).reduce(
+                (acc, item) => acc + precioFinal(item) * item.cantidad, 0,
+            );
+            return aplicarDescuentoGlobal(resto, descuentoGlobalStore) + promoSuma
         });
 
         const cashTotal = computed(() => {
-            return items.value.reduce((acc, item) => {
-                if (item.esCanje) return acc
-                return acc + precioFinal(item) * item.cantidad
-            }, 0)
+            const relevantes = items.value.filter(item => !item.esCanje)
+            const promoSuma = relevantes.filter(esPromocion).reduce(
+                (acc, item) => acc + precioFinal(item) * item.cantidad, 0,
+            )
+            const resto = relevantes.filter(item => !esPromocion(item)).reduce(
+                (acc, item) => acc + precioFinal(item) * item.cantidad, 0,
+            )
+            return aplicarDescuentoGlobal(resto, descuentoGlobalStore) + promoSuma
         })
 
         const totalItems = computed(() => {

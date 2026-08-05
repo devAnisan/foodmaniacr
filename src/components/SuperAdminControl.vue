@@ -95,6 +95,11 @@
                     class="px-4 py-2 rounded-full text-sm font-bold border transition-all duration-200 hover:cursor-pointer">
                     👥 Clientes
                 </button>
+                <button @click="seleccionarVistaDescuentoGlobal"
+                    :class="vistaActiva === 'descuentoGlobal' ? 'bg-[var(--primary)] text-white' : 'bg-white text-gray-600 hover:bg-gray-100'"
+                    class="px-4 py-2 rounded-full text-sm font-bold border transition-all duration-200 hover:cursor-pointer">
+                    🏷️ Descuento global
+                </button>
             </div>
 
             <div v-if="vistaActiva === 'productos'">
@@ -135,8 +140,8 @@
                         <div class="flex gap-2">
                             <input v-model="producto.precio" type="number" placeholder="Precio (₡)"
                                 class="w-32 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
-                            <input v-model="producto.descuentoPorcentaje" type="number" placeholder="Descuento %"
-                                class="w-28 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                            <input v-model="producto.descuento" type="number" min="0" max="100" placeholder="Descuento (%)"
+                                class="w-32 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
                             <input v-if="coleccionActiva === 'merchandising'" v-model="producto.puntosCanje" type="number" placeholder="Puntos ManiaCoins (opcional)"
                                 class="w-48 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
                             <input v-model="producto.incluye" type="text" placeholder="Incluye (opcional)"
@@ -145,6 +150,19 @@
                         <div v-if="coleccionActiva === 'merchandising'" class="flex gap-2">
                             <input v-model="producto.talla" type="text" placeholder="Tallas disponibles, separadas por coma (ej: S, M, L, XL)"
                                 class="flex-1 p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                        </div>
+                        <div v-if="coleccionActiva === 'promociones'" class="flex flex-col gap-1">
+                            <span class="text-xs text-gray-400 font-bold uppercase">Días activos (ninguno marcado = todos los días)</span>
+                            <div class="flex gap-1 flex-wrap">
+                                <label v-for="dia in NOMBRES_DIAS_SEMANA" :key="dia.valor"
+                                    class="flex items-center gap-1 text-xs border rounded-full px-2 py-1 hover:cursor-pointer"
+                                    :class="producto.diasActivos.includes(dia.valor) ? 'bg-[var(--primary)] text-white border-[var(--primary)]' : 'bg-white text-gray-600'">
+                                    <input type="checkbox" class="hidden"
+                                        :checked="producto.diasActivos.includes(dia.valor)"
+                                        @change="toggleDiaActivo(producto, dia.valor)" />
+                                    {{ dia.label }}
+                                </label>
+                            </div>
                         </div>
                         <label v-if="coleccionActiva !== 'bebidas' && coleccionActiva !== 'merchandising'"
                             class="flex items-center gap-1.5 text-sm hover:cursor-pointer">
@@ -291,6 +309,33 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Vista de descuento global -->
+            <div v-else-if="vistaActiva === 'descuentoGlobal'" class="max-w-md">
+                <div v-if="cargandoDescuentoGlobal" class="text-center text-gray-400 py-10">
+                    <span class="pi pi-spinner animate-spin text-3xl"></span>
+                </div>
+                <div v-else class="bg-white rounded-xl shadow-md p-5 flex flex-col gap-4">
+                    <p class="text-sm text-gray-500">
+                        Cuando está activo, este descuento se aplica al total de <strong>todos</strong> los pedidos,
+                        sin importar los productos comprados, e ignora cualquier descuento individual que tengan los
+                        productos.
+                    </p>
+                    <label class="flex items-center gap-2 font-bold hover:cursor-pointer">
+                        <input type="checkbox" v-model="descuentoGlobalForm.estado" class="accent-[var(--primary)] w-5 h-5" />
+                        Descuento global activo
+                    </label>
+                    <div class="flex items-center gap-2">
+                        <input v-model="descuentoGlobalForm.descuento" type="number" min="0" max="100" placeholder="Descuento (%)"
+                            class="w-32 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
+                        <span class="text-sm text-gray-500">% sobre el total del pedido</span>
+                    </div>
+                    <button @click="guardarDescuentoGlobal" :disabled="guardandoDescuentoGlobal"
+                        class="bg-[var(--primary)] text-white px-4 py-2 rounded-xl font-bold hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+                        {{ guardandoDescuentoGlobal ? 'Guardando...' : 'Guardar' }}
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </template>
@@ -300,7 +345,7 @@ import { ref as vueRef, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth, db, storage } from '../firebase.js'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
-import { doc, getDoc, collection, getDocs, updateDoc, addDoc, deleteDoc, deleteField } from 'firebase/firestore'
+import { doc, getDoc, setDoc, collection, getDocs, updateDoc, addDoc, deleteDoc, deleteField } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 
@@ -370,6 +415,49 @@ const seleccionarVistaClientes = () => {
     if (!clientesCargados.value) cargarClientes()
 }
 
+// ── Descuento global ────────────────────────────────────────────────────────
+const cargandoDescuentoGlobal = vueRef(false)
+const guardandoDescuentoGlobal = vueRef(false)
+const descuentoGlobalCargado = vueRef(false)
+const descuentoGlobalForm = vueRef({ estado: false, descuento: '' })
+const descuentoGlobalRef = doc(db, 'descuento_global', 'descuento_glbl')
+
+const cargarDescuentoGlobalAdmin = async () => {
+    cargandoDescuentoGlobal.value = true
+    try {
+        const snap = await getDoc(descuentoGlobalRef)
+        const data = snap.exists() ? snap.data() : {}
+        descuentoGlobalForm.value = { estado: !!data.estado, descuento: data.descuento ?? '' }
+        descuentoGlobalCargado.value = true
+    } catch (error) {
+        console.error('Error cargando descuento global:', error)
+        mostrarMensaje('Error al cargar el descuento global', 'error')
+    } finally {
+        cargandoDescuentoGlobal.value = false
+    }
+}
+
+const seleccionarVistaDescuentoGlobal = () => {
+    vistaActiva.value = 'descuentoGlobal'
+    if (!descuentoGlobalCargado.value) cargarDescuentoGlobalAdmin()
+}
+
+const guardarDescuentoGlobal = async () => {
+    guardandoDescuentoGlobal.value = true
+    try {
+        await setDoc(descuentoGlobalRef, {
+            estado: !!descuentoGlobalForm.value.estado,
+            descuento: Number(descuentoGlobalForm.value.descuento) || 0,
+        }, { merge: true })
+        mostrarMensaje('Descuento global guardado ✅')
+    } catch (error) {
+        console.error('Error guardando descuento global:', error)
+        mostrarMensaje('Error al guardar el descuento global', 'error')
+    } finally {
+        guardandoDescuentoGlobal.value = false
+    }
+}
+
 const GLOSARIO_ATRIBUTOS = [
     {
         titulo: 'Campos fijos (ya tienen su input en este formulario)',
@@ -383,7 +471,8 @@ const GLOSARIO_ATRIBUTOS = [
             { nombre: 'talla', tipo: 'lista', descripcion: 'Solo en Merchandising: tallas disponibles (ej. S, M, L, XL).', depende: 'Si el producto tiene tallas cargadas, el cliente tiene que elegir una antes de poder agregarlo al carrito.' },
             { nombre: 'permiteBebidaOpcional', tipo: 'sí/no', descripcion: 'Muestra el upsell "Agregar bebida (opcional)" (bebida paga) en el personalizador de este producto.', depende: 'Se ignora si el producto ya tiene "bebidaEspecifica" cargado — en ese caso nunca se muestra el upsell, sin importar este campo.' },
             { nombre: 'extra', tipo: 'objeto ({nombre, monto})', descripcion: 'Extra opcional con costo adicional (ej: "Papas" +₡1000). Se muestra como checkbox opcional en el personalizador del cliente, junto a la bebida opcional. Se llena con los dos campos "Nombre del extra" y "Monto ₡" de este formulario.' },
-            { nombre: 'descuento', tipo: 'objeto ({porcentaje})', descripcion: 'Descuento activo sobre el precio del producto (ej: 10% off). Se muestra en el menú con el precio original tachado y el precio con descuento, y se refleja en el carrito, el checkout y la factura impresa. Se llena con el campo "Descuento %" de este formulario — dejarlo vacío o en 0 lo desactiva.' },
+            { nombre: 'descuento', tipo: 'número', descripcion: 'Descuento en % (0-100) aplicado solo a este producto — se muestra tachado en la card del menú.', depende: 'Se ignora por completo mientras haya un descuento global activo (pestaña "🏷️ Descuento global") — en ese caso todos los productos usan su precio normal y el % global se aplica al total del pedido.' },
+            { nombre: 'diasActivos', tipo: 'lista de días', descripcion: 'Solo en Promociones: días de la semana en que el botón de "Agregar" está habilitado (ej. solo lunes). Si no se marca ningún día, la promoción queda activa todos los días.', depende: 'El precio de una promoción ya trae su descuento incluido — el % de descuento global nunca se le aplica encima, sin importar este campo.' },
         ]
     },
     {
@@ -423,7 +512,23 @@ const mostrarMensaje = (msg, tipo = 'success') => {
 // ── Atributos adicionales (campos libres, cualquier producto) ──────────────
 // Campos que ya tienen su propio input en el formulario — todo lo demás que
 // traiga el documento de Firestore se muestra como "atributo adicional".
-const CAMPOS_FIJOS = ['nombre', 'descripcion', 'precio', 'incluye', 'imagen', 'puntosCanje', 'talla', 'permiteBebidaOpcional', 'extra', 'descuento']
+const CAMPOS_FIJOS = ['nombre', 'descripcion', 'precio', 'descuento', 'incluye', 'imagen', 'puntosCanje', 'talla', 'permiteBebidaOpcional', 'extra', 'diasActivos']
+
+const NOMBRES_DIAS_SEMANA = [
+    { valor: 0, label: 'Dom' },
+    { valor: 1, label: 'Lun' },
+    { valor: 2, label: 'Mar' },
+    { valor: 3, label: 'Mié' },
+    { valor: 4, label: 'Jue' },
+    { valor: 5, label: 'Vie' },
+    { valor: 6, label: 'Sáb' },
+]
+
+const toggleDiaActivo = (producto, dia) => {
+    const idx = producto.diasActivos.indexOf(dia)
+    if (idx === -1) producto.diasActivos.push(dia)
+    else producto.diasActivos.splice(idx, 1)
+}
 
 const inferirTipo = (valor) => {
     if (typeof valor === 'boolean') return 'boolean'
@@ -494,15 +599,16 @@ const cargarProductos = async () => {
                 nombre: data.nombre || '',
                 descripcion: data.descripcion || '',
                 precio: data.precio ?? '',
+                descuento: data.descuento ?? '',
                 incluye: data.incluye || '',
                 imagen: data.imagen || '',
                 imagenUrl,
                 puntosCanje: data.puntosCanje ?? '',
                 talla: (data.talla || []).join(', '),
+                diasActivos: Array.isArray(data.diasActivos) ? [...data.diasActivos] : [],
                 permiteBebidaOpcional: data.permiteBebidaOpcional ?? true,
                 extraNombre: data.extra?.nombre || '',
                 extraMonto: data.extra?.monto ?? '',
-                descuentoPorcentaje: data.descuento?.porcentaje ?? '',
                 atributosExtra: construirAtributosExtra(data),
                 _atributosEliminados: [],
                 _nuevoAtributo: null,
@@ -531,15 +637,16 @@ const agregarNuevo = () => {
         nombre: '',
         descripcion: '',
         precio: '',
+        descuento: '',
         incluye: '',
         imagen: '',
         imagenUrl: '',
         puntosCanje: '',
         talla: '',
+        diasActivos: [],
         permiteBebidaOpcional: true,
         extraNombre: '',
         extraMonto: '',
-        descuentoPorcentaje: '',
         atributosExtra: [],
         _atributosEliminados: [],
         _nuevoAtributo: null,
@@ -588,6 +695,7 @@ const guardarProducto = async (producto) => {
             incluye: producto.incluye.trim(),
             imagen: imagenPath,
             precio: Number(producto.precio) || 0,
+            descuento: Number(producto.descuento) || 0,
         }
         if (coleccionActiva.value === 'merchandising') {
             payload.puntosCanje = Number(producto.puntosCanje) || 0
@@ -605,11 +713,8 @@ const guardarProducto = async (producto) => {
                 payload.extra = deleteField()
             }
         }
-        const descuentoPorcentaje = Number(producto.descuentoPorcentaje)
-        if (producto.descuentoPorcentaje !== '' && !Number.isNaN(descuentoPorcentaje) && descuentoPorcentaje > 0) {
-            payload.descuento = { porcentaje: descuentoPorcentaje }
-        } else if (!producto._nuevo) {
-            payload.descuento = deleteField()
+        if (coleccionActiva.value === 'promociones') {
+            payload.diasActivos = [...producto.diasActivos].sort((a, b) => a - b)
         }
         for (const attr of producto.atributosExtra) {
             payload[attr.clave] = convertirAtributoAValor(attr)

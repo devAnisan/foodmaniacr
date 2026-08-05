@@ -33,7 +33,7 @@ service cloud.firestore {
       allow read: if collection in [
         'Sucursales de Foodmania', 'foodmaniaPedir', 'bebidas', 'salsas',
         'comidachina', 'comidarapida', 'hamburguesas', 'pollofrito',
-        'promociones', 'supremos', 'surtidos', 'merchandising'
+        'promociones', 'supremos', 'surtidos', 'merchandising', 'descuento_global'
       ];
       allow write: if esSuperAdmin();
     }
@@ -96,6 +96,22 @@ service cloud.firestore {
     match /auditLogs/{logId} {
       allow read, create: if esAdmin();
       allow update, delete: if false;
+    }
+
+    // ============================================================
+    // Ventas (cierre de caja diario/semanal)
+    // ============================================================
+    // Solo lectura para admins. Toda escritura pasa por Cloud Functions
+    // (Admin SDK, bypassa estas reglas) — igual que "pedidos".
+
+    match /ventas/{fecha} {
+      allow read: if esAdmin();
+      allow write: if false;
+    }
+
+    match /ventas_semanales/{semanaId} {
+      allow read: if esAdmin();
+      allow write: if false;
     }
 
     // ============================================================

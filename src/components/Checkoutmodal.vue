@@ -65,12 +65,12 @@
                 <div>
                   <span class="font-bold">{{ item.nombre }}</span>
                   <span class="text-gray-400"> x{{ item.cantidad }}</span>
-                  <span v-if="item.descuento" class="text-[9px] font-bold text-white bg-red-500 px-1 py-0.5 rounded ml-1">-{{ item.descuento.porcentaje }}%</span>
+                  <span v-if="!descuentoGlobalStore.activo && item.descuento" class="text-[9px] font-bold text-white bg-red-500 px-1 py-0.5 rounded ml-1">-{{ item.descuento }}%</span>
                 </div>
                 <span v-if="item.esCanje" class="font-bold text-yellow-600 text-right flex items-center gap-1"><img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-3.5 h-3.5 inline-block" /> {{ item.puntosCanje * item.cantidad }} ManiaCoins</span>
                 <span v-else class="font-bold text-right">
-                  <span v-if="item.descuento" class="block text-[10px] text-gray-400 line-through font-normal">₡{{ item.precioOriginal * item.cantidad }}</span>
-                  ₡{{ item.precio * item.cantidad }} colones
+                  <span v-if="!descuentoGlobalStore.activo && item.descuento" class="block text-[10px] text-gray-400 line-through font-normal">₡{{ item.precio * item.cantidad }}</span>
+                  ₡{{ precioItemConDescuento(item, descuentoGlobalStore) * item.cantidad }} colones
                 </span>
               </div>
 
@@ -149,6 +149,13 @@
             <!-- Aviso: no se puede mezclar merchandising con comida -->
             <div v-if="carritoMixto" class="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm font-bold text-center mt-2">
               ⚠️ No podés combinar merchandising con productos de comida en el mismo pedido. Hacé pedidos separados.
+            </div>
+
+            <!-- Descuento aplicado -->
+            <div v-if="montoDescuento > 0"
+              class="flex justify-between text-sm text-green-600 font-bold mt-2 pt-2 border-t border-dashed">
+              <span>🏷️ Descuento aplicado</span>
+              <span>-₡{{ montoDescuento }}</span>
             </div>
 
             <!-- Envío -->
@@ -467,8 +474,10 @@
 
 <script setup>
 import { ref as vueRef, computed, watch, reactive } from 'vue'
-import { useCartStore, useLocationStore, useSucursales, useAssets } from '../stores/cartStores.js'
+import { useCartStore, useLocationStore, useSucursales, useAssets, useDescuentoGlobalStore } from '../stores/cartStores.js'
 import { cargarCoinIcon } from '../composable/useCoinIcon.js'
+import { cargarDescuentoGlobal } from '../composable/useDescuentoGlobal.js'
+import { precioItemConDescuento, aplicarDescuentoGlobal, esPromocion } from '../composable/descuentos.js'
 import { db, auth } from '../firebase.js'
 import { doc, getDoc, updateDoc, increment } from 'firebase/firestore'
 import { getFunctions, httpsCallable } from 'firebase/functions'
@@ -487,7 +496,9 @@ const cartStore = useCartStore()
 const locationStore = useLocationStore()
 const sucursalesStore = useSucursales()
 const assets = useAssets()
+const descuentoGlobalStore = useDescuentoGlobalStore()
 cargarCoinIcon()
+cargarDescuentoGlobal()
 
 const ahora = new Date()
 const hoy = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`
@@ -561,35 +572,44 @@ watch(hayMerchandising, (val) => {
   }
 })
 
+const bebidaItemCash = (item) => (item.bebida && !bebidaPuntosMap[item._uid]) ? item.bebida.precio : 0
+const agrandarItemCash = (item) => (agrandarMap[item._uid] && !agrandarPuntosMap[item._uid]) ? AGRANDAR_COSTO : 0
+const extraItemCash = (item) => item.extra ? Number(item.extra.monto) : 0
+
 const baseCashTotal = computed(() => {
   return cartStore.items.reduce((acc, item) => {
-    if (item.esCanje) return acc
-    return acc + item.precio * item.cantidad
+    if (item.esCanje || esPromocion(item)) return acc
+    return acc + precioItemConDescuento(item, descuentoGlobalStore) * item.cantidad
   }, 0)
 })
 
 const totalBebidasCash = computed(() => {
   return cartStore.items.reduce((acc, item) => {
-    if (item.bebida && !bebidaPuntosMap[item._uid]) {
-      return acc + (item.bebida.precio * item.cantidad)
-    }
-    return acc
+    if (esPromocion(item)) return acc
+    return acc + bebidaItemCash(item) * item.cantidad
   }, 0)
 })
 
 const totalAgrandarCash = computed(() => {
   return cartStore.items.reduce((acc, item) => {
-    if (agrandarMap[item._uid] && !agrandarPuntosMap[item._uid]) {
-      return acc + (AGRANDAR_COSTO * item.cantidad)
-    }
-    return acc
+    if (esPromocion(item)) return acc
+    return acc + agrandarItemCash(item) * item.cantidad
+  }, 0)
+})
+
+// Las promociones ya traen su propio descuento incluido en el precio — el %
+// de descuento global no se les aplica encima, para no descontarlas dos veces.
+const promoTotal = computed(() => {
+  return cartStore.items.reduce((acc, item) => {
+    if (item.esCanje || !esPromocion(item)) return acc
+    return acc + (precioItemConDescuento(item, descuentoGlobalStore) + bebidaItemCash(item) + agrandarItemCash(item) + extraItemCash(item)) * item.cantidad
   }, 0)
 })
 
 const totalExtraCash = computed(() => {
   return cartStore.items.reduce((acc, item) => {
-    if (item.extra) return acc + (Number(item.extra.monto) * item.cantidad)
-    return acc
+    if (esPromocion(item)) return acc
+    return acc + extraItemCash(item) * item.cantidad
   }, 0)
 })
 
@@ -609,9 +629,15 @@ const totalCoinsAGastar = computed(() => {
   return coins
 })
 
-const cashTotalSinEnvio = computed(() => {
-  return baseCashTotal.value + totalBebidasCash.value + totalExtraCash.value + totalAgrandarCash.value
+const cashTotalSinDescuento = computed(() => {
+  return baseCashTotal.value + totalBebidasCash.value + totalAgrandarCash.value + totalExtraCash.value
 })
+
+const cashTotalConDescuento = computed(() => aplicarDescuentoGlobal(cashTotalSinDescuento.value, descuentoGlobalStore))
+
+const cashTotalSinEnvio = computed(() => cashTotalConDescuento.value + promoTotal.value)
+
+const montoDescuento = computed(() => cashTotalSinDescuento.value - cashTotalConDescuento.value)
 
 const distancia = computed(() => {
   return parseFloat(locationStore.distancia) || 0
@@ -739,9 +765,9 @@ const abrirEnMaps = () => {
 const armarLineaItem = (item) => {
   let linea = item.esCanje
     ? `• ${item.nombre} x${item.cantidad} (🪙 ${item.puntosCanje * item.cantidad})`
-    : `• ${item.nombre} x${item.cantidad} — ₡${item.precio * item.cantidad}`
-  if (item.descuento) {
-    linea += ` (🏷️ -${item.descuento.porcentaje}%, antes ₡${item.precioOriginal * item.cantidad})`
+    : `• ${item.nombre} x${item.cantidad} — ₡${precioItemConDescuento(item, descuentoGlobalStore) * item.cantidad}`
+  if (!descuentoGlobalStore.activo && item.descuento) {
+    linea += ` (🏷️ -${item.descuento}%, antes ₡${item.precio * item.cantidad})`
   }
   if (item.bebida) {
     const esCanje = bebidaPuntosMap[item._uid]
@@ -891,8 +917,7 @@ const confirmarPedido = async () => {
       } : null,
       bebidaEspecifica: item.bebidaEspecifica ? { nombre: item.bebidaEspecifica.nombre } : null,
       extra: item.extra ? { nombre: item.extra.nombre, monto: item.extra.monto } : null,
-      descuento: item.descuento ? { porcentaje: item.descuento.porcentaje } : null,
-      precioOriginal: item.descuento ? item.precioOriginal : null,
+      descuento: item.descuento || null,
       papasConSalsa: item.papasConSalsa || false,
       salsasAlitas: item.salsasAlitas || [],
       proteinaSel: item.proteinaSel || null,
