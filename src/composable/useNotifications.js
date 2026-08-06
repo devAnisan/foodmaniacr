@@ -1,6 +1,15 @@
-import { getToken, onMessage } from 'firebase/messaging'
 import { doc, setDoc } from 'firebase/firestore'
-import { messaging, db, VAPID_KEY } from '../firebase.js'
+import { app, db, VAPID_KEY } from '../firebase.js'
+
+// firebase/messaging solo se carga cuando realmente se usa (notificaciones push),
+// para que no pese en el bundle inicial de páginas que nunca lo necesitan.
+let messagingPromise = null
+const getMessagingInstance = () => {
+  if (!messagingPromise) {
+    messagingPromise = import('firebase/messaging').then(({ getMessaging }) => getMessaging(app))
+  }
+  return messagingPromise
+}
 
 export function useNotifications() {
 
@@ -21,6 +30,7 @@ export function useNotifications() {
     const permission = await Notification.requestPermission()
     if (permission !== 'granted') return null
 
+    const [{ getToken }, messaging] = await Promise.all([import('firebase/messaging'), getMessagingInstance()])
     const token = await getToken(messaging, { vapidKey: VAPID_KEY })
     if (!token) return null
 
@@ -32,7 +42,8 @@ export function useNotifications() {
     return token
   }
 
-  const escucharMensajes = (onMessageReceived) => {
+  const escucharMensajes = async (onMessageReceived) => {
+    const [{ onMessage }, messaging] = await Promise.all([import('firebase/messaging'), getMessagingInstance()])
     return onMessage(messaging, (payload) => {
       if (onMessageReceived) onMessageReceived(payload)
     })

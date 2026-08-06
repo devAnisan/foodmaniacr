@@ -29,9 +29,8 @@
 import { ref as vueRef, onMounted, onUnmounted } from "vue"
 import { useRouter } from "vue-router"
 import { auth, db } from "../firebase.js"
-import { onAuthStateChanged, signOut } from "firebase/auth"
+import { onAuthStateChanged } from "firebase/auth"
 import { doc, getDoc } from "firebase/firestore"
-import { useCartStore } from "../stores/cartStores.js"
 
 const router = useRouter()
 const user = vueRef(null)
@@ -40,16 +39,7 @@ const esAdmin = vueRef(false)
 const emit = defineEmits(["open-login"])
 
 const openLogin = () => {
-  if (user.value) {
-    cerrarSesion()
-  } else {
-    emit("open-login")
-  }
-}
-
-const cerrarSesion = async () => {
-  useCartStore().items = []
-  await signOut(auth)
+  emit("open-login")
 }
 
 const irAAdmin = () => {

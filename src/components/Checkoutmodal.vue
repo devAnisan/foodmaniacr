@@ -256,8 +256,21 @@
                 </div>
               </div>
               <div class="mt-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
-                <p class="text-sm font-bold text-yellow-800">🔐 Iniciá sesión o registrate</p>
-                <p class="text-xs text-yellow-700 mt-1">Acumulá ManiaCoins, canjeá premios y obtené beneficios exclusivos</p>
+                <p class="text-sm font-bold text-yellow-800 mb-2">🔐 Iniciá sesión o registrate</p>
+                <div class="flex gap-1.5">
+                  <div class="flex-1 bg-white border border-yellow-200 rounded-lg py-1.5 px-1 flex flex-col items-center gap-0.5">
+                    <span class="text-sm">🪙</span>
+                    <span class="text-[9px] font-bold text-yellow-800 leading-tight">Acumulá coins</span>
+                  </div>
+                  <div class="flex-1 bg-white border border-yellow-200 rounded-lg py-1.5 px-1 flex flex-col items-center gap-0.5">
+                    <span class="text-sm">🎁</span>
+                    <span class="text-[9px] font-bold text-yellow-800 leading-tight">Canjeá premios</span>
+                  </div>
+                  <div class="flex-1 bg-white border border-yellow-200 rounded-lg py-1.5 px-1 flex flex-col items-center gap-0.5">
+                    <span class="text-sm">⭐</span>
+                    <span class="text-[9px] font-bold text-yellow-800 leading-tight">Beneficios extra</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -297,6 +310,11 @@
             <p v-if="hayMerchandising" class="text-xs text-gray-400 mt-2">
               📦 Merchandising: solo se puede retirar en sucursal.
             </p>
+            <p class="bg-blue-50 border border-blue-200 text-blue-700 rounded-xl p-3 text-sm text-center font-bold mt-3">
+              ⏱️ {{ withDrawType === 'sucursal'
+                ? 'Esperá un mínimo de 25 minutos antes de pasar a retirar tu pedido.'
+                : 'Esperá un mínimo de 25 minutos, nos pondremos en contacto contigo para coordinar la entrega a domicilio.' }}
+            </p>
           </div>
 
           <!-- Datos según tipo de retiro -->
@@ -333,7 +351,13 @@
               </div>
               <div>
                 <label class="text-sm text-gray-500 block mb-1">¿Qué día pasarás?</label>
-                <input v-model="fechaRetiro" type="date" :min="hoy" class="w-full p-2 border rounded-lg" />
+                <div class="flex gap-2">
+                  <input v-model="fechaRetiro" type="date" :min="hoy" class="flex-1 p-2 border rounded-lg" />
+                  <button type="button" @click="fechaRetiro = hoy"
+                    class="px-3 py-2 border-2 border-[var(--primary)] rounded-lg text-sm font-bold text-[var(--primary)] hover:bg-purple-50 transition-colors hover:cursor-pointer whitespace-nowrap">
+                    Hoy
+                  </button>
+                </div>
               </div>
               <div>
                 <label class="text-sm text-gray-500 block mb-1">¿A qué hora pasarás?</label>
@@ -419,9 +443,10 @@
               <p class="text-gray-500 mt-2">Enviá el comprobante por WhatsApp al finalizar 📲</p>
             </div>
 
-            <p v-if="withDrawType === 'sucursal'"
-              class="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg p-2 mt-4 text-center">
-              ℹ️ En retiro en tienda, el pago es únicamente en efectivo o SINPE Móvil.
+            <p class="bg-blue-50 border border-blue-200 text-blue-700 rounded-xl p-3 text-sm text-center font-bold mt-4">
+              ℹ️ {{ withDrawType === 'sucursal'
+                ? 'En retiro en tienda, el pago es únicamente en efectivo o SINPE Móvil.'
+                : 'En entregas a domicilio, el pago es únicamente en efectivo o SINPE Móvil al recibir tu pedido.' }}
             </p>
           </div>
 
@@ -437,12 +462,8 @@
 
           <!-- Avisos finales -->
           <div class="px-5 pb-5 flex flex-col gap-3">
-            <p class="bg-gray-50 border border-gray-200 text-gray-600 rounded-xl p-3 text-sm text-center font-bold">
-              💵📱 Los precios mostrados aplican únicamente para pagos en Efectivo o SINPE Móvil.
-            </p>
             <p class="bg-blue-50 border border-blue-200 text-blue-700 rounded-xl p-3 text-sm text-center font-bold">
-              ⏱️ Esperá un mínimo de 25 minutos antes de
-              {{ withDrawType === 'sucursal' ? 'pasar a retirar tu pedido' : 'que llegue a domicilio' }}.
+              💵📱 Los precios mostrados aplican únicamente para pagos en Efectivo o SINPE Móvil.
             </p>
           </div>
 

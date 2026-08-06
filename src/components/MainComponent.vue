@@ -14,12 +14,12 @@
                 <img class="w-16" :src="imageUrl" alt="Foodmania Logo" />
             </section>
             <section>
-                <span class="material-symbols-outlined hover:cursor-pointer" @click="menuOpen = !menuOpen">
+                <span class="material-symbols-outlined hover:cursor-pointer" @click="toggleMobileMenu">
                     menu
                 </span>
             </section>
         </nav>
-        <Dropmenu class="z-50" v-show="menuOpen" @open-login="openLogin" />
+        <Dropmenu class="z-50" v-show="menuOpen" @open-login="handleOpenLogin" />
         <!-- Pantallas medianas -->
         <nav class="hidden md:flex items-center justify-between p-4 shadow-sm">
             <section class="flex items-center space-x-2 hover:cursor-pointer">
@@ -38,7 +38,7 @@
                     class="border border-green-500 text-green-600 px-3 py-1.5 rounded-full text-sm font-bold hover:bg-green-50 transition-colors hover:cursor-pointer">
                     Admin
                 </button>
-                <button @click="openLogin"
+                <button @click="handleOpenLogin"
                     class="border px-4 py-2 rounded-full hover:cursor-pointer font-bold hover:bg-gray-50 transition-colors">
                     {{ user ? user.email.split('@')[0] : "Inicia sesión" }}
                 </button>
@@ -48,147 +48,9 @@
                 </RouterLink>
             </section>
         </nav>
-        <!-- Modal de inicio de sesión -->
-        <div v-if="menuLogIn" class="fixed inset-0 z-60 bg-black/50 h-full w-full flex items-center justify-center">
-            <div class="rounded-3xl shadow-2xl z-80 w-80 bg-white fontColor overflow-hidden">
-                <section class="flex justify-between items-center bg-gradient-to-r from-[var(--primary)] to-[var(--primary-dark)] px-5 py-4">
-                    <span class="text-lg font-bold text-white">{{ showCompleteProfile ? 'Completá tu perfil' : showVerifyCode ? 'Verificá tu correo' : 'Iniciar Sesión' }}</span>
-                    <button @click="menuLogIn = false; forgotPassword = false; justLogin = true; resetState()"
-                        class="text-white/80 hover:text-white p-1 rounded hover:cursor-pointer">
-                        <span class="pi pi-times"></span>
-                    </button>
-                </section>
+        <AuthModal :auth="auth" :image-url="imageUrl" />
 
-                <!-- Código de verificación -->
-                <section v-if="showVerifyCode" class="flex flex-col p-6 text-center gap-4">
-                    <p class="text-sm text-green-600 font-bold">{{ successMsg }}</p>
-                    <p class="text-sm text-gray-500">Ingresá el código de 6 dígitos que te enviamos</p>
-                    <input v-model="codigoInput" type="text" maxlength="6" placeholder="000000" :disabled="isLoading"
-                        class="p-2 border w-full rounded-lg text-center text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-[var(--primary)] disabled:opacity-60" />
-                    <p v-if="errorMsg" class="text-red-500 text-sm">{{ errorMsg }}</p>
-                    <button @click="verificarCodigo" :disabled="isLoading"
-                        class="bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
-                        {{ isLoading ? 'Cargando...' : 'Verificar código' }}
-                    </button>
-                    <button @click="register(email, password1, password2)" :disabled="isLoading"
-                        class="text-sm text-[var(--primary)] hover:cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
-                        Reenviar código
-                    </button>
-                </section>
-
-                <!-- Completar perfil -->
-                <section v-else-if="showCompleteProfile" class="flex flex-col p-6 text-center gap-4">
-                    <p class="text-sm text-green-600 font-bold">{{ successMsg }}</p>
-                    <p class="text-sm text-gray-500">Contanos de vos para terminar</p>
-                    <input v-model="datosNuevos.nombre" type="text" placeholder="Nombre completo"
-                        class="p-2 border w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
-                    <input v-model="datosNuevos.telefono" type="tel" placeholder="Teléfono"
-                        class="p-2 border w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
-                    <input v-model="datosNuevos.direccion" type="text" placeholder="Dirección"
-                        class="p-2 border w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
-                    <label class="text-sm text-gray-500 text-left block -mb-2">🎂 Fecha de cumpleaños</label>
-                    <input v-model="datosNuevos.cumpleanos" type="date"
-                        class="p-2 border w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
-                    <button @click="obtenerUbicacionPerfil" :disabled="isLoading"
-                        class="w-full py-2 border-2 border-dashed border-[var(--primary)] rounded-lg text-[var(--primary)] font-bold hover:bg-purple-50 transition-colors hover:cursor-pointer text-sm disabled:opacity-60 disabled:cursor-not-allowed">
-                        <span v-if="isLoading" class="pi pi-spinner animate-spin"></span>
-                        {{ isLoading ? 'Cargando...' : '📍 Usar mi ubicación actual' }}
-                    </button>
-                    <p v-if="errorMsg" class="text-red-500 text-sm">{{ errorMsg }}</p>
-                    <button @click="completarPerfil" :disabled="isLoading"
-                        class="bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
-                        {{ isLoading ? 'Cargando...' : 'Finalizar' }}
-                    </button>
-                </section>
-
-                <!-- Login / Register -->
-                <section v-else class="flex flex-col p-6 text-center gap-4">
-                    <img :src="imageUrl" alt="logo_foodmania" class="w-20 mx-auto -mt-10 mb-2 rounded-full border-4 border-white shadow-lg bg-white" />
-                    <div class="relative">
-                        <span class="pi pi-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></span>
-                        <input v-model="email" @input="emailEnUso = false" type="email" placeholder="Correo electrónico"
-                            class="pl-9 p-2 border w-full rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
-                    </div>
-                    <section v-if="justLogin && !forgotPassword">
-                        <div class="relative">
-                            <span class="pi pi-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></span>
-                            <input v-model="password1" type="password" placeholder="Contraseña"
-                                class="pl-9 p-2 w-full border rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
-                        </div>
-                    </section>
-                    <section class="flex flex-col gap-2" v-else-if="!justLogin && !forgotPassword">
-                        <div class="relative">
-                            <span class="pi pi-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></span>
-                            <input v-model="password1" type="password" placeholder="Crear contraseña"
-                                class="pl-9 p-2 border rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
-                        </div>
-                        <div class="relative">
-                            <span class="pi pi-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></span>
-                            <input v-model="password2" type="password" placeholder="Confirmar contraseña"
-                                class="pl-9 p-2 border rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-[var(--primary)]" />
-                        </div>
-                        <p class="text-xs text-red-500">Mínimo 8 caracteres, mayúscula, minúscula y número.</p>
-                    </section>
-                    <p v-if="successMsg" class="text-green-500 text-sm">{{ successMsg }}</p>
-                    <p v-if="errorMsg" class="text-red-500 text-sm">
-                        {{ errorMsg }}
-                        <a v-if="emailEnUso" href="#" @click="justLogin = true; forgotPassword = false; emailEnUso = false; errorMsg = ''"
-                            class="text-[var(--primary)] font-bold underline">Iniciá sesión</a>
-                    </p>
-                    <button v-if="justLogin && !forgotPassword" @click="login(email, password1)" :disabled="isLoading"
-                        class="bg-[var(--accent)] text-white px-4 py-2 rounded-xl font-bold hover:bg-[var(--accent-dark)] transition-colors hover:cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
-                        {{ isLoading ? 'Cargando...' : 'Iniciar sesión' }}
-                    </button>
-                    <button v-else-if="!justLogin && !forgotPassword" @click="register(email, password1, password2)" :disabled="isLoading"
-                        class="bg-[var(--accent)] text-white px-4 py-2 rounded-xl font-bold hover:bg-[var(--accent-dark)] transition-colors hover:cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
-                        {{ isLoading ? 'Cargando...' : 'Crear cuenta' }}
-                    </button>
-                    <button v-if="forgotPassword" @click="resetPassword(email)" :disabled="isLoading"
-                        class="bg-[var(--accent)] text-white px-4 py-2 rounded-xl font-bold hover:bg-[var(--accent-dark)] transition-colors hover:cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
-                        {{ isLoading ? 'Cargando...' : 'Enviar correo de recuperación' }}
-                    </button>
-                </section>
-                <section v-if="justLogin && !showVerifyCode && !showCompleteProfile" class="text-center text-sm border-t px-5 pt-4 pb-5">
-                    <p class="text-gray-600">¿No tenés cuenta? <a href="#"
-                            @click="justLogin = false; forgotPassword = false"
-                            class="text-[var(--primary)] font-bold">Regístrate</a></p>
-                    <button class="text-[var(--primary)] text-sm mt-2 hover:cursor-pointer"
-                        @click="forgotPassword = true">¿Olvidaste tu contraseña?</button>
-                </section>
-                <section v-if="!justLogin && !showVerifyCode && !showCompleteProfile" class="text-center text-sm border-t px-5 pt-4 pb-5">
-                    <p class="text-gray-600">¿Ya tenés cuenta? <a href="#" @click="justLogin = true"
-                            class="text-[var(--primary)] font-bold">Iniciá sesión</a></p>
-                </section>
-            </div>
-        </div>
-
-        <!-- Modal usuario -->
-        <section v-if="showUserModal && user"
-            class="fixed top-20 right-4 z-90 bg-white p-4 rounded-2xl shadow-xl fontColor w-64 text-center">
-            <section class="flex justify-between border-b p-2 mb-3">
-                <span class="font-bold">Hola, {{ user.email.split('@')[0] }} 👋</span>
-                <span class="pi pi-times text-red-500 hover:cursor-pointer" @click="showUserModal = false"></span>
-            </section>
-            <section class="flex flex-col items-center gap-3">
-                <span class="text-sm text-gray-500">{{ user.email }}</span>
-                <span> </span>
-                <span class="text-sm font-bold">{{ user.emailVerified ? '✅ Email verificado' : '⚠️ Email no verificado'
-                }}</span>
-                <div v-if="cumpleanosFormateado" class="bg-gradient-to-r from-pink-50 to-red-50 border border-pink-200 rounded-lg px-4 py-2 w-full">
-                    <div class="flex items-center justify-center gap-2">
-                        <span class="text-lg">🎂</span>
-                        <span class="font-bold text-pink-600">{{ cumpleanosFormateado }}</span>
-                    </div>
-                    <p v-if="esCumpleanosHoy" class="text-xs text-red-500 font-bold text-center mt-1">
-                        🎉 ¡Feliz cumpleaños! Hoy tenés beneficios especiales
-                    </p>
-                </div>
-                <button @click="cerrarSesion"
-                    class="w-full bg-[var(--primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--primary-dark)] transition-colors hover:cursor-pointer">
-                    Cerrar sesión
-                </button>
-            </section>
-        </section>
+        <UserProfileModal :auth="auth" :cumpleanos-formateado="cumpleanosFormateado" :es-cumpleanos-hoy="esCumpleanosHoy" />
     </header>
 
     <main v-if="!loader" @click="menuOpen = false" class="fontColor pt-20 md:pt-28">
@@ -299,6 +161,8 @@ import Footer from "./Footer.vue";
 import MartesFoodManiacos from "./MartesFoodManiacos.vue";
 import InstallPWAPrompt from "./InstallPWAPrompt.vue";
 import NotificationBanner from "./NotificationBanner.vue";
+import AuthModal from "./AuthModal.vue";
+import UserProfileModal from "./UserProfileModal.vue";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "../firebase.js";
 import { esCumpleanos, formatearCumpleanos } from "../utils/maniacoins.js";
@@ -313,14 +177,11 @@ const locationStore = useLocationStore()
 const sucursalesStore = useSucursales()
 cargarDescuentoGlobal()
 
+const auth = useAuth()
 const {
-    user, esAdmin, showUserModal, menuLogIn, justLogin, forgotPassword,
-    email, password1, password2, successMsg, errorMsg, isLoading, emailEnUso,
-    showVerifyCode, showCompleteProfile, codigoInput, datosNuevos,
-    openLogin, cerrarSesion, resetPassword, register, login,
-    verificarCodigo, completarPerfil, obtenerUbicacionPerfil, resetState,
-    verificarAdmin, initAuthListener
-} = useAuth()
+    user, esAdmin, showUserModal, menuLogIn,
+    openLogin, verificarAdmin, initAuthListener
+} = auth
 
 const sucursales = vueRef([]);
 const loaderBranchSection = vueRef(false);
@@ -333,6 +194,22 @@ const branchSectionShow = vueRef(false);
 
 const irAAdmin = () => {
     router.push("/adminControl")
+}
+
+// ── Overlays del header: solo uno visible a la vez ──────────────────────────
+const toggleMobileMenu = () => {
+    if (menuOpen.value) {
+        menuOpen.value = false
+    } else {
+        menuLogIn.value = false
+        showUserModal.value = false
+        menuOpen.value = true
+    }
+}
+
+const handleOpenLogin = () => {
+    menuOpen.value = false
+    openLogin()
 }
 
 const cumpleanosUsuario = vueRef('')
