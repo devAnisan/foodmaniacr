@@ -27,7 +27,7 @@
         <p>&copy; {{ GetYear  }} Foodmania. Todos los derechos reservados.</p>
         <p class="text-white/50">v{{ version }}</p>
         <p>
-          Desarrollado por Daniel Mejía |
+          Desarrollado por Daniel Mejía (Anisan) ·
           <a
             href="https://github.com/devAnisan"
             target="_blank"
@@ -35,6 +35,15 @@
             class="text-white hover:underline"
           >
             GitHub
+          </a>
+          ·
+          <a
+            href="https://portfolio-anisan.vercel.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-white hover:underline"
+          >
+            Portfolio
           </a>
         </p>
       </div>

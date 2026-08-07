@@ -350,6 +350,36 @@
                 </select>
               </div>
               <div>
+                <label class="text-sm text-gray-500 block mb-1">¿Para llevar o para comer en el local?</label>
+                <div class="flex gap-2">
+                  <button type="button" @click="modalidadSucursal = 'llevar'"
+                    :class="modalidadSucursal === 'llevar' ? 'bg-[var(--primary)] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
+                    class="flex-1 py-2 rounded transition-colors duration-300 hover:cursor-pointer">
+                    🥡 Para llevar
+                  </button>
+                  <button type="button" @click="modalidadSucursal = 'comer'"
+                    :class="modalidadSucursal === 'comer' ? 'bg-[var(--primary)] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
+                    class="flex-1 py-2 rounded transition-colors duration-300 hover:cursor-pointer">
+                    🍽️ Comer en el local
+                  </button>
+                </div>
+              </div>
+              <div v-if="modalidadSucursal === 'comer'">
+                <label class="text-sm text-gray-500 block mb-1">¿Ya estás en el local?</label>
+                <div class="flex gap-2">
+                  <button type="button" @click="estadoLlegada = 'en_local'"
+                    :class="estadoLlegada === 'en_local' ? 'bg-[var(--primary)] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
+                    class="flex-1 py-2 rounded transition-colors duration-300 hover:cursor-pointer">
+                    📍 Estoy en el local
+                  </button>
+                  <button type="button" @click="estadoLlegada = 'en_camino'"
+                    :class="estadoLlegada === 'en_camino' ? 'bg-[var(--primary)] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
+                    class="flex-1 py-2 rounded transition-colors duration-300 hover:cursor-pointer">
+                    🚗 Estoy por llegar
+                  </button>
+                </div>
+              </div>
+              <div>
                 <label class="text-sm text-gray-500 block mb-1">¿Qué día pasarás?</label>
                 <div class="flex gap-2">
                   <input v-model="fechaRetiro" type="date" :min="hoy" class="flex-1 p-2 border rounded-lg" />
@@ -539,6 +569,8 @@ const withDrawType = vueRef('sucursal')
 const sucursalSeleccionada = vueRef('')
 const fechaRetiro = vueRef('')
 const horaRetiro = vueRef('')
+const modalidadSucursal = vueRef('llevar') // 'llevar' | 'comer' — solo aplica con retiro en sucursal
+const estadoLlegada = vueRef('en_local') // 'en_local' | 'en_camino' — solo aplica si modalidadSucursal === 'comer'
 const metodoPago = vueRef('efectivo')
 const montoEfectivo = vueRef('')
 const nCelular = vueRef('')
@@ -963,6 +995,10 @@ const confirmarPedido = async () => {
       sucursal: withDrawType.value === 'sucursal' ? sucursalSeleccionada.value : null,
       fechaRetiro: withDrawType.value === 'sucursal' ? fechaRetiro.value : null,
       horaRetiro: withDrawType.value === 'sucursal' ? horaRetiro.value : null,
+      comerEnLocal: withDrawType.value === 'sucursal' && modalidadSucursal.value === 'comer',
+      estadoLlegada: withDrawType.value === 'sucursal' && modalidadSucursal.value === 'comer'
+        ? estadoLlegada.value
+        : null,
       direccion: withDrawType.value === 'domicilio' ? datosCliente.value.direccion : null,
       ubicacionLat: datosCliente.value.lat || null,
       ubicacionLng: datosCliente.value.lng || null,

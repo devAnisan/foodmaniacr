@@ -258,6 +258,11 @@
                                     🏪 {{ pedido.sucursal }}<br />
                                     <span class="text-xs text-gray-400">{{ pedido.fechaRetiro }} {{ pedido.horaRetiro
                                     }}</span>
+                                    <span v-if="pedido.comerEnLocal"
+                                        class="block text-xs font-bold"
+                                        :class="pedido.estadoLlegada === 'en_local' ? 'text-green-600' : 'text-amber-600'">
+                                        🍽️ {{ pedido.estadoLlegada === 'en_local' ? 'Ya está en el local' : 'Por llegar' }}
+                                    </span>
                                 </span>
                                 <span v-else>
                                     🛵 Domicilio<br />
@@ -325,6 +330,10 @@
                         <p>💰 Total: <strong class="text-[var(--primary)]">₡{{ pedido.total }}</strong></p>
                         <p class="flex items-center gap-1"><img :src="assets.coinIconUrl" alt="ManiaCoins" class="w-4 h-4 inline-block" /> ManiaCoins: {{ pedido.puntosGanados || 0 }} <span v-if="pedido.puntosCanjeados" class="text-red-500">🔥 -{{ pedido.puntosCanjeados }}</span></p>
                         <p>{{ pedido.tipoRetiro === 'sucursal' ? `🏪 ${pedido.sucursal}` : `🛵 ${pedido.direccion}` }}
+                        </p>
+                        <p v-if="pedido.comerEnLocal" class="font-bold"
+                            :class="pedido.estadoLlegada === 'en_local' ? 'text-green-600' : 'text-amber-600'">
+                            🍽️ {{ pedido.estadoLlegada === 'en_local' ? 'Ya está en el local' : 'Por llegar' }}
                         </p>
                         <p class="text-xs text-gray-400">{{ formatearFecha(pedido.creadoEn) }}</p>
                     </div>
@@ -459,6 +468,10 @@
                             <p>🏪 {{ pedidoDetalle.sucursal }}</p>
                             <p class="text-sm text-gray-500">📅 {{ pedidoDetalle.fechaRetiro }} — 🕐 {{
                                 pedidoDetalle.horaRetiro }}</p>
+                            <p v-if="pedidoDetalle.comerEnLocal" class="text-sm font-bold"
+                                :class="pedidoDetalle.estadoLlegada === 'en_local' ? 'text-green-600' : 'text-amber-600'">
+                                🍽️ Come en el local — {{ pedidoDetalle.estadoLlegada === 'en_local' ? 'ya está ahí' : 'está por llegar' }}
+                            </p>
                         </div>
                         <div v-else>
                             <p>🛵 Domicilio</p>
@@ -1018,10 +1031,15 @@ const imprimirPedido = (pedido) => {
         return
     }
 
+    const comerEnLocalHtml = pedido.comerEnLocal
+        ? `<div class="fila-simple"><strong>🍽️ COME EN EL LOCAL — ${pedido.estadoLlegada === 'en_local' ? 'YA ESTÁ AHÍ' : 'POR LLEGAR'}</strong></div>`
+        : ''
+
     const retiroHtml = pedido.tipoRetiro === 'sucursal'
         ? `<div class="fila"><span>Retiro</span><span>Sucursal</span></div>
            <div class="fila-simple">${escapeHtml(pedido.sucursal)}</div>
-           <div class="fila-simple">${escapeHtml(pedido.fechaRetiro)} ${escapeHtml(pedido.horaRetiro)}</div>`
+           <div class="fila-simple">${escapeHtml(pedido.fechaRetiro)} ${escapeHtml(pedido.horaRetiro)}</div>
+           ${comerEnLocalHtml}`
         : `<div class="fila"><span>Retiro</span><span>Domicilio</span></div>
            <div class="fila-simple">${escapeHtml(pedido.direccion)}</div>`
 
