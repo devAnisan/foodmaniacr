@@ -1,0 +1,214 @@
+{
+  "generadoEn": "2026-08-07T02:15:55.460Z",
+  "lanzamientoOficial": "2026-08-03T06:00:00.000Z",
+  "totales": {
+    "clientes": 174,
+    "pedidos": 22,
+    "pedidosAntesDeLanzamiento": 0,
+    "clientesConCoins": 16
+  },
+  "sinPedidosDesdeEstreno": [
+    {
+      "uid": "USID6jbuJwVMvUjNsvxL6QZKdd12",
+      "email": "hernandezyasiel211@gmail.com",
+      "puntosActuales": 924,
+      "totalPedidos": 0,
+      "pedidosFinalizados": 0,
+      "sumaPuntosGanados": 0,
+      "sumaPuntosCanjeados": 0,
+      "saldoEsperado": 0,
+      "discrepancia": 924
+    }
+  ],
+  "conDiscrepancia": [
+    {
+      "uid": "1zoYxlxBokdQbqcBDwzP4AS31IH3",
+      "email": "derricks1898@gmail.com",
+      "puntosActuales": 164,
+      "totalPedidos": 1,
+      "pedidosFinalizados": 1,
+      "sumaPuntosGanados": 82,
+      "sumaPuntosCanjeados": 0,
+      "saldoEsperado": 82,
+      "discrepancia": 82
+    }
+  ],
+  "detalleTodos": [
+    {
+      "uid": "1zoYxlxBokdQbqcBDwzP4AS31IH3",
+      "email": "derricks1898@gmail.com",
+      "puntosActuales": 164,
+      "totalPedidos": 1,
+      "pedidosFinalizados": 1,
+      "sumaPuntosGanados": 82,
+      "sumaPuntosCanjeados": 0,
+      "saldoEsperado": 82,
+      "discrepancia": 82
+    },
+    {
+      "uid": "5LUVXbPlLVc44J0bsxUP1qxuDYP2",
+      "email": "warnerruizchaves@gmail.com",
+      "puntosActuales": 356,
+      "totalPedidos": 1,
+      "pedidosFinalizados": 1,
+      "sumaPuntosGanados": 356,
+      "sumaPuntosCanjeados": 0,
+      "saldoEsperado": 356,
+      "discrepancia": 0
+    },
+    {
+      "uid": "IuucccR1RoZNtKjSnP6hZ5GK6d93",
+      "email": "lisbethbs44@gmail.com",
+      "puntosActuales": 218,
+      "totalPedidos": 1,
+      "pedidosFinalizados": 1,
+      "sumaPuntosGanados": 218,
+      "sumaPuntosCanjeados": 0,
+      "saldoEsperado": 218,
+      "discrepancia": 0
+    },
+    {
+      "uid": "JYHq6c9zeHSqki20Mbs7sjEMjLg1",
+      "email": "keyesquivelnun123@gmail.com",
+      "puntosActuales": 70,
+      "totalPedidos": 1,
+      "pedidosFinalizados": 1,
+      "sumaPuntosGanados": 70,
+      "sumaPuntosCanjeados": 0,
+      "saldoEsperado": 70,
+      "discrepancia": 0
+    },
+    {
+      "uid": "Je4Ka2F7oVbhlQpVNiinQUZogmt2",
+      "email": "allenguzman1622@gmail.com",
+      "puntosActuales": 245,
+      "totalPedidos": 2,
+      "pedidosFinalizados": 2,
+      "sumaPuntosGanados": 245,
+      "sumaPuntosCanjeados": 0,
+      "saldoEsperado": 245,
+      "discrepancia": 0
+    },
+    {
+      "uid": "Li0ORVFJhyPU7BKZZ8sNDf6z5tS2",
+      "email": "hada.vianca@hotmail.com",
+      "puntosActuales": 142,
+      "totalPedidos": 1,
+      "pedidosFinalizados": 1,
+      "sumaPuntosGanados": 142,
+      "sumaPuntosCanjeados": 0,
+      "saldoEsperado": 142,
+      "discrepancia": 0
+    },
+    {
+      "uid": "RxxUg5HhVvbmQ0XaJskmHeavpHD3",
+      "email": "ricardoadriel086@gmail.com",
+      "puntosActuales": 204,
+      "totalPedidos": 1,
+      "pedidosFinalizados": 1,
+      "sumaPuntosGanados": 204,
+      "sumaPuntosCanjeados": 0,
+      "saldoEsperado": 204,
+      "discrepancia": 0
+    },
+    {
+      "uid": "USID6jbuJwVMvUjNsvxL6QZKdd12",
+      "email": "hernandezyasiel211@gmail.com",
+      "puntosActuales": 924,
+      "totalPedidos": 0,
+      "pedidosFinalizados": 0,
+      "sumaPuntosGanados": 0,
+      "sumaPuntosCanjeados": 0,
+      "saldoEsperado": 0,
+      "discrepancia": 924
+    },
+    {
+      "uid": "WNaWefMp1AVzAoYkWDVSqYGLBVt1",
+      "email": "raquelmiranda165@gmail.com",
+      "puntosActuales": 142,
+      "totalPedidos": 1,
+      "pedidosFinalizados": 1,
+      "sumaPuntosGanados": 142,
+      "sumaPuntosCanjeados": 0,
+      "saldoEsperado": 142,
+      "discrepancia": 0
+    },
+    {
+      "uid": "XqP6pdHRZkXQLyHormorLGbmuxs1",
+      "email": "marcov_775@live.com",
+      "puntosActuales": 278,
+      "totalPedidos": 2,
+      "pedidosFinalizados": 1,
+      "sumaPuntosGanados": 556,
+      "sumaPuntosCanjeados": 0,
+      "saldoEsperado": 556,
+      "discrepancia": -278
+    },
+    {
+      "uid": "bB5WpRSYctWaNZOJ3UEuIMuds6j2",
+      "email": "stephcersa@gmail.com",
+      "puntosActuales": 142,
+      "totalPedidos": 1,
+      "pedidosFinalizados": 1,
+      "sumaPuntosGanados": 142,
+      "sumaPuntosCanjeados": 0,
+      "saldoEsperado": 142,
+      "discrepancia": 0
+    },
+    {
+      "uid": "lD2CleFI9fasF4hv2HR8CN3mBIU2",
+      "email": "iguidocatestilos@gmail.com",
+      "puntosActuales": 148,
+      "totalPedidos": 1,
+      "pedidosFinalizados": 1,
+      "sumaPuntosGanados": 148,
+      "sumaPuntosCanjeados": 0,
+      "saldoEsperado": 148,
+      "discrepancia": 0
+    },
+    {
+      "uid": "mt5TKO0zxpX4aUX4ms5kkHAhxi52",
+      "email": "isma33041@gmail.com",
+      "puntosActuales": 204,
+      "totalPedidos": 1,
+      "pedidosFinalizados": 1,
+      "sumaPuntosGanados": 204,
+      "sumaPuntosCanjeados": 0,
+      "saldoEsperado": 204,
+      "discrepancia": 0
+    },
+    {
+      "uid": "pRqIxXlT2rV9FggYMquDbzs9Q6o2",
+      "email": "kimtaco10@gmail.com",
+      "puntosActuales": 82,
+      "totalPedidos": 1,
+      "pedidosFinalizados": 1,
+      "sumaPuntosGanados": 82,
+      "sumaPuntosCanjeados": 0,
+      "saldoEsperado": 82,
+      "discrepancia": 0
+    },
+    {
+      "uid": "sPmOYjnqnMgqGAiv47HZQWRqH7b2",
+      "email": "roycarvajal.a14@gmail.com",
+      "puntosActuales": 158,
+      "totalPedidos": 1,
+      "pedidosFinalizados": 1,
+      "sumaPuntosGanados": 158,
+      "sumaPuntosCanjeados": 0,
+      "saldoEsperado": 158,
+      "discrepancia": 0
+    },
+    {
+      "uid": "ylb7FtM3J4f6eKeoGws4sSS0Aw13",
+      "email": "mmelany861@gmail.com",
+      "puntosActuales": 100,
+      "totalPedidos": 1,
+      "pedidosFinalizados": 1,
+      "sumaPuntosGanados": 100,
+      "sumaPuntosCanjeados": 0,
+      "saldoEsperado": 100,
+      "discrepancia": 0
+    }
+  ]
+}

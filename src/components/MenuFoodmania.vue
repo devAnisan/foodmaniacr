@@ -873,9 +873,9 @@ const confirmarPersonalizacion = () => {
       precio: bebidaSel.value.precio,
     }
   }
-  if (extraSel.value && itemPersonalizando.value?.extra) {
-    extras.extra = { ...itemPersonalizando.value.extra }
-  }
+  extras.extra = (extraSel.value && itemPersonalizando.value?.extra)
+    ? { ...itemPersonalizando.value.extra }
+    : null
   cartStore.addItem(itemPersonalizando.value, extras)
   cerrarPersonalizador()
 }
